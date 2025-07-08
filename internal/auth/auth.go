@@ -1,0 +1,413 @@
+package auth
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/pkg/browser"
+	"golang.org/x/oauth2"
+)
+
+const (
+	authURL     = "https://launchpad.37signals.com/authorization/new"
+	tokenURL    = "https://launchpad.37signals.com/authorization/token"
+	redirectURL = "http://localhost:8888/callback"
+)
+
+// TokenData represents the stored OAuth token information
+type TokenData struct {
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	TokenType    string    `json:"token_type"`
+	ExpiresIn    int       `json:"expires_in"`
+	ObtainedAt   time.Time `json:"obtained_at"`
+}
+
+// AccountToken represents token data for a specific account
+type AccountToken struct {
+	AccountID    string    `json:"account_id"`
+	AccountName  string    `json:"account_name"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	TokenType    string    `json:"token_type"`
+	ExpiresIn    int       `json:"expires_in"`
+	ObtainedAt   time.Time `json:"obtained_at"`
+}
+
+// AuthStore manages authentication tokens
+type AuthStore struct {
+	DefaultAccount string                  `json:"default_account"`
+	Accounts       map[string]AccountToken `json:"accounts"`
+}
+
+// Client handles OAuth2 authentication
+type Client struct {
+	clientID     string
+	clientSecret string
+	config       *oauth2.Config
+	authStore    *AuthStore
+	storePath    string
+}
+
+// NewClient creates a new auth client
+func NewClient(clientID, clientSecret string) *Client {
+	config := &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  authURL,
+			TokenURL: tokenURL,
+		},
+		RedirectURL: redirectURL,
+		Scopes:      []string{},
+	}
+
+	configDir, _ := os.UserConfigDir()
+	storePath := filepath.Join(configDir, "bc4", "auth.json")
+
+	client := &Client{
+		clientID:     clientID,
+		clientSecret: clientSecret,
+		config:       config,
+		storePath:    storePath,
+	}
+
+	client.loadAuthStore()
+	return client
+}
+
+// Login performs the OAuth2 authentication flow
+func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
+	// Generate state for CSRF protection
+	state := c.generateState()
+
+	// Start local HTTP server for callback
+	codeChan := make(chan string, 1)
+	errorChan := make(chan error, 1)
+	server := c.startCallbackServer(state, codeChan, errorChan)
+	defer server.Shutdown(ctx)
+
+	// Open browser to authorization URL
+	authURL := c.config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	fmt.Printf("Opening browser for authentication...\n")
+	fmt.Printf("If the browser doesn't open, visit this URL:\n%s\n\n", authURL)
+
+	if err := browser.OpenURL(authURL); err != nil {
+		fmt.Printf("Failed to open browser: %v\n", err)
+	}
+
+	// Wait for callback
+	select {
+	case code := <-codeChan:
+		// Exchange code for token
+		token, err := c.config.Exchange(ctx, code)
+		if err != nil {
+			return nil, fmt.Errorf("failed to exchange code: %w", err)
+		}
+
+		// Create account token
+		accountToken := &AccountToken{
+			AccessToken:  token.AccessToken,
+			RefreshToken: token.RefreshToken,
+			TokenType:    token.TokenType,
+			ExpiresIn:    int(token.Expiry.Sub(time.Now()).Seconds()),
+			ObtainedAt:   time.Now(),
+		}
+
+		// Get account info and save token
+		if err := c.fetchAndSaveAccountInfo(ctx, accountToken); err != nil {
+			return nil, err
+		}
+
+		return accountToken, nil
+
+	case err := <-errorChan:
+		return nil, err
+
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
+// Logout removes stored credentials
+func (c *Client) Logout(accountID string) error {
+	if c.authStore == nil {
+		return nil
+	}
+
+	if accountID == "" {
+		// Clear all accounts
+		c.authStore = &AuthStore{
+			Accounts: make(map[string]AccountToken),
+		}
+	} else {
+		// Clear specific account
+		delete(c.authStore.Accounts, accountID)
+		if c.authStore.DefaultAccount == accountID {
+			c.authStore.DefaultAccount = ""
+		}
+	}
+
+	return c.saveAuthStore()
+}
+
+// GetToken returns a valid token for the specified account
+func (c *Client) GetToken(accountID string) (*AccountToken, error) {
+	if c.authStore == nil || c.authStore.Accounts == nil {
+		return nil, fmt.Errorf("no authenticated accounts")
+	}
+
+	// Use default account if none specified
+	if accountID == "" {
+		accountID = c.authStore.DefaultAccount
+	}
+
+	token, exists := c.authStore.Accounts[accountID]
+	if !exists {
+		return nil, fmt.Errorf("account %s not found", accountID)
+	}
+
+	// Check if token is expired
+	if c.isTokenExpired(&token) {
+		// Refresh token
+		refreshed, err := c.refreshToken(&token)
+		if err != nil {
+			return nil, fmt.Errorf("failed to refresh token: %w", err)
+		}
+		token = *refreshed
+		c.authStore.Accounts[accountID] = token
+		c.saveAuthStore()
+	}
+
+	return &token, nil
+}
+
+// GetAccounts returns all authenticated accounts
+func (c *Client) GetAccounts() map[string]AccountToken {
+	if c.authStore == nil {
+		return make(map[string]AccountToken)
+	}
+	return c.authStore.Accounts
+}
+
+// GetDefaultAccount returns the default account ID
+func (c *Client) GetDefaultAccount() string {
+	if c.authStore == nil {
+		return ""
+	}
+	return c.authStore.DefaultAccount
+}
+
+// SetDefaultAccount sets the default account
+func (c *Client) SetDefaultAccount(accountID string) error {
+	if c.authStore == nil {
+		c.authStore = &AuthStore{
+			Accounts: make(map[string]AccountToken),
+		}
+	}
+
+	if _, exists := c.authStore.Accounts[accountID]; !exists {
+		return fmt.Errorf("account %s not found", accountID)
+	}
+
+	c.authStore.DefaultAccount = accountID
+	return c.saveAuthStore()
+}
+
+// Private methods
+
+func (c *Client) generateState() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	return base64.URLEncoding.EncodeToString(b)
+}
+
+func (c *Client) startCallbackServer(state string, codeChan chan<- string, errorChan chan<- error) *http.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		// Verify state
+		if r.URL.Query().Get("state") != state {
+			errorChan <- fmt.Errorf("invalid state parameter")
+			http.Error(w, "Invalid state", http.StatusBadRequest)
+			return
+		}
+
+		// Get authorization code
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			errorChan <- fmt.Errorf("no authorization code received")
+			http.Error(w, "No code received", http.StatusBadRequest)
+			return
+		}
+
+		// Send success response
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintf(w, `
+			<html>
+			<head><title>Authentication Successful</title></head>
+			<body>
+				<h1>Authentication Successful!</h1>
+				<p>You can now close this window and return to the terminal.</p>
+				<script>window.close();</script>
+			</body>
+			</html>
+		`)
+
+		codeChan <- code
+	})
+
+	server := &http.Server{
+		Addr:    ":8888",
+		Handler: mux,
+	}
+
+	go func() {
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			errorChan <- err
+		}
+	}()
+
+	return server
+}
+
+func (c *Client) isTokenExpired(token *AccountToken) bool {
+	expiresAt := token.ObtainedAt.Add(time.Duration(token.ExpiresIn) * time.Second)
+	return time.Now().After(expiresAt.Add(-5 * time.Minute)) // 5 minute buffer
+}
+
+func (c *Client) refreshToken(token *AccountToken) (*AccountToken, error) {
+	if token.RefreshToken == "" {
+		return nil, fmt.Errorf("no refresh token available")
+	}
+
+	// Create form data
+	data := url.Values{}
+	data.Set("type", "refresh")
+	data.Set("refresh_token", token.RefreshToken)
+	data.Set("client_id", c.clientID)
+	data.Set("client_secret", c.clientSecret)
+	data.Set("grant_type", "refresh_token")
+
+	resp, err := http.PostForm(tokenURL, data)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("token refresh failed: %s", resp.Status)
+	}
+
+	var result struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		TokenType    string `json:"token_type"`
+		ExpiresIn    int    `json:"expires_in"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	// Update token
+	token.AccessToken = result.AccessToken
+	if result.RefreshToken != "" {
+		token.RefreshToken = result.RefreshToken
+	}
+	token.ExpiresIn = result.ExpiresIn
+	token.ObtainedAt = time.Now()
+
+	return token, nil
+}
+
+func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToken) error {
+	// Get authorization info to find account ID
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://launchpad.37signals.com/authorization.json", nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var authInfo struct {
+		Accounts []struct {
+			ID      int64  `json:"id"`
+			Name    string `json:"name"`
+			Product string `json:"product"`
+		} `json:"accounts"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&authInfo); err != nil {
+		return err
+	}
+
+	// Find Basecamp 4 account
+	for _, account := range authInfo.Accounts {
+		if account.Product == "bc4" {
+			token.AccountID = fmt.Sprintf("%d", account.ID)
+			token.AccountName = account.Name
+			break
+		}
+	}
+
+	if token.AccountID == "" {
+		return fmt.Errorf("no Basecamp 4 account found")
+	}
+
+	// Save token
+	if c.authStore == nil {
+		c.authStore = &AuthStore{
+			Accounts: make(map[string]AccountToken),
+		}
+	}
+
+	c.authStore.Accounts[token.AccountID] = *token
+	if c.authStore.DefaultAccount == "" {
+		c.authStore.DefaultAccount = token.AccountID
+	}
+
+	return c.saveAuthStore()
+}
+
+func (c *Client) loadAuthStore() {
+	file, err := os.Open(c.storePath)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
+	c.authStore = &AuthStore{}
+	json.NewDecoder(file).Decode(c.authStore)
+}
+
+func (c *Client) saveAuthStore() error {
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(c.storePath)
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return err
+	}
+
+	// Write file with restricted permissions
+	file, err := os.OpenFile(c.storePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(c.authStore)
+}

@@ -4,21 +4,48 @@ import (
 	"fmt"
 	"os"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	
+	"github.com/needmore/bc4/cmd/auth"
+	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/tui"
 )
 
 var cfgFile string
 
 var rootCmd = &cobra.Command{
 	Use:   "bc4",
-	Short: "A CLI tool for interacting with Basecamp 4 API",
+	Short: "A CLI tool for interacting with Basecamp 4",
 	Long: `bc4 is a command-line interface for Basecamp 4 that allows you to:
-- List and manage projects
-- Create and manage todos
-- Post messages and comments
-- Manage campfires and check-ins
-- And much more!`,
+• List and manage projects
+• Create and manage todos
+• Post messages and comments
+• Manage campfires and cards
+• And much more!
+
+Get started by running 'bc4' to launch the setup wizard.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Check if this is the first run
+		if config.IsFirstRun() {
+			fmt.Println("Welcome to bc4! Let's get you set up.")
+			fmt.Println()
+			
+			// Run first-run wizard
+			p := tea.NewProgram(tui.NewFirstRunModel(), tea.WithAltScreen())
+			if _, err := p.Run(); err != nil {
+				return fmt.Errorf("setup failed: %w", err)
+			}
+			
+			fmt.Println("\nSetup complete! You can now use bc4.")
+			fmt.Println("Try 'bc4 auth status' to see your account information.")
+			return nil
+		}
+
+		// Show help if no subcommand
+		return cmd.Help()
+	},
 }
 
 func Execute() {
@@ -31,30 +58,48 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.bc4.yaml)")
-	rootCmd.PersistentFlags().String("account-id", "", "Basecamp account ID")
-	rootCmd.PersistentFlags().String("access-token", "", "Basecamp access token")
+	// Global flags
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/bc4/config.json)")
+	rootCmd.PersistentFlags().StringP("account", "a", "", "Override default account ID")
+	rootCmd.PersistentFlags().StringP("project", "p", "", "Override default project ID")
+	rootCmd.PersistentFlags().Bool("json", false, "Output in JSON format")
+	rootCmd.PersistentFlags().Bool("no-color", false, "Disable color output")
 	
-	viper.BindPFlag("account_id", rootCmd.PersistentFlags().Lookup("account-id"))
-	viper.BindPFlag("access_token", rootCmd.PersistentFlags().Lookup("access-token"))
+	// Bind flags to viper
+	viper.BindPFlag("account", rootCmd.PersistentFlags().Lookup("account"))
+	viper.BindPFlag("project", rootCmd.PersistentFlags().Lookup("project"))
+	viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
+	viper.BindPFlag("no_color", rootCmd.PersistentFlags().Lookup("no-color"))
+
+	// Add commands
+	rootCmd.AddCommand(auth.NewAuthCmd())
+	// TODO: Add other commands as they're implemented
+	// rootCmd.AddCommand(account.NewAccountCmd())
+	// rootCmd.AddCommand(project.NewProjectCmd())
+	// rootCmd.AddCommand(todo.NewTodoCmd())
+	// rootCmd.AddCommand(message.NewMessageCmd())
+	// rootCmd.AddCommand(campfire.NewCampfireCmd())
+	// rootCmd.AddCommand(card.NewCardCmd())
 }
 
 func initConfig() {
+	// Set config file if specified
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	} else {
-		home, err := os.UserHomeDir()
+		// Use default config location
+		configDir, err := os.UserConfigDir()
 		cobra.CheckErr(err)
 
-		viper.AddConfigPath(home)
-		viper.SetConfigType("yaml")
-		viper.SetConfigName(".bc4")
+		viper.AddConfigPath(configDir + "/bc4")
+		viper.SetConfigType("json")
+		viper.SetConfigName("config")
 	}
 
+	// Environment variables
 	viper.SetEnvPrefix("BC4")
 	viper.AutomaticEnv()
 
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
+	// Read config
+	viper.ReadInConfig()
 }

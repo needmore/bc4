@@ -10,34 +10,39 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), inspire
 - ✅ **Todo Management** - Create and list todos across projects
 - 💬 **Message Posting** - Post messages to project message boards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
+- 🎯 **Card Management** - Manage cards with kanban board view
+- 🎨 **Beautiful TUI** - Interactive interface powered by Charm tools
 - 🔍 **Smart Search** - Find projects by pattern matching
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.7+
-- pip
+- Go 1.21 or later
+- Git
+
+### Install with Homebrew (macOS)
+
+```bash
+brew tap needmore/bc4
+brew install bc4
+```
 
 ### Install from source
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/bc4.git
+git clone https://github.com/needmore/bc4.git
 cd bc4
 
-# Install dependencies
-pip install -r requirements.txt
+# Build the binary
+go build -o bc4
 
-# Make the script executable
-chmod +x bc4.py
+# Install to your PATH
+sudo mv bc4 /usr/local/bin/
 
-# Add to your PATH (choose one):
-# Option 1: Symlink
-ln -s $(pwd)/bc4.py /usr/local/bin/bc4
-
-# Option 2: Add alias to your shell config
-echo "alias bc4='$(pwd)/bc4.py'" >> ~/.bashrc  # or ~/.zshrc
+# Or install with go install
+go install github.com/needmore/bc4@latest
 ```
 
 ## Setup
@@ -48,26 +53,35 @@ echo "alias bc4='$(pwd)/bc4.py'" >> ~/.bashrc  # or ~/.zshrc
 2. Click "Register one now" to create a new integration
 3. Fill in the details:
    - **Name**: Your app name (e.g., "BC4 CLI")
-   - **Redirect URI**: `http://localhost`
+   - **Redirect URI**: `http://localhost:8888/callback`
    - **Company**: Your company name
 4. Save the integration
 5. Copy your **Client ID** and **Client Secret**
 
-### 2. Set Environment Variables
+### 2. First Run
 
-Add these to your shell configuration file (`~/.bashrc`, `~/.zshrc`, etc.):
+When you run bc4 for the first time, it will guide you through setup:
 
 ```bash
-export BASECAMP_CLIENT_ID='your_client_id_here'
-export BASECAMP_CLIENT_SECRET='your_client_secret_here'
+bc4
 ```
 
-Then reload your shell configuration:
+The interactive setup wizard will:
+- Help you enter your OAuth app credentials
+- Authenticate with Basecamp
+- Let you select a default account
+- Configure your preferences
+
+### 3. Manual Setup (Optional)
+
+If you prefer to set up manually, you can provide credentials via environment variables:
+
 ```bash
-source ~/.bashrc  # or ~/.zshrc
+export BC4_CLIENT_ID='your_client_id_here'
+export BC4_CLIENT_SECRET='your_client_secret_here'
 ```
 
-### 3. Authenticate
+Then authenticate:
 
 ```bash
 bc4 auth login
@@ -133,6 +147,22 @@ bc4 campfire post "Quick update: deployment complete! 🚀"
 bc4 campfire update
 ```
 
+### Card Management
+
+```bash
+# List card tables in project
+bc4 card list
+
+# View cards in a specific table
+bc4 card table [ID]
+
+# Create a new card interactively
+bc4 card create
+
+# Move card between columns
+bc4 card move [ID]
+```
+
 ## Examples
 
 ### Quick Project Access
@@ -163,8 +193,8 @@ bc4 todo create
 ## Configuration
 
 Configuration is stored in:
-- `~/.basecamp_token.json` - OAuth tokens (auto-generated, secure)
-- `~/.basecamp_config.json` - Default account and project settings
+- `~/.config/bc4/auth.json` - OAuth tokens (auto-generated, secure)
+- `~/.config/bc4/config.json` - Default account and project settings
 
 ## Tips
 
@@ -174,20 +204,17 @@ Configuration is stored in:
 
 ## Troubleshooting
 
-### SSL Certificate Error
-
-If you encounter SSL errors, ensure your Python installation has proper SSL support:
-```bash
-# For macOS with pyenv
-pyenv uninstall 3.x.x
-pyenv install 3.x.x
-```
-
 ### Authentication Issues
 
-- Ensure your OAuth app's redirect URI is exactly `http://localhost`
-- Check that your environment variables are set correctly
+- Ensure your OAuth app's redirect URI is exactly `http://localhost:8888/callback`
+- Check that your credentials are set correctly
 - Try `bc4 auth login` to re-authenticate
+
+### Network Issues
+
+- bc4 respects HTTP proxy settings via standard environment variables
+- Ensure you have a stable internet connection
+- Check firewall settings if authentication fails
 
 ## Contributing
 

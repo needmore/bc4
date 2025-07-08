@@ -4,77 +4,89 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BC4 is a command-line interface for Basecamp 4, inspired by GitHub's `gh` CLI. The project has two parallel implementations:
-- **Python**: Complete implementation in `bc4.py` (primary/original version)
-- **Go**: Implementation in progress using Cobra framework
+bc4 is a Basecamp 4 CLI tool written in Go, inspired by GitHub's `gh` CLI. It provides terminal access to Basecamp features with beautiful TUIs using Charm tools.
 
-## Common Development Commands
+## Development Commands
 
-### Python Implementation
+### Build & Run
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the CLI
-python bc4.py <command>
-# or if executable
-./bc4.py <command>
+go build -o bc4              # Build binary
+go run main.go              # Run without building
+go install                  # Install to GOPATH/bin
 ```
 
-### Go Implementation
+### Testing & Quality
 ```bash
-# Install dependencies
-go mod download
-
-# Build the project
-go build -o bc4
-
-# Run directly
-go run main.go <command>
+go test ./...               # Run all tests
+go test -v ./internal/api   # Test specific package
+go fmt ./...                # Format code
+go vet ./...                # Run static analysis
+golangci-lint run           # Run comprehensive linting
 ```
 
-## Architecture Overview
+### Development Workflow
+1. Make changes to code
+2. Run `go fmt ./...` to format
+3. Run `go vet ./...` to check for issues
+4. Run `go test ./...` to ensure tests pass
+5. Build with `go build -o bc4` to test binary
 
-### Python Implementation (`bc4.py`)
-- Single-file CLI with complete Basecamp API integration
-- OAuth2 authentication with token storage in `~/.basecamp_token.json`
-- Configuration in `~/.basecamp_config.json`
-- Interactive project/todo selection using arrow keys
-- Pattern-based project search functionality
+## Architecture
 
-### Go Implementation
-Follows standard Go project layout:
-- `cmd/`: Command definitions using Cobra
-  - `root.go`: Main command setup
-  - `projects.go`: Project management commands
-  - `todos.go`: Todo management commands
-- `internal/`: Internal packages
-  - `api/client.go`: HTTP client for Basecamp API
-  - `config/config.go`: Configuration management
-  - `models/`: Data structures for projects, todos
-- `main.go`: Entry point
+### Command Structure (Cobra)
+- Commands are in `cmd/` directory
+- Each command file implements a cobra.Command
+- Root command is in `cmd/root.go`
+- Use interactive prompts with Bubbletea for user input
 
-## Key API Endpoints
+### API Client (`internal/api/`)
+- HTTP client with OAuth2 authentication
+- Rate limiting: 50 requests per 10 seconds
+- Automatic retry with exponential backoff
+- Base URL: `https://3.basecampapi.com/{account_id}`
 
-The Basecamp 4 API is accessed at `https://3.basecampapi.com/<account_id>/`:
-- Projects: `projects.json`
-- Todos: `buckets/<project_id>/todolists/<todolist_id>/todos.json`
-- Messages: `buckets/<project_id>/message_boards/<board_id>/messages.json`
-- Campfire: `buckets/<project_id>/chats/<chat_id>/lines.json`
+### Authentication (`internal/auth/`)
+- OAuth2 flow with local HTTP server (port 8888)
+- Tokens stored in `~/.config/bc4/auth.json`
+- Encrypted token storage with 0600 permissions
 
-## Configuration
+### Configuration (`internal/config/`)
+- Uses Viper for configuration management
+- Config file: `~/.config/bc4/config.json`
+- Environment variable overrides supported
 
-Both implementations use:
-- OAuth token storage: `~/.basecamp_token.json`
-- Account configuration: `~/.basecamp_config.json`
-- The token file stores OAuth credentials per account ID
-- The config file stores the default account ID
+### UI Components (`internal/tui/`)
+- Bubbletea for interactive terminal UIs
+- Lipgloss for styling
+- Glamour for markdown rendering
+- Consistent color scheme and responsive layouts
 
-## Development Notes
+## Key Implementation Notes
 
-1. When modifying API calls, ensure proper OAuth2 authentication headers are included
-2. Both implementations support multiple Basecamp accounts
-3. Interactive features use pattern matching for project selection
-4. The Python version is feature-complete while the Go version is being developed
-5. No test suite currently exists - consider manual testing of API interactions
-6. When adding new commands, maintain consistency with the existing command structure
+1. **OAuth Setup Required**: Users need to create OAuth app at https://launchpad.37signals.com/integrations
+2. **First-Run Wizard**: Guide users through OAuth setup on first use
+3. **Multi-Account Support**: Handle multiple Basecamp accounts with defaults
+4. **Rate Limiting**: Implement token bucket algorithm for API calls
+5. **Error Handling**: Show user-friendly errors with actionable suggestions
+
+## Current State
+
+The project structure is set up but most commands are not yet implemented. Focus areas:
+1. Complete OAuth2 authentication flow
+2. Implement basic API client functionality
+3. Build interactive project/account selectors
+4. Create todo list and create commands
+
+## Testing Guidelines
+
+- Mock API responses for unit tests
+- Use table-driven tests for command parsing
+- Test interactive components with Bubbletea's testing utilities
+- Keep integration tests separate with build tags
+
+## Security Considerations
+
+- Never log OAuth tokens or sensitive data
+- Use HTTPS only for API communication
+- Store tokens with proper file permissions (0600)
+- Support environment variables for CI/CD scenarios
