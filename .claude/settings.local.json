@@ -12,7 +12,8 @@
       "Bash(go list:*)",
       "Bash(go get:*)",
       "Bash(go mod:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }

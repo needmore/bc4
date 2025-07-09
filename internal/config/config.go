@@ -21,8 +21,16 @@ type Config struct {
 
 // AccountConfig represents per-account configuration
 type AccountConfig struct {
-	Name           string `json:"name"`
-	DefaultProject string `json:"default_project,omitempty"`
+	Name            string                      `json:"name"`
+	DefaultProject  string                      `json:"default_project,omitempty"`
+	ProjectDefaults map[string]ProjectDefaults  `json:"project_defaults,omitempty"`
+}
+
+// ProjectDefaults represents per-project default settings
+type ProjectDefaults struct {
+	DefaultTodoList  string `json:"default_todo_list,omitempty"`
+	DefaultCampfire  string `json:"default_campfire,omitempty"`
+	DefaultCardTable string `json:"default_card_table,omitempty"`
 }
 
 // PreferencesConfig represents user preferences

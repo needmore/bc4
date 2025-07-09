@@ -116,11 +116,14 @@ func newSearchCmd() *cobra.Command {
 			t := table.New(
 				table.WithColumns(columns),
 				table.WithRows(rows),
-				table.WithHeight(len(rows)+2),
+				table.WithHeight(len(rows)+1),
 			)
 
 			// Apply display-only table styling (no row selection)
 			t = ui.StyleTableForDisplay(t)
+			
+			// Make sure table shows all rows
+			t.Blur()
 
 			// Print results count
 			fmt.Printf("\nFound %d project%s matching \"%s\":\n\n", 
@@ -131,10 +134,10 @@ func newSearchCmd() *cobra.Command {
 			// Print the table, skipping the empty header row
 			tableView := t.View()
 			lines := strings.Split(tableView, "\n")
-			if len(lines) > 2 {
-				// Skip first line (top border) and second line (empty header)
-				// Keep the top border but skip the header
-				result := lines[0] + "\n" + strings.Join(lines[2:], "\n")
+			
+			if len(lines) > 1 {
+				// Skip the first line (empty header), keep all data rows
+				result := strings.Join(lines[1:], "\n")
 				fmt.Println(ui.BaseTableStyle.Render(result))
 			} else {
 				fmt.Println(ui.BaseTableStyle.Render(tableView))

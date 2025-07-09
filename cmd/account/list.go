@@ -133,22 +133,25 @@ func newListCmd() *cobra.Command {
 			t := table.New(
 				table.WithColumns(columns),
 				table.WithRows(rows),
-				table.WithHeight(len(rows)+2), // Include space for header and borders
+				table.WithHeight(len(rows)+1), // Just enough for rows plus borders
 			)
 
 			// Style the table with subtle list highlighting
 			t = ui.StyleTableForList(t)
 			
-			// Set cursor to the default account
+			// Set cursor to the default account (for highlighting)
 			t.SetCursor(defaultIndex)
+			
+			// Make sure table shows all rows by blurring focus
+			t.Blur()
 
 			// Print the table, skipping the empty header row
 			tableView := t.View()
 			lines := strings.Split(tableView, "\n")
-			if len(lines) > 2 {
-				// Skip first line (top border) and second line (empty header)
-				// Keep the top border but skip the header
-				result := lines[0] + "\n" + strings.Join(lines[2:], "\n")
+			
+			if len(lines) > 1 {
+				// Skip the first line (empty header), keep all data rows
+				result := strings.Join(lines[1:], "\n")
 				fmt.Println(ui.BaseTableStyle.Render(result))
 			} else {
 				fmt.Println(ui.BaseTableStyle.Render(tableView))

@@ -11,6 +11,7 @@ import (
 	"github.com/needmore/bc4/cmd/account"
 	"github.com/needmore/bc4/cmd/auth"
 	"github.com/needmore/bc4/cmd/project"
+	"github.com/needmore/bc4/cmd/todo"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/tui"
 )
@@ -79,8 +80,7 @@ func init() {
 	rootCmd.AddCommand(auth.NewAuthCmd())
 	rootCmd.AddCommand(account.NewAccountCmd())
 	rootCmd.AddCommand(project.NewProjectCmd())
-	// TODO: Add other commands as they're implemented
-	// rootCmd.AddCommand(todo.NewTodoCmd())
+	rootCmd.AddCommand(todo.NewTodoCmd())
 	// rootCmd.AddCommand(message.NewMessageCmd())
 	// rootCmd.AddCommand(campfire.NewCampfireCmd())
 	// rootCmd.AddCommand(card.NewCardCmd())

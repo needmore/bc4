@@ -1,4 +1,4 @@
-package project
+package todo
 
 import (
 	"context"
@@ -17,16 +17,15 @@ import (
 	"github.com/needmore/bc4/internal/ui"
 )
 
-
-
 func newListCmd() *cobra.Command {
 	var jsonOutput bool
 	var accountID string
+	var projectID string
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List all projects",
-		Long:  `List all projects in your Basecamp account. Use 'project select' for interactive selection.`,
+		Short: "List all todo lists in a project",
+		Long:  `List all todo lists in the current or specified project.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
@@ -52,6 +51,20 @@ func newListCmd() *cobra.Command {
 				return fmt.Errorf("no account specified and no default account set")
 			}
 
+			// Use specified project or default
+			if projectID == "" {
+				projectID = cfg.DefaultProject
+				if projectID == "" && cfg.Accounts != nil {
+					if acc, ok := cfg.Accounts[accountID]; ok {
+						projectID = acc.DefaultProject
+					}
+				}
+			}
+
+			if projectID == "" {
+				return fmt.Errorf("no project specified and no default project set. Use 'bc4 project select' to set a default project")
+			}
+
 			// Get token
 			token, err := authClient.GetToken(accountID)
 			if err != nil {
@@ -61,103 +74,114 @@ func newListCmd() *cobra.Command {
 			// Create API client
 			apiClient := api.NewClient(accountID, token.AccessToken)
 
-			// Fetch projects
-			projects, err := apiClient.GetProjects(context.Background())
+			// Get the todo set for the project
+			todoSet, err := apiClient.GetProjectTodoSet(context.Background(), projectID)
 			if err != nil {
-				return fmt.Errorf("failed to fetch projects: %w", err)
+				return fmt.Errorf("failed to get todo set: %w", err)
 			}
 
-			// Sort projects alphabetically
-			sortProjectsByName(projects)
+			// Fetch todo lists
+			todoLists, err := apiClient.GetTodoLists(context.Background(), projectID, todoSet.ID)
+			if err != nil {
+				return fmt.Errorf("failed to fetch todo lists: %w", err)
+			}
 
-			// Get default project ID
-			defaultProjectID := cfg.DefaultProject
-			if defaultProjectID == "" && cfg.Accounts != nil {
-				if acc, ok := cfg.Accounts[accountID]; ok {
-					defaultProjectID = acc.DefaultProject
+			// Sort todo lists alphabetically
+			sortTodoListsByName(todoLists)
+
+			// Get default todo list ID from config
+			defaultTodoListID := ""
+			if cfg.Accounts != nil && cfg.Accounts[accountID].ProjectDefaults != nil {
+				if projDefaults, ok := cfg.Accounts[accountID].ProjectDefaults[projectID]; ok {
+					defaultTodoListID = projDefaults.DefaultTodoList
 				}
 			}
 
 			// Output JSON if requested
 			if jsonOutput {
-				return outputJSON(projects)
+				encoder := json.NewEncoder(os.Stdout)
+				encoder.SetIndent("", "  ")
+				return encoder.Encode(todoLists)
 			}
 
-			// Check if there are any projects
-			if len(projects) == 0 {
-				fmt.Println("No projects found.")
+			// Check if there are any todo lists
+			if len(todoLists) == 0 {
+				fmt.Println("No todo lists found in this project.")
 				return nil
 			}
+			
 
 			// Get terminal width
 			termWidth := ui.GetTerminalWidth()
 
 			// Calculate column widths based on terminal width
-			// Minimum widths: Name=20, ID=8, Description=20
-			nameWidth := 40
-			idWidth := 10
-			descWidth := 50
+			nameWidth := 50
+			idWidth := 12
+			statusWidth := 10
 			
 			// Total minimum width needed
-			minWidth := nameWidth + idWidth + descWidth + 6 // 6 for separators
+			minWidth := nameWidth + idWidth + statusWidth + 6 // 6 for separators
 			
 			if termWidth < minWidth {
 				// Shrink columns proportionally
-				nameWidth = (termWidth * 40) / minWidth
-				idWidth = (termWidth * 10) / minWidth
-				descWidth = termWidth - nameWidth - idWidth - 6
+				nameWidth = (termWidth * 50) / minWidth
+				statusWidth = (termWidth * 10) / minWidth
 				
 				// Ensure minimum widths
 				if nameWidth < 20 {
 					nameWidth = 20
 				}
-				if idWidth < 8 {
-					idWidth = 8
-				}
-				if descWidth < 10 {
-					descWidth = 10
+				if statusWidth < 8 {
+					statusWidth = 8
 				}
 			} else if termWidth > minWidth {
-				// Give extra space to description column
-				descWidth = termWidth - nameWidth - idWidth - 6
+				// Give extra space to name column
+				nameWidth = termWidth - idWidth - statusWidth - 6
 			}
 
 			// Create table
 			columns := []table.Column{
 				{Title: "", Width: nameWidth},
 				{Title: "", Width: idWidth},
-				{Title: "", Width: descWidth},
+				{Title: "", Width: statusWidth},
 			}
 
 			rows := []table.Row{}
 			defaultIndex := 0
-			for i, project := range projects {
-				idStr := strconv.FormatInt(project.ID, 10)
-				name := ui.TruncateString(project.Name, nameWidth-3)
-				desc := ui.TruncateString(project.Description, descWidth-3)
+			for i, todoList := range todoLists {
+				idStr := strconv.FormatInt(todoList.ID, 10)
+				name := ui.TruncateString(todoList.Title, nameWidth-3)
+				status := todoList.CompletedRatio
+				if status == "" {
+					status = "0/0"
+				}
 				
 				// Track which row is the default
-				if idStr == defaultProjectID {
+				if idStr == defaultTodoListID {
 					defaultIndex = i
 				}
 				
 				rows = append(rows, table.Row{
 					name,
 					idStr,
-					desc,
+					status,
 				})
 			}
 
+			// Calculate the proper height - we need all rows plus borders
+			// Since we're skipping the header, we need to ensure all data rows are visible
+			tableHeight := len(rows) + 1  // +1 for borders
+			
 			t := table.New(
 				table.WithColumns(columns),
 				table.WithRows(rows),
-				table.WithHeight(len(rows)+1), // Just enough for rows plus borders
+				table.WithHeight(tableHeight),
 			)
 
 			// Style the table with subtle list highlighting
 			t = ui.StyleTableForList(t)
 			
-			// Set cursor to the default project (for highlighting)
+			// Set cursor to the default todo list (for highlighting)
 			t.SetCursor(defaultIndex)
 			
 			// Make sure table shows all rows by blurring focus
@@ -180,23 +204,18 @@ func newListCmd() *cobra.Command {
 
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID (overrides default)")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID (overrides default)")
 
 	return cmd
 }
 
-func sortProjectsByName(projects []api.Project) {
-	// Using bubble sort for simplicity, could use sort.Slice
-	for i := 0; i < len(projects); i++ {
-		for j := i + 1; j < len(projects); j++ {
-			if strings.ToLower(projects[i].Name) > strings.ToLower(projects[j].Name) {
-				projects[i], projects[j] = projects[j], projects[i]
+func sortTodoListsByName(todoLists []api.TodoList) {
+	// Using bubble sort for simplicity
+	for i := 0; i < len(todoLists); i++ {
+		for j := i + 1; j < len(todoLists); j++ {
+			if strings.ToLower(todoLists[i].Title) > strings.ToLower(todoLists[j].Title) {
+				todoLists[i], todoLists[j] = todoLists[j], todoLists[i]
 			}
 		}
 	}
-}
-
-func outputJSON(projects []api.Project) error {
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(projects)
 }
