@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 	
 	"github.com/needmore/bc4/cmd/auth"
+	"github.com/needmore/bc4/cmd/project"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/tui"
 )
@@ -29,11 +30,13 @@ Get started by running 'bc4' to launch the setup wizard.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if this is the first run
 		if config.IsFirstRun() {
-			fmt.Println("Welcome to bc4! Let's get you set up.")
-			fmt.Println()
+			// Run first-run wizard immediately with clean screen
+			p := tea.NewProgram(
+				tui.NewFirstRunModel(),
+				tea.WithAltScreen(),
+				tea.WithMouseCellMotion(),
+			)
 			
-			// Run first-run wizard
-			p := tea.NewProgram(tui.NewFirstRunModel(), tea.WithAltScreen())
 			if _, err := p.Run(); err != nil {
 				return fmt.Errorf("setup failed: %w", err)
 			}
@@ -73,9 +76,9 @@ func init() {
 
 	// Add commands
 	rootCmd.AddCommand(auth.NewAuthCmd())
+	rootCmd.AddCommand(project.NewProjectCmd())
 	// TODO: Add other commands as they're implemented
 	// rootCmd.AddCommand(account.NewAccountCmd())
-	// rootCmd.AddCommand(project.NewProjectCmd())
 	// rootCmd.AddCommand(todo.NewTodoCmd())
 	// rootCmd.AddCommand(message.NewMessageCmd())
 	// rootCmd.AddCommand(campfire.NewCampfireCmd())

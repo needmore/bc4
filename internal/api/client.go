@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -106,14 +107,58 @@ type Project struct {
 	UpdatedAt   string `json:"updated_at"`
 }
 
-// GetProjects fetches all projects for the account
+// GetProjects fetches all projects for the account (handles pagination)
 func (c *Client) GetProjects(ctx context.Context) ([]Project, error) {
-	var projects []Project
+	var allProjects []Project
+	page := 1
 	
-	// Basecamp API returns projects at /projects.json
-	if err := c.Get("/projects.json", &projects); err != nil {
-		return nil, fmt.Errorf("failed to fetch projects: %w", err)
+	for {
+		var projects []Project
+		
+		// Basecamp API returns projects at /projects.json with pagination
+		path := fmt.Sprintf("/projects.json?page=%d", page)
+		resp, err := c.doRequest("GET", path, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch projects: %w", err)
+		}
+		defer resp.Body.Close()
+		
+		if err := json.NewDecoder(resp.Body).Decode(&projects); err != nil {
+			return nil, fmt.Errorf("failed to decode projects: %w", err)
+		}
+		
+		// Add projects to our collection
+		allProjects = append(allProjects, projects...)
+		
+		// Check if there are more pages
+		linkHeader := resp.Header.Get("Link")
+		if !strings.Contains(linkHeader, `rel="next"`) || len(projects) == 0 {
+			break
+		}
+		
+		page++
+		
+		// Small delay to respect rate limits (50 requests per 10 seconds)
+		time.Sleep(200 * time.Millisecond)
 	}
 	
-	return projects, nil
+	return allProjects, nil
+}
+
+// GetProject fetches a single project by ID
+func (c *Client) GetProject(ctx context.Context, projectID string) (*Project, error) {
+	var project Project
+	
+	path := fmt.Sprintf("/projects/%s.json", projectID)
+	resp, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch project: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if err := json.NewDecoder(resp.Body).Decode(&project); err != nil {
+		return nil, fmt.Errorf("failed to decode project: %w", err)
+	}
+	
+	return &project, nil
 }

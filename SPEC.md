@@ -176,11 +176,13 @@ bc4 account current         # Show current account
 #### project
 ```bash
 bc4 project list            # List projects in account
-bc4 project select          # Interactive project selection
-bc4 project set [ID]        # Set default project
+bc4 project select          # Interactive project selection (implemented with table UI)
+bc4 project set [ID]        # Set default project (non-interactive)
 bc4 project view [ID]       # View project details
 bc4 project search [query]  # Search projects by name
 ```
+
+Note: The `project select` command provides an interactive table-based UI for browsing and selecting a default project, while `project set` allows direct setting by ID.
 
 #### todo
 ```bash

@@ -3,6 +3,8 @@ package tui
 import (
 	"context"
 	"fmt"
+	"io"
+	"sort"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -40,6 +42,18 @@ var (
 
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241"))
+			
+	listStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("240")).
+			Padding(1, 2)
+			
+	selectedItemStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("170")).
+			Bold(true)
+			
+	normalItemStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252"))
 )
 
 type step int
@@ -206,24 +220,34 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		
 		// Multiple accounts - show selection
-		items := make([]list.Item, 0, len(m.accounts))
+		// First collect accounts into a slice we can sort
+		var accountList []auth.AccountToken
 		for _, account := range m.accounts {
+			accountList = append(accountList, account)
+		}
+		
+		// Sort accounts alphabetically by name
+		sort.Slice(accountList, func(i, j int) bool {
+			return strings.ToLower(accountList[i].AccountName) < strings.ToLower(accountList[j].AccountName)
+		})
+		
+		// Create items from sorted list
+		items := make([]list.Item, 0, len(accountList))
+		for _, account := range accountList {
 			items = append(items, accountItem{
 				id:   account.AccountID,
 				name: account.AccountName,
 			})
 		}
 		
-		// Create a custom delegate with better styling
-		delegate := list.NewDefaultDelegate()
-		delegate.SetHeight(2)
-		delegate.SetSpacing(1)
-		
-		m.accountList = list.New(items, delegate, 50, min(10, len(items)*3+4))
+		// Use our custom delegate for cleaner rendering
+		m.accountList = list.New(items, itemDelegate{}, 50, min(10, len(items)+2))
 		m.accountList.Title = "Select Default Account"
 		m.accountList.SetShowStatusBar(false)
 		m.accountList.SetFilteringEnabled(false)
+		m.accountList.SetShowHelp(false)
 		m.accountList.Styles.Title = titleStyle
+		m.accountList.Styles.TitleBar = lipgloss.NewStyle()
 		return m, nil
 
 	case projectsLoadedMsg:
@@ -241,6 +265,11 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		
+		// Sort projects alphabetically by name
+		sort.Slice(m.projects, func(i, j int) bool {
+			return strings.ToLower(m.projects[i].Name) < strings.ToLower(m.projects[j].Name)
+		})
+		
 		// Create project list
 		items := make([]list.Item, 0, len(m.projects))
 		for _, project := range m.projects {
@@ -251,16 +280,14 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			})
 		}
 		
-		// Create a custom delegate with better styling
-		delegate := list.NewDefaultDelegate()
-		delegate.SetHeight(3) // More height for description
-		delegate.SetSpacing(1)
-		
-		m.projectList = list.New(items, delegate, 60, min(12, len(items)*4+4))
+		// Use our custom delegate for cleaner rendering
+		m.projectList = list.New(items, itemDelegate{}, 60, min(15, len(items)+2))
 		m.projectList.Title = "Select Default Project (Optional)"
 		m.projectList.SetShowStatusBar(false)
 		m.projectList.SetFilteringEnabled(true)
+		m.projectList.SetShowHelp(false)
 		m.projectList.Styles.Title = titleStyle
+		m.projectList.Styles.TitleBar = lipgloss.NewStyle()
 		return m, nil
 
 	case spinner.TickMsg:
@@ -397,14 +424,13 @@ func (m FirstRunModel) viewClientSecret() string {
 
 func (m FirstRunModel) viewAuthenticate() string {
 	content := lipgloss.JoinVertical(lipgloss.Left,
-		titleStyle.Render("Authenticating..."),
+		titleStyle.Render("Authenticating with Basecamp"),
 		"",
-		m.spinner.View()+" Opening browser for authentication",
+		m.spinner.View()+" Opening your browser...",
 		"",
 		subtitleStyle.Render("Please authorize bc4 in your browser"),
 		"",
-		"If the browser doesn't open automatically,",
-		"visit the URL shown in the terminal.",
+		helpStyle.Render("Waiting for authorization..."),
 	)
 
 	return lipgloss.Place(m.width, m.height,
@@ -453,8 +479,9 @@ func (m FirstRunModel) viewSelectProject() string {
 		// Still loading or no projects
 		content := lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render("Loading projects..."),
+			subtitleStyle.Render("Fetching all projects from your account"),
 			"",
-			m.spinner.View(),
+			m.spinner.View()+" Please wait, this may take a moment...",
 		)
 		return lipgloss.Place(m.width, m.height,
 			lipgloss.Center, lipgloss.Center,
@@ -654,4 +681,35 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// Custom item delegate for cleaner rendering
+type itemDelegate struct{}
+
+func (d itemDelegate) Height() int                               { return 1 }
+func (d itemDelegate) Spacing() int                              { return 0 }
+func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+
+func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	i, ok := listItem.(accountItem)
+	if !ok {
+		// Try project item
+		if p, ok := listItem.(projectItem); ok {
+			str := fmt.Sprintf("  %s", p.name)
+			if index == m.Index() {
+				fmt.Fprint(w, selectedItemStyle.Render("→ "+p.name))
+			} else {
+				fmt.Fprint(w, normalItemStyle.Render(str))
+			}
+			return
+		}
+		return
+	}
+
+	str := fmt.Sprintf("  %s", i.name)
+	if index == m.Index() {
+		fmt.Fprint(w, selectedItemStyle.Render("→ "+i.name))
+	} else {
+		fmt.Fprint(w, normalItemStyle.Render(str))
+	}
 }

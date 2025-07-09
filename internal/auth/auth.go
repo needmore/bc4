@@ -100,12 +100,9 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	authURL := c.config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	// Add the required 'type' parameter for Basecamp
 	authURL = authURL + "&type=web_server"
-	fmt.Printf("Opening browser for authentication...\n")
-	fmt.Printf("If the browser doesn't open, visit this URL:\n%s\n\n", authURL)
-
-	if err := browser.OpenURL(authURL); err != nil {
-		fmt.Printf("Failed to open browser: %v\n", err)
-	}
+	
+	// Silently open browser
+	browser.OpenURL(authURL)
 
 	// Wait for callback
 	select {
@@ -360,11 +357,7 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 		return err
 	}
 
-	// Debug: print all accounts found
-	fmt.Printf("Found %d accounts:\n", len(authInfo.Accounts))
-	for _, account := range authInfo.Accounts {
-		fmt.Printf("  - %s (ID: %d, Product: %s)\n", account.Name, account.ID, account.Product)
-	}
+	// Silent - no debug output during auth
 
 	// Save token(s) for all Basecamp accounts found
 	if c.authStore == nil {
@@ -396,7 +389,7 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 				firstAccountID = accountToken.AccountID
 			}
 			
-			fmt.Printf("Added Basecamp account: %s\n", account.Name)
+			// Silent - added account
 		}
 	}
 

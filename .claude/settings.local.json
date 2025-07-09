@@ -4,7 +4,9 @@
       "WebFetch(domain:github.com)",
       "Bash(go build:*)",
       "Bash(ls:*)",
-      "Bash(./bc4)"
+      "Bash(./bc4)",
+      "Bash(./bc4:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
