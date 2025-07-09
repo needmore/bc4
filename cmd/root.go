@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	
+	"github.com/needmore/bc4/cmd/account"
 	"github.com/needmore/bc4/cmd/auth"
 	"github.com/needmore/bc4/cmd/project"
 	"github.com/needmore/bc4/internal/config"
@@ -76,9 +77,9 @@ func init() {
 
 	// Add commands
 	rootCmd.AddCommand(auth.NewAuthCmd())
+	rootCmd.AddCommand(account.NewAccountCmd())
 	rootCmd.AddCommand(project.NewProjectCmd())
 	// TODO: Add other commands as they're implemented
-	// rootCmd.AddCommand(account.NewAccountCmd())
 	// rootCmd.AddCommand(todo.NewTodoCmd())
 	// rootCmd.AddCommand(message.NewMessageCmd())
 	// rootCmd.AddCommand(campfire.NewCampfireCmd())

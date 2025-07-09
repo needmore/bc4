@@ -1,42 +1,44 @@
-package project
+package account
 
 import (
-	"context"
 	"fmt"
-	"strconv"
+	"sort"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/ui"
 )
 
+type accountsLoadedMsg struct {
+	accounts []accountItem
+}
 
-type projectsLoadedMsg struct {
-	projects []api.Project
-	err      error
+type accountItem struct {
+	id      string
+	name    string
+	current bool
 }
 
 type selectModel struct {
-	table        table.Model
-	projects     []api.Project
-	spinner      spinner.Model
-	loading      bool
-	err          error
-	width        int
-	height       int
-	accountID    string
+	table     table.Model
+	accounts  []accountItem
+	spinner   spinner.Model
+	loading   bool
+	err       error
+	width     int
+	height    int
 }
 
 func (m selectModel) Init() tea.Cmd {
 	return tea.Batch(
 		m.spinner.Tick,
-		m.loadProjects(),
+		m.loadAccounts(),
 	)
 }
 
@@ -63,12 +65,12 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			selectedRow := m.table.SelectedRow()
 			if len(selectedRow) >= 2 {
-				// Get the project ID from the selected row
-				projectID := selectedRow[1]
-				for _, p := range m.projects {
-					if strconv.FormatInt(p.ID, 10) == projectID {
+				// Get the account ID from the selected row
+				accountID := selectedRow[1]
+				for _, acc := range m.accounts {
+					if acc.id == accountID {
 						return m, tea.Sequence(
-							m.saveDefaultProject(p),
+							m.setDefaultAccount(accountID, acc.name),
 							tea.Quit,
 						)
 					}
@@ -76,52 +78,43 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-	case projectsLoadedMsg:
-		if msg.err != nil {
-			m.err = msg.err
-			m.loading = false
-			return m, tea.Quit
-		}
-
-		m.projects = msg.projects
+	case accountsLoadedMsg:
+		m.accounts = msg.accounts
 		m.loading = false
 
-		// Sort projects alphabetically
-		sortProjectsByName(m.projects)
+		if len(m.accounts) == 0 {
+			m.err = fmt.Errorf("no accounts found")
+			return m, tea.Quit
+		}
 
 		// Create table columns
 		columns := []table.Column{
 			{Title: "", Width: 40},
 			{Title: "", Width: 10},
-			{Title: "", Width: 50},
+			{Title: "", Width: 10},
 		}
 
 		// Create rows
 		rows := []table.Row{}
-		for _, project := range m.projects {
-			desc := project.Description
-			// Don't fall back to Purpose - just leave blank if no description
-			// Truncate description if too long
-			if len(desc) > 47 {
-				desc = desc[:44] + "..."
+		for _, acc := range m.accounts {
+			defaultStr := ""
+			if acc.current {
+				defaultStr = "✓"
 			}
 			
 			rows = append(rows, table.Row{
-				project.Name,
-				strconv.FormatInt(project.ID, 10),
-				desc,
+				acc.name,
+				acc.id,
+				defaultStr,
 			})
 		}
-
-		// Calculate table height based on window height
-		tableHeight := ui.CalculateTableHeight(m.height, len(rows))
 
 		// Create table
 		t := table.New(
 			table.WithColumns(columns),
 			table.WithRows(rows),
 			table.WithFocused(true),
-			table.WithHeight(tableHeight),
+			table.WithHeight(ui.CalculateTableHeight(m.height, len(rows))),
 		)
 
 		// Apply common table styling
@@ -151,87 +144,101 @@ func (m selectModel) View() string {
 	}
 
 	if m.loading {
-		return fmt.Sprintf("\n  %s Loading projects...\n\n", m.spinner.View())
+		return fmt.Sprintf("\n  %s Loading accounts...\n\n", m.spinner.View())
 	}
 
-	if len(m.projects) == 0 {
-		return "\n  No projects found.\n\n"
+	if len(m.accounts) == 0 {
+		return "\n  No accounts found.\n\n"
 	}
 
 	return ui.BaseTableStyle.Render(m.table.View()) + "\n" + ui.HelpStyle.Render("↑/↓: Navigate • Enter: Select • q/Esc: Cancel")
 }
 
-func (m *selectModel) loadProjects() tea.Cmd {
+func (m *selectModel) loadAccounts() tea.Cmd {
 	return func() tea.Msg {
 		// Load config
 		cfg, err := config.Load()
 		if err != nil {
-			return projectsLoadedMsg{err: err}
+			return accountsLoadedMsg{}
 		}
 
 		// Create auth client
 		authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
 
-		// Get token
-		token, err := authClient.GetToken(m.accountID)
-		if err != nil {
-			return projectsLoadedMsg{err: err}
+		// Get all accounts
+		accounts := authClient.GetAccounts()
+		defaultAccount := authClient.GetDefaultAccount()
+
+		// Convert to sorted slice
+		var accountList []accountItem
+		for id, acc := range accounts {
+			accountList = append(accountList, accountItem{
+				id:      id,
+				name:    acc.AccountName,
+				current: id == defaultAccount,
+			})
 		}
 
-		// Create API client
-		apiClient := api.NewClient(m.accountID, token.AccessToken)
+		// Sort accounts by name
+		sort.Slice(accountList, func(i, j int) bool {
+			return strings.ToLower(accountList[i].name) < strings.ToLower(accountList[j].name)
+		})
 
-		// Fetch projects
-		projects, err := apiClient.GetProjects(context.Background())
-		if err != nil {
-			return projectsLoadedMsg{err: err}
-		}
-
-		return projectsLoadedMsg{projects: projects}
+		return accountsLoadedMsg{accounts: accountList}
 	}
 }
 
-func (m *selectModel) saveDefaultProject(project api.Project) tea.Cmd {
+func (m *selectModel) setDefaultAccount(accountID, accountName string) tea.Cmd {
 	return func() tea.Msg {
 		cfg, err := config.Load()
 		if err != nil {
 			return nil
 		}
 
-		cfg.DefaultProject = fmt.Sprintf("%d", project.ID)
-
-		if cfg.Accounts == nil {
-			cfg.Accounts = make(map[string]config.AccountConfig)
+		// Create auth client and set default
+		authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
+		
+		// Check if we're changing accounts
+		oldDefaultAccount := authClient.GetDefaultAccount()
+		changingAccounts := oldDefaultAccount != "" && oldDefaultAccount != accountID
+		
+		if err := authClient.SetDefaultAccount(accountID); err != nil {
+			return nil
 		}
 
-		// Update account-specific default project
-		accountCfg := cfg.Accounts[m.accountID]
-		accountCfg.DefaultProject = fmt.Sprintf("%d", project.ID)
-		// Preserve the name if it exists
-		if accountCfg.Name == "" {
-			// Get the account name from auth
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-			if token, err := authClient.GetToken(m.accountID); err == nil {
-				accountCfg.Name = token.AccountName
+		// Update config
+		cfg.DefaultAccount = accountID
+		
+		// Clear default project if changing accounts
+		if changingAccounts {
+			cfg.DefaultProject = ""
+			// Also clear the account-specific default project
+			if cfg.Accounts != nil {
+				for accID, accConfig := range cfg.Accounts {
+					if accID == accountID {
+						accConfig.DefaultProject = ""
+						cfg.Accounts[accID] = accConfig
+					}
+				}
 			}
 		}
-		cfg.Accounts[m.accountID] = accountCfg
 
+		// Save config
 		config.Save(cfg)
 
-		fmt.Printf("\nDefault project set to: %s (ID: %d)\n", project.Name, project.ID)
+		fmt.Printf("\nDefault account set to: %s (ID: %s)\n", accountName, accountID)
+		if changingAccounts {
+			fmt.Println("Note: Default project has been cleared since you changed accounts.")
+		}
 		return nil
 	}
 }
 
-
 func newSelectCmd() *cobra.Command {
-	var accountID string
-
 	cmd := &cobra.Command{
 		Use:   "select",
-		Short: "Select default project",
-		Long:  `Interactively select a default project for bc4 commands.`,
+		Short: "Select default account",
+		Long:  `Interactively select a default account for bc4 commands.`,
 		Aliases: []string{"set-default", "default"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
@@ -245,18 +252,6 @@ func newSelectCmd() *cobra.Command {
 				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
 			}
 
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use specified account or default
-			if accountID == "" {
-				accountID = authClient.GetDefaultAccount()
-			}
-
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
 			// Create spinner
 			s := spinner.New()
 			s.Spinner = spinner.Dot
@@ -264,9 +259,8 @@ func newSelectCmd() *cobra.Command {
 
 			// Create model
 			m := selectModel{
-				spinner:   s,
-				loading:   true,
-				accountID: accountID,
+				spinner: s,
+				loading: true,
 			}
 
 			// Run the interactive selector
@@ -277,8 +271,6 @@ func newSelectCmd() *cobra.Command {
 			return nil
 		},
 	}
-
-	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID (overrides default)")
 
 	return cmd
 }

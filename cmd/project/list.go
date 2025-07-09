@@ -9,21 +9,14 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 	
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/ui"
 )
 
-// Styles for the table
-var (
-	baseStyle = lipgloss.NewStyle().
-		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("240"))
-)
 
 
 func newListCmd() *cobra.Command {
@@ -77,6 +70,14 @@ func newListCmd() *cobra.Command {
 			// Sort projects alphabetically
 			sortProjectsByName(projects)
 
+			// Get default project ID
+			defaultProjectID := cfg.DefaultProject
+			if defaultProjectID == "" && cfg.Accounts != nil {
+				if acc, ok := cfg.Accounts[accountID]; ok {
+					defaultProjectID = acc.DefaultProject
+				}
+			}
+
 			// Output JSON if requested
 			if jsonOutput {
 				return outputJSON(projects)
@@ -89,10 +90,7 @@ func newListCmd() *cobra.Command {
 			}
 
 			// Get terminal width
-			termWidth := 100 // default
-			if width, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && width > 0 {
-				termWidth = width - 4 // Leave some margin for borders
-			}
+			termWidth := ui.GetTerminalWidth()
 
 			// Calculate column widths based on terminal width
 			// Minimum widths: Name=20, ID=8, Description=20
@@ -126,28 +124,26 @@ func newListCmd() *cobra.Command {
 
 			// Create table
 			columns := []table.Column{
-				{Title: "Name", Width: nameWidth},
-				{Title: "ID", Width: idWidth},
-				{Title: "Description", Width: descWidth},
+				{Title: "", Width: nameWidth},
+				{Title: "", Width: idWidth},
+				{Title: "", Width: descWidth},
 			}
 
 			rows := []table.Row{}
-			for _, project := range projects {
-				name := project.Name
-				if len(name) > nameWidth-3 {
-					name = name[:nameWidth-6] + "..."
-				}
+			defaultIndex := 0
+			for i, project := range projects {
+				idStr := strconv.FormatInt(project.ID, 10)
+				name := ui.TruncateString(project.Name, nameWidth-3)
+				desc := ui.TruncateString(project.Description, descWidth-3)
 				
-				desc := project.Description
-				// Don't fall back to Purpose - just leave blank if no description
-				// Truncate description if too long
-				if len(desc) > descWidth-3 {
-					desc = desc[:descWidth-6] + "..."
+				// Track which row is the default
+				if idStr == defaultProjectID {
+					defaultIndex = i
 				}
 				
 				rows = append(rows, table.Row{
 					name,
-					strconv.FormatInt(project.ID, 10),
+					idStr,
 					desc,
 				})
 			}
@@ -155,20 +151,26 @@ func newListCmd() *cobra.Command {
 			t := table.New(
 				table.WithColumns(columns),
 				table.WithRows(rows),
-				table.WithHeight(len(rows)+2),
+				table.WithHeight(len(rows)+2), // Include space for header and borders
 			)
 
-			// Style the table
-			s := table.DefaultStyles()
-			s.Header = s.Header.
-				BorderStyle(lipgloss.NormalBorder()).
-				BorderForeground(lipgloss.Color("240")).
-				BorderBottom(true).
-				Bold(false)
-			t.SetStyles(s)
+			// Style the table with subtle list highlighting
+			t = ui.StyleTableForList(t)
+			
+			// Set cursor to the default project
+			t.SetCursor(defaultIndex)
 
-			// Just render and print the table
-			fmt.Println(baseStyle.Render(t.View()))
+			// Print the table, skipping the empty header row
+			tableView := t.View()
+			lines := strings.Split(tableView, "\n")
+			if len(lines) > 2 {
+				// Skip first line (top border) and second line (empty header)
+				// Keep the top border but skip the header
+				result := lines[0] + "\n" + strings.Join(lines[2:], "\n")
+				fmt.Println(ui.BaseTableStyle.Render(result))
+			} else {
+				fmt.Println(ui.BaseTableStyle.Render(tableView))
+			}
 			return nil
 		},
 	}

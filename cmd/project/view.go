@@ -9,26 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/ui"
 )
 
-var (
-	viewTitleStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("99"))
-
-	viewLabelStyle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("240"))
-
-	viewValueStyle = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("252"))
-)
 
 func newViewCmd() *cobra.Command {
 	var jsonOutput bool
@@ -129,27 +117,27 @@ func newViewCmd() *cobra.Command {
 
 			// Display project details
 			fmt.Println()
-			fmt.Println(viewTitleStyle.Render(project.Name))
+			fmt.Println(ui.TitleStyle.Render(project.Name))
 			fmt.Println()
 
 			if project.Description != "" {
-				fmt.Printf("%s %s\n", viewLabelStyle.Render("Description:"), viewValueStyle.Render(project.Description))
+				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Description:"), ui.ValueStyle.Render(project.Description))
 			}
 
-			fmt.Printf("%s %s\n", viewLabelStyle.Render("ID:"), viewValueStyle.Render(strconv.FormatInt(project.ID, 10)))
+			fmt.Printf("%s %s\n", ui.LabelStyle.Render("ID:"), ui.ValueStyle.Render(strconv.FormatInt(project.ID, 10)))
 			
 			// Only show purpose if it's not empty and not "topic"
 			if project.Purpose != "" && project.Purpose != "topic" {
-				fmt.Printf("%s %s\n", viewLabelStyle.Render("Purpose:"), viewValueStyle.Render(project.Purpose))
+				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Purpose:"), ui.ValueStyle.Render(project.Purpose))
 			}
 
 			// Parse and format dates
 			if created, err := time.Parse(time.RFC3339, project.CreatedAt); err == nil {
-				fmt.Printf("%s %s\n", viewLabelStyle.Render("Created:"), viewValueStyle.Render(created.Format("January 2, 2006")))
+				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Created:"), ui.ValueStyle.Render(created.Format("January 2, 2006")))
 			}
 
 			if updated, err := time.Parse(time.RFC3339, project.UpdatedAt); err == nil {
-				fmt.Printf("%s %s\n", viewLabelStyle.Render("Updated:"), viewValueStyle.Render(updated.Format("January 2, 2006")))
+				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Updated:"), ui.ValueStyle.Render(updated.Format("January 2, 2006")))
 			}
 
 			fmt.Println()

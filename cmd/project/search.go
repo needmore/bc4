@@ -9,12 +9,12 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/ui"
 )
 
 func newSearchCmd() *cobra.Command {
@@ -93,9 +93,9 @@ func newSearchCmd() *cobra.Command {
 
 			// Create table
 			columns := []table.Column{
-				{Title: "Name", Width: 40},
-				{Title: "ID", Width: 10},
-				{Title: "Description", Width: 50},
+				{Title: "", Width: 40},
+				{Title: "", Width: 10},
+				{Title: "", Width: 50},
 			}
 
 			rows := []table.Row{}
@@ -119,21 +119,26 @@ func newSearchCmd() *cobra.Command {
 				table.WithHeight(len(rows)+2),
 			)
 
-			// Style the table
-			s := table.DefaultStyles()
-			s.Header = s.Header.
-				BorderStyle(lipgloss.NormalBorder()).
-				BorderForeground(lipgloss.Color("240")).
-				BorderBottom(true).
-				Bold(false)
-			t.SetStyles(s)
+			// Apply display-only table styling (no row selection)
+			t = ui.StyleTableForDisplay(t)
 
-			// Print results count and table
+			// Print results count
 			fmt.Printf("\nFound %d project%s matching \"%s\":\n\n", 
 				len(matchingProjects), 
 				pluralize(len(matchingProjects)), 
 				strings.Join(args, " "))
-			fmt.Println(baseStyle.Render(t.View()))
+			
+			// Print the table, skipping the empty header row
+			tableView := t.View()
+			lines := strings.Split(tableView, "\n")
+			if len(lines) > 2 {
+				// Skip first line (top border) and second line (empty header)
+				// Keep the top border but skip the header
+				result := lines[0] + "\n" + strings.Join(lines[2:], "\n")
+				fmt.Println(ui.BaseTableStyle.Render(result))
+			} else {
+				fmt.Println(ui.BaseTableStyle.Render(tableView))
+			}
 			return nil
 		},
 	}
