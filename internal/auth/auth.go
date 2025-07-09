@@ -96,7 +96,10 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	defer server.Shutdown(ctx)
 
 	// Open browser to authorization URL
+	// Basecamp requires a 'type' parameter
 	authURL := c.config.AuthCodeURL(state, oauth2.AccessTypeOffline)
+	// Add the required 'type' parameter for Basecamp
+	authURL = authURL + "&type=web_server"
 	fmt.Printf("Opening browser for authentication...\n")
 	fmt.Printf("If the browser doesn't open, visit this URL:\n%s\n\n", authURL)
 
@@ -108,7 +111,9 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	select {
 	case code := <-codeChan:
 		// Exchange code for token
-		token, err := c.config.Exchange(ctx, code)
+		// Basecamp requires 'type' parameter for token exchange
+		token, err := c.config.Exchange(ctx, code, 
+			oauth2.SetAuthURLParam("type", "web_server"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to exchange code: %w", err)
 		}
@@ -192,7 +197,7 @@ func (c *Client) GetToken(accountID string) (*AccountToken, error) {
 
 // GetAccounts returns all authenticated accounts
 func (c *Client) GetAccounts() map[string]AccountToken {
-	if c.authStore == nil {
+	if c.authStore == nil || c.authStore.Accounts == nil {
 		return make(map[string]AccountToken)
 	}
 	return c.authStore.Accounts
@@ -335,6 +340,7 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
+	req.Header.Set("User-Agent", "bc4-cli/1.0.0 (github.com/needmore/bc4)")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -354,29 +360,60 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 		return err
 	}
 
-	// Find Basecamp 4 account
+	// Debug: print all accounts found
+	fmt.Printf("Found %d accounts:\n", len(authInfo.Accounts))
 	for _, account := range authInfo.Accounts {
-		if account.Product == "bc4" {
-			token.AccountID = fmt.Sprintf("%d", account.ID)
-			token.AccountName = account.Name
-			break
-		}
+		fmt.Printf("  - %s (ID: %d, Product: %s)\n", account.Name, account.ID, account.Product)
 	}
 
-	if token.AccountID == "" {
-		return fmt.Errorf("no Basecamp 4 account found")
-	}
-
-	// Save token
+	// Save token(s) for all Basecamp accounts found
 	if c.authStore == nil {
 		c.authStore = &AuthStore{
 			Accounts: make(map[string]AccountToken),
 		}
 	}
 
-	c.authStore.Accounts[token.AccountID] = *token
+	basecampAccounts := 0
+	firstAccountID := ""
+	
+	// Save all BC3/BC4 accounts
+	for _, account := range authInfo.Accounts {
+		if account.Product == "bc3" || account.Product == "bc4" || account.Product == "basecamp3" || account.Product == "basecamp4" || account.Product == "basecamp" {
+			accountToken := AccountToken{
+				AccountID:    fmt.Sprintf("%d", account.ID),
+				AccountName:  account.Name,
+				AccessToken:  token.AccessToken,
+				RefreshToken: token.RefreshToken,
+				TokenType:    token.TokenType,
+				ExpiresIn:    token.ExpiresIn,
+				ObtainedAt:   token.ObtainedAt,
+			}
+			
+			c.authStore.Accounts[accountToken.AccountID] = accountToken
+			basecampAccounts++
+			
+			if firstAccountID == "" {
+				firstAccountID = accountToken.AccountID
+			}
+			
+			fmt.Printf("Added Basecamp account: %s\n", account.Name)
+		}
+	}
+
+	if basecampAccounts == 0 {
+		return fmt.Errorf("no Basecamp accounts found")
+	}
+
+	// Set default account if not set
 	if c.authStore.DefaultAccount == "" {
-		c.authStore.DefaultAccount = token.AccountID
+		c.authStore.DefaultAccount = firstAccountID
+	}
+
+	// Update the token to return with the first account info
+	if basecampAccounts > 0 {
+		firstToken := c.authStore.Accounts[firstAccountID]
+		token.AccountID = firstToken.AccountID
+		token.AccountName = firstToken.AccountName
 	}
 
 	return c.saveAuthStore()

@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"

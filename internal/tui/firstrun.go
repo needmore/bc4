@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 )
@@ -49,6 +50,7 @@ const (
 	stepClientSecret
 	stepAuthenticate
 	stepSelectAccount
+	stepSelectProject
 	stepComplete
 )
 
@@ -61,19 +63,27 @@ type accountsLoadedMsg struct {
 	accounts map[string]auth.AccountToken
 }
 
+type projectsLoadedMsg struct {
+	projects []api.Project
+	err      error
+}
+
 // FirstRunModel represents the first-run wizard
 type FirstRunModel struct {
-	currentStep  step
-	clientID     textinput.Model
-	clientSecret textinput.Model
-	authClient   *auth.Client
-	token        *auth.AccountToken
-	accounts     map[string]auth.AccountToken
-	accountList  list.Model
-	spinner      spinner.Model
-	err          error
-	width        int
-	height       int
+	currentStep   step
+	clientID      textinput.Model
+	clientSecret  textinput.Model
+	authClient    *auth.Client
+	token         *auth.AccountToken
+	accounts      map[string]auth.AccountToken
+	accountList   list.Model
+	selectedAccount string
+	projects      []api.Project
+	projectList   list.Model
+	spinner       spinner.Model
+	err           error
+	width         int
+	height        int
 }
 
 // NewFirstRunModel creates a new first-run wizard
@@ -125,7 +135,26 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+			
+		case tea.KeyEsc:
+			// Allow ESC to skip project selection
+			if m.currentStep == stepSelectProject {
+				// Save config without project
+				cfg, _ := config.Load()
+				if cfg == nil {
+					cfg = &config.Config{
+						ClientID:     m.clientID.Value(),
+						ClientSecret: m.clientSecret.Value(),
+						Accounts:     make(map[string]config.AccountConfig),
+					}
+				}
+				cfg.DefaultAccount = m.selectedAccount
+				config.Save(cfg)
+				m.currentStep = stepComplete
+				return m, nil
+			}
 			return m, tea.Quit
 
 		case tea.KeyEnter:
@@ -150,28 +179,88 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.token = msg.token
+		// Store the auth client for later use
+		m.authClient = auth.NewClient(m.clientID.Value(), m.clientSecret.Value())
+		// Load accounts for selection
 		m.currentStep = stepSelectAccount
 		return m, m.loadAccounts()
 
 	case accountsLoadedMsg:
 		m.accounts = msg.accounts
-		if len(m.accounts) > 1 {
-			// Create account list
-			items := make([]list.Item, 0, len(m.accounts))
-			for _, account := range m.accounts {
-				items = append(items, accountItem{
-					id:   account.AccountID,
-					name: account.AccountName,
-				})
-			}
-			m.accountList = list.New(items, list.NewDefaultDelegate(), 0, 0)
-			m.accountList.Title = "Select Default Account"
-			m.accountList.SetShowStatusBar(false)
-			m.accountList.SetFilteringEnabled(false)
+		
+		if len(m.accounts) == 0 {
+			m.err = fmt.Errorf("no accounts found")
+			m.currentStep = stepAuthenticate
 			return m, nil
 		}
-		// Only one account, skip selection
-		m.currentStep = stepComplete
+		
+		// If only one account, skip to project selection
+		if len(m.accounts) == 1 {
+			for accountID := range m.accounts {
+				m.authClient.SetDefaultAccount(accountID)
+				m.selectedAccount = accountID
+				// Load projects for this account
+				m.currentStep = stepSelectProject
+				return m, m.loadProjects(accountID)
+			}
+		}
+		
+		// Multiple accounts - show selection
+		items := make([]list.Item, 0, len(m.accounts))
+		for _, account := range m.accounts {
+			items = append(items, accountItem{
+				id:   account.AccountID,
+				name: account.AccountName,
+			})
+		}
+		
+		// Create a custom delegate with better styling
+		delegate := list.NewDefaultDelegate()
+		delegate.SetHeight(2)
+		delegate.SetSpacing(1)
+		
+		m.accountList = list.New(items, delegate, 50, min(10, len(items)*3+4))
+		m.accountList.Title = "Select Default Account"
+		m.accountList.SetShowStatusBar(false)
+		m.accountList.SetFilteringEnabled(false)
+		m.accountList.Styles.Title = titleStyle
+		return m, nil
+
+	case projectsLoadedMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			m.currentStep = stepSelectAccount
+			return m, nil
+		}
+		
+		m.projects = msg.projects
+		
+		// Skip project selection if no projects
+		if len(m.projects) == 0 {
+			m.currentStep = stepComplete
+			return m, nil
+		}
+		
+		// Create project list
+		items := make([]list.Item, 0, len(m.projects))
+		for _, project := range m.projects {
+			items = append(items, projectItem{
+				id:   fmt.Sprintf("%d", project.ID),
+				name: project.Name,
+				desc: project.Description,
+			})
+		}
+		
+		// Create a custom delegate with better styling
+		delegate := list.NewDefaultDelegate()
+		delegate.SetHeight(3) // More height for description
+		delegate.SetSpacing(1)
+		
+		m.projectList = list.New(items, delegate, 60, min(12, len(items)*4+4))
+		m.projectList.Title = "Select Default Project (Optional)"
+		m.projectList.SetShowStatusBar(false)
+		m.projectList.SetFilteringEnabled(true)
+		m.projectList.Styles.Title = titleStyle
 		return m, nil
 
 	case spinner.TickMsg:
@@ -196,6 +285,11 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.accountList, cmd = m.accountList.Update(msg)
 		return m, cmd
+		
+	case stepSelectProject:
+		var cmd tea.Cmd
+		m.projectList, cmd = m.projectList.Update(msg)
+		return m, cmd
 	}
 
 	return m, nil
@@ -214,6 +308,8 @@ func (m FirstRunModel) View() string {
 		return m.viewAuthenticate()
 	case stepSelectAccount:
 		return m.viewSelectAccount()
+	case stepSelectProject:
+		return m.viewSelectProject()
 	case stepComplete:
 		return m.viewComplete()
 	default:
@@ -318,13 +414,73 @@ func (m FirstRunModel) viewAuthenticate() string {
 }
 
 func (m FirstRunModel) viewSelectAccount() string {
-	if len(m.accounts) <= 1 {
-		return m.viewComplete()
+	if m.accountList.Items() == nil || len(m.accountList.Items()) == 0 {
+		// Still loading
+		content := lipgloss.JoinVertical(lipgloss.Left,
+			titleStyle.Render("Loading accounts..."),
+			"",
+			m.spinner.View(),
+		)
+		return lipgloss.Place(m.width, m.height,
+			lipgloss.Center, lipgloss.Center,
+			content,
+		)
 	}
+
+	// Update list dimensions to fit window
+	listHeight := min(m.height-10, len(m.accountList.Items())*3+6)
+	listWidth := min(m.width-20, 60)
+	m.accountList.SetWidth(listWidth)
+	m.accountList.SetHeight(listHeight)
+
+	// Show account list
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		titleStyle.Render("Select Default Account"),
+		"",
+		m.accountList.View(),
+		"",
+		helpStyle.Render("↑/↓: Navigate • Enter: Select • Esc: Cancel"),
+	)
 
 	return lipgloss.Place(m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
-		m.accountList.View(),
+		content,
+	)
+}
+
+func (m FirstRunModel) viewSelectProject() string {
+	if m.projectList.Items() == nil || len(m.projectList.Items()) == 0 {
+		// Still loading or no projects
+		content := lipgloss.JoinVertical(lipgloss.Left,
+			titleStyle.Render("Loading projects..."),
+			"",
+			m.spinner.View(),
+		)
+		return lipgloss.Place(m.width, m.height,
+			lipgloss.Center, lipgloss.Center,
+			content,
+		)
+	}
+
+	// Update list dimensions to fit window
+	listHeight := min(m.height-12, len(m.projectList.Items())*4+6)
+	listWidth := min(m.width-20, 70)
+	m.projectList.SetWidth(listWidth)
+	m.projectList.SetHeight(listHeight)
+
+	// Show project list
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		titleStyle.Render("Select Default Project"),
+		subtitleStyle.Render("Optional - you can skip this step"),
+		"",
+		m.projectList.View(),
+		"",
+		helpStyle.Render("↑/↓: Navigate • Enter: Select • Esc: Skip"),
+	)
+
+	return lipgloss.Place(m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		content,
 	)
 }
 
@@ -387,8 +543,40 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 		if selected, ok := m.accountList.SelectedItem().(accountItem); ok {
 			// Set default account
 			m.authClient.SetDefaultAccount(selected.id)
-			m.currentStep = stepComplete
+			m.selectedAccount = selected.id
+			// Load projects for selected account
+			m.currentStep = stepSelectProject
+			return m, m.loadProjects(selected.id)
 		}
+		return m, nil
+		
+	case stepSelectProject:
+		cfg, _ := config.Load()
+		if cfg == nil {
+			cfg = &config.Config{
+				ClientID:     m.clientID.Value(),
+				ClientSecret: m.clientSecret.Value(),
+				Accounts:     make(map[string]config.AccountConfig),
+			}
+		}
+		
+		// Save default account
+		cfg.DefaultAccount = m.selectedAccount
+		
+		// Save selected project if any
+		if selected, ok := m.projectList.SelectedItem().(projectItem); ok {
+			cfg.DefaultProject = selected.id
+			if cfg.Accounts == nil {
+				cfg.Accounts = make(map[string]config.AccountConfig)
+			}
+			cfg.Accounts[m.selectedAccount] = config.AccountConfig{
+				Name:           m.accounts[m.selectedAccount].AccountName,
+				DefaultProject: selected.id,
+			}
+		}
+		
+		config.Save(cfg)
+		m.currentStep = stepComplete
 		return m, nil
 
 	case stepComplete:
@@ -419,6 +607,27 @@ func (m *FirstRunModel) loadAccounts() tea.Cmd {
 	}
 }
 
+func (m *FirstRunModel) loadProjects(accountID string) tea.Cmd {
+	return func() tea.Msg {
+		// Get the account token
+		token, err := m.authClient.GetToken(accountID)
+		if err != nil {
+			return projectsLoadedMsg{err: err}
+		}
+		
+		// Create API client
+		apiClient := api.NewClient(accountID, token.AccessToken)
+		
+		// Fetch projects
+		projects, err := apiClient.GetProjects(context.Background())
+		if err != nil {
+			return projectsLoadedMsg{err: err}
+		}
+		
+		return projectsLoadedMsg{projects: projects}
+	}
+}
+
 // accountItem implements list.Item
 type accountItem struct {
 	id   string
@@ -428,3 +637,21 @@ type accountItem struct {
 func (i accountItem) FilterValue() string { return i.name }
 func (i accountItem) Title() string       { return i.name }
 func (i accountItem) Description() string { return fmt.Sprintf("ID: %s", i.id) }
+
+// projectItem implements list.Item
+type projectItem struct {
+	id   string
+	name string
+	desc string
+}
+
+func (i projectItem) FilterValue() string { return i.name }
+func (i projectItem) Title() string       { return i.name }
+func (i projectItem) Description() string { return i.desc }
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

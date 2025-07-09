@@ -1,44 +1,52 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+)
 
-	"github.com/needmore/bc4/internal/config"
+const (
+	defaultBaseURL = "https://3.basecampapi.com"
+	userAgent      = "bc4-cli/1.0.0 (github.com/needmore/bc4)"
 )
 
 type Client struct {
-	config     *config.Config
-	httpClient *http.Client
+	accountID    string
+	accessToken  string
+	httpClient   *http.Client
+	baseURL      string
 }
 
-func NewClient(cfg *config.Config) *Client {
+func NewClient(accountID, accessToken string) *Client {
 	return &Client{
-		config: cfg,
+		accountID:   accountID,
+		accessToken: accessToken,
+		baseURL:     defaultBaseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 	}
 }
 
-func (c *Client) baseURL() string {
-	return fmt.Sprintf("%s/%s", c.config.BaseURL, c.config.AccountID)
+func (c *Client) getBaseURL() string {
+	return fmt.Sprintf("%s/%s", c.baseURL, c.accountID)
 }
 
 func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response, error) {
-	url := fmt.Sprintf("%s%s", c.baseURL(), path)
+	url := fmt.Sprintf("%s%s", c.getBaseURL(), path)
 	
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.config.AccessToken))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "bc4-cli/1.0")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -86,4 +94,26 @@ func (c *Client) Delete(path string) error {
 	// Implementation for DELETE requests
 	// TODO: Implement
 	return fmt.Errorf("not implemented")
+}
+
+// Project represents a Basecamp project
+type Project struct {
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Purpose     string `json:"purpose"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+// GetProjects fetches all projects for the account
+func (c *Client) GetProjects(ctx context.Context) ([]Project, error) {
+	var projects []Project
+	
+	// Basecamp API returns projects at /projects.json
+	if err := c.Get("/projects.json", &projects); err != nil {
+		return nil, fmt.Errorf("failed to fetch projects: %w", err)
+	}
+	
+	return projects, nil
 }

@@ -119,14 +119,14 @@ func GetConfigPath() string {
 // IsFirstRun checks if this is the first run (no auth or config)
 func IsFirstRun() bool {
 	// Check for config file
-	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+	if _, err := os.Stat(configPath); err == nil {
 		return false
 	}
 
 	// Check for auth file
 	authDir, _ := os.UserConfigDir()
 	authPath := filepath.Join(authDir, "bc4", "auth.json")
-	if _, err := os.Stat(authPath); !os.IsNotExist(err) {
+	if _, err := os.Stat(authPath); err == nil {
 		return false
 	}
 
