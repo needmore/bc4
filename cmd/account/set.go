@@ -50,7 +50,7 @@ func newSetCmd() *cobra.Command {
 
 			// Update config
 			cfg.DefaultAccount = accountID
-			
+
 			// Clear default project if changing accounts
 			if changingAccounts {
 				cfg.DefaultProject = ""
@@ -64,7 +64,7 @@ func newSetCmd() *cobra.Command {
 					}
 				}
 			}
-			
+
 			if err := config.Save(cfg); err != nil {
 				return fmt.Errorf("failed to save config: %w", err)
 			}

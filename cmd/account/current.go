@@ -16,9 +16,9 @@ func newCurrentCmd() *cobra.Command {
 	var jsonOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "current",
-		Short: "Show current account",
-		Long:  `Display information about the current default account.`,
+		Use:     "current",
+		Short:   "Show current account",
+		Long:    `Display information about the current default account.`,
 		Aliases: []string{"whoami"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
@@ -75,7 +75,7 @@ func newCurrentCmd() *cobra.Command {
 			fmt.Println()
 			fmt.Printf("%s %s\n", ui.LabelStyle.Render("Name:"), ui.ValueStyle.Render(account.AccountName))
 			fmt.Printf("%s %s\n", ui.LabelStyle.Render("ID:"), ui.ValueStyle.Render(defaultAccountID))
-			
+
 			// Show default project if set
 			if cfg.DefaultProject != "" {
 				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Default Project:"), ui.ValueStyle.Render(cfg.DefaultProject))
@@ -84,7 +84,7 @@ func newCurrentCmd() *cobra.Command {
 					fmt.Printf("%s %s\n", ui.LabelStyle.Render("Default Project:"), ui.ValueStyle.Render(acc.DefaultProject))
 				}
 			}
-			
+
 			fmt.Println()
 
 			return nil

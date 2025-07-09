@@ -1,13 +1,11 @@
 package account
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/auth"
@@ -15,13 +13,20 @@ import (
 	"github.com/needmore/bc4/internal/ui"
 )
 
+type accountInfo struct {
+	ID      string
+	Name    string
+	Default bool
+}
+
 func newListCmd() *cobra.Command {
 	var jsonOutput bool
+	var formatStr string
 
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List all accounts",
-		Long:  `List all authenticated Basecamp accounts. Use 'account select' for interactive selection.`,
+		Use:     "list",
+		Short:   "List all accounts",
+		Long:    `List all authenticated Basecamp accounts. Use 'account select' for interactive selection.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
@@ -48,12 +53,6 @@ func newListCmd() *cobra.Command {
 			}
 
 			// Convert to sorted slice
-			type accountInfo struct {
-				ID      string
-				Name    string
-				Default bool
-			}
-
 			var accountList []accountInfo
 			defaultAccount := authClient.GetDefaultAccount()
 
@@ -70,97 +69,55 @@ func newListCmd() *cobra.Command {
 				return strings.ToLower(accountList[i].Name) < strings.ToLower(accountList[j].Name)
 			})
 
-			// Output JSON if requested
+			// Parse output format
+			format, err := ui.ParseOutputFormat(formatStr)
+			if err != nil {
+				return err
+			}
+
+			// Handle legacy JSON flag
 			if jsonOutput {
-				encoder := json.NewEncoder(os.Stdout)
-				encoder.SetIndent("", "  ")
-				return encoder.Encode(accountList)
+				format = ui.OutputFormatJSON
 			}
 
-			// Get terminal width for responsive columns
-			termWidth := ui.GetTerminalWidth()
+			// Create output config
+			config := ui.NewOutputConfig(os.Stdout)
+			config.Format = format
+			config.NoHeaders = true // We'll add custom formatting
 
-			// Calculate column widths
-			// The table adds borders and padding, so we need to account for that
-			// Each column separator is 3 chars (space + | + space)
-			// Plus 2 for the outer borders
-			tableOverhead := 3 + 2
-			availableWidth := termWidth - tableOverhead
-			
-			nameWidth := 50
-			idWidth := 15
-			
-			// If we have more space than needed, use it
-			if availableWidth > nameWidth + idWidth {
-				extraSpace := availableWidth - nameWidth - idWidth
-				nameWidth += extraSpace / 2
-				idWidth += extraSpace / 2
-			} else if availableWidth < nameWidth + idWidth {
-				// Scale down proportionally
-				ratio := float64(availableWidth) / float64(nameWidth + idWidth)
-				nameWidth = int(float64(nameWidth) * ratio)
-				idWidth = int(float64(idWidth) * ratio)
-				if nameWidth < 20 {
-					nameWidth = 20
-				}
-				if idWidth < 8 {
-					idWidth = 8
-				}
-			}
+			// Create table writer
+			tw := ui.NewTableWriter(config)
 
-			// Create table
-			columns := []table.Column{
-				{Title: "", Width: nameWidth},
-				{Title: "", Width: idWidth},
-			}
-
-			rows := []table.Row{}
-			defaultIndex := 0
-			for i, acc := range accountList {
-				name := ui.TruncateString(acc.Name, nameWidth-3)
-				
-				// Track which row is the default
-				if acc.Default {
-					defaultIndex = i
-				}
-				
-				rows = append(rows, table.Row{
-					name,
+			// Add rows
+			for _, acc := range accountList {
+				row := []string{
+					acc.Name,
 					acc.ID,
-				})
+				}
+
+				// Add a marker for the default account
+				if acc.Default {
+					if config.Format == ui.OutputFormatTable && ui.IsTerminal(os.Stdout) && !config.NoColor {
+						// Add a subtle indicator for the default account
+						row[0] = "→ " + row[0]
+					} else if config.Format != ui.OutputFormatTable {
+						// For non-table formats, add a third column
+						row = append(row, "default")
+					}
+				} else if config.Format != ui.OutputFormatTable {
+					// Add empty third column for consistency
+					row = append(row, "")
+				}
+
+				tw.AddRow(row)
 			}
 
-			t := table.New(
-				table.WithColumns(columns),
-				table.WithRows(rows),
-				table.WithHeight(len(rows)+1), // Just enough for rows plus borders
-			)
-
-			// Style the table with subtle list highlighting
-			t = ui.StyleTableForList(t)
-			
-			// Set cursor to the default account (for highlighting)
-			t.SetCursor(defaultIndex)
-			
-			// Make sure table shows all rows by blurring focus
-			t.Blur()
-
-			// Print the table, skipping the empty header row
-			tableView := t.View()
-			lines := strings.Split(tableView, "\n")
-			
-			if len(lines) > 1 {
-				// Skip the first line (empty header), keep all data rows
-				result := strings.Join(lines[1:], "\n")
-				fmt.Println(ui.BaseTableStyle.Render(result))
-			} else {
-				fmt.Println(ui.BaseTableStyle.Render(tableView))
-			}
-			return nil
+			return tw.Render()
 		},
 	}
 
-	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON")
+	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON (deprecated, use --format=json)")
+	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table, json, or tsv")
 
 	return cmd
 }

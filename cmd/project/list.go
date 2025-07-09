@@ -8,25 +8,23 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/spf13/cobra"
-	
+
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/ui"
 )
 
-
-
 func newListCmd() *cobra.Command {
 	var jsonOutput bool
 	var accountID string
+	var formatStr string
 
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List all projects",
-		Long:  `List all projects in your Basecamp account. Use 'project select' for interactive selection.`,
+		Use:     "list",
+		Short:   "List all projects",
+		Long:    `List all projects in your Basecamp account. Use 'project select' for interactive selection.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
@@ -89,97 +87,46 @@ func newListCmd() *cobra.Command {
 				return nil
 			}
 
-			// Get terminal width
-			termWidth := ui.GetTerminalWidth()
-
-			// Calculate column widths based on terminal width
-			// Minimum widths: Name=20, ID=8, Description=20
-			nameWidth := 40
-			idWidth := 10
-			descWidth := 50
-			
-			// Total minimum width needed
-			minWidth := nameWidth + idWidth + descWidth + 6 // 6 for separators
-			
-			if termWidth < minWidth {
-				// Shrink columns proportionally
-				nameWidth = (termWidth * 40) / minWidth
-				idWidth = (termWidth * 10) / minWidth
-				descWidth = termWidth - nameWidth - idWidth - 6
-				
-				// Ensure minimum widths
-				if nameWidth < 20 {
-					nameWidth = 20
-				}
-				if idWidth < 8 {
-					idWidth = 8
-				}
-				if descWidth < 10 {
-					descWidth = 10
-				}
-			} else if termWidth > minWidth {
-				// Give extra space to description column
-				descWidth = termWidth - nameWidth - idWidth - 6
+			// Parse output format
+			format, err := ui.ParseOutputFormat(formatStr)
+			if err != nil {
+				return err
 			}
 
-			// Create table
-			columns := []table.Column{
-				{Title: "", Width: nameWidth},
-				{Title: "", Width: idWidth},
-				{Title: "", Width: descWidth},
-			}
+			// Create output config
+			config := ui.NewOutputConfig(os.Stdout)
+			config.Format = format
+			config.NoHeaders = true // We'll add custom headers
 
-			rows := []table.Row{}
-			defaultIndex := 0
-			for i, project := range projects {
-				idStr := strconv.FormatInt(project.ID, 10)
-				name := ui.TruncateString(project.Name, nameWidth-3)
-				desc := ui.TruncateString(project.Description, descWidth-3)
-				
-				// Track which row is the default
-				if idStr == defaultProjectID {
-					defaultIndex = i
+			// Create table writer
+			tw := ui.NewTableWriter(config)
+
+			// Add rows (headers are implicit from the data)
+			for _, project := range projects {
+				row := []string{
+					project.Name,
+					strconv.FormatInt(project.ID, 10),
+					project.Description,
 				}
-				
-				rows = append(rows, table.Row{
-					name,
-					idStr,
-					desc,
-				})
+
+				// Add a marker for the default project
+				if strconv.FormatInt(project.ID, 10) == defaultProjectID {
+					if config.Format == ui.OutputFormatTable && ui.IsTerminal(os.Stdout) && !config.NoColor {
+						// Add a subtle indicator for the default project
+						row[0] = "→ " + row[0]
+					}
+				}
+
+				tw.AddRow(row)
 			}
 
-			t := table.New(
-				table.WithColumns(columns),
-				table.WithRows(rows),
-				table.WithHeight(len(rows)+1), // Just enough for rows plus borders
-			)
-
-			// Style the table with subtle list highlighting
-			t = ui.StyleTableForList(t)
-			
-			// Set cursor to the default project (for highlighting)
-			t.SetCursor(defaultIndex)
-			
-			// Make sure table shows all rows by blurring focus
-			t.Blur()
-
-			// Print the table, skipping the empty header row
-			tableView := t.View()
-			lines := strings.Split(tableView, "\n")
-			
-			if len(lines) > 1 {
-				// Skip the first line (empty header), keep all data rows
-				result := strings.Join(lines[1:], "\n")
-				fmt.Println(ui.BaseTableStyle.Render(result))
-			} else {
-				fmt.Println(ui.BaseTableStyle.Render(tableView))
-			}
-			return nil
+			return tw.Render()
 		},
 	}
 
-	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON")
+	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON (deprecated, use --format=json)")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID (overrides default)")
+	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table, json, or tsv")
 
 	return cmd
 }

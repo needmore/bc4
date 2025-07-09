@@ -11,19 +11,19 @@ import (
 
 // Config represents the application configuration
 type Config struct {
-	ClientID       string                    `json:"client_id,omitempty"`
-	ClientSecret   string                    `json:"client_secret,omitempty"`
-	DefaultAccount string                    `json:"default_account,omitempty"`
-	DefaultProject string                    `json:"default_project,omitempty"`
-	Accounts       map[string]AccountConfig  `json:"accounts,omitempty"`
-	Preferences    PreferencesConfig         `json:"preferences,omitempty"`
+	ClientID       string                   `json:"client_id,omitempty"`
+	ClientSecret   string                   `json:"client_secret,omitempty"`
+	DefaultAccount string                   `json:"default_account,omitempty"`
+	DefaultProject string                   `json:"default_project,omitempty"`
+	Accounts       map[string]AccountConfig `json:"accounts,omitempty"`
+	Preferences    PreferencesConfig        `json:"preferences,omitempty"`
 }
 
 // AccountConfig represents per-account configuration
 type AccountConfig struct {
-	Name            string                      `json:"name"`
-	DefaultProject  string                      `json:"default_project,omitempty"`
-	ProjectDefaults map[string]ProjectDefaults  `json:"project_defaults,omitempty"`
+	Name            string                     `json:"name"`
+	DefaultProject  string                     `json:"default_project,omitempty"`
+	ProjectDefaults map[string]ProjectDefaults `json:"project_defaults,omitempty"`
 }
 
 // ProjectDefaults represents per-project default settings
@@ -57,7 +57,7 @@ func Load() (*Config, error) {
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// Return empty config for first run
 		return &Config{
-			Accounts:    make(map[string]AccountConfig),
+			Accounts: make(map[string]AccountConfig),
 			Preferences: PreferencesConfig{
 				Editor: os.Getenv("EDITOR"),
 				Pager:  "less",

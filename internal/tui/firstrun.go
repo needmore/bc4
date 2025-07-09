@@ -42,16 +42,16 @@ var (
 
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241"))
-			
+
 	listStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color("240")).
 			Padding(1, 2)
-			
+
 	selectedItemStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("170")).
-			Bold(true)
-			
+				Foreground(lipgloss.Color("170")).
+				Bold(true)
+
 	normalItemStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("252"))
 )
@@ -84,20 +84,20 @@ type projectsLoadedMsg struct {
 
 // FirstRunModel represents the first-run wizard
 type FirstRunModel struct {
-	currentStep   step
-	clientID      textinput.Model
-	clientSecret  textinput.Model
-	authClient    *auth.Client
-	token         *auth.AccountToken
-	accounts      map[string]auth.AccountToken
-	accountList   list.Model
+	currentStep     step
+	clientID        textinput.Model
+	clientSecret    textinput.Model
+	authClient      *auth.Client
+	token           *auth.AccountToken
+	accounts        map[string]auth.AccountToken
+	accountList     list.Model
 	selectedAccount string
-	projects      []api.Project
-	projectList   list.Model
-	spinner       spinner.Model
-	err           error
-	width         int
-	height        int
+	projects        []api.Project
+	projectList     list.Model
+	spinner         spinner.Model
+	err             error
+	width           int
+	height          int
 }
 
 // NewFirstRunModel creates a new first-run wizard
@@ -151,7 +151,7 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyCtrlC:
 			return m, tea.Quit
-			
+
 		case tea.KeyEsc:
 			// Allow ESC to skip project selection
 			if m.currentStep == stepSelectProject {
@@ -201,13 +201,13 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case accountsLoadedMsg:
 		m.accounts = msg.accounts
-		
+
 		if len(m.accounts) == 0 {
 			m.err = fmt.Errorf("no accounts found")
 			m.currentStep = stepAuthenticate
 			return m, nil
 		}
-		
+
 		// If only one account, skip to project selection
 		if len(m.accounts) == 1 {
 			for accountID := range m.accounts {
@@ -218,19 +218,19 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, m.loadProjects(accountID)
 			}
 		}
-		
+
 		// Multiple accounts - show selection
 		// First collect accounts into a slice we can sort
 		var accountList []auth.AccountToken
 		for _, account := range m.accounts {
 			accountList = append(accountList, account)
 		}
-		
+
 		// Sort accounts alphabetically by name
 		sort.Slice(accountList, func(i, j int) bool {
 			return strings.ToLower(accountList[i].AccountName) < strings.ToLower(accountList[j].AccountName)
 		})
-		
+
 		// Create items from sorted list
 		items := make([]list.Item, 0, len(accountList))
 		for _, account := range accountList {
@@ -239,7 +239,7 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				name: account.AccountName,
 			})
 		}
-		
+
 		// Use our custom delegate for cleaner rendering
 		m.accountList = list.New(items, itemDelegate{}, 50, min(10, len(items)+2))
 		m.accountList.Title = "Select Default Account"
@@ -256,20 +256,20 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.currentStep = stepSelectAccount
 			return m, nil
 		}
-		
+
 		m.projects = msg.projects
-		
+
 		// Skip project selection if no projects
 		if len(m.projects) == 0 {
 			m.currentStep = stepComplete
 			return m, nil
 		}
-		
+
 		// Sort projects alphabetically by name
 		sort.Slice(m.projects, func(i, j int) bool {
 			return strings.ToLower(m.projects[i].Name) < strings.ToLower(m.projects[j].Name)
 		})
-		
+
 		// Create project list
 		items := make([]list.Item, 0, len(m.projects))
 		for _, project := range m.projects {
@@ -279,7 +279,7 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				desc: project.Description,
 			})
 		}
-		
+
 		// Use our custom delegate for cleaner rendering
 		m.projectList = list.New(items, itemDelegate{}, 60, min(15, len(items)+2))
 		m.projectList.Title = "Select Default Project (Optional)"
@@ -312,7 +312,7 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var cmd tea.Cmd
 		m.accountList, cmd = m.accountList.Update(msg)
 		return m, cmd
-		
+
 	case stepSelectProject:
 		var cmd tea.Cmd
 		m.projectList, cmd = m.projectList.Update(msg)
@@ -576,7 +576,7 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 			return m, m.loadProjects(selected.id)
 		}
 		return m, nil
-		
+
 	case stepSelectProject:
 		cfg, _ := config.Load()
 		if cfg == nil {
@@ -586,10 +586,10 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 				Accounts:     make(map[string]config.AccountConfig),
 			}
 		}
-		
+
 		// Save default account
 		cfg.DefaultAccount = m.selectedAccount
-		
+
 		// Save selected project if any
 		if selected, ok := m.projectList.SelectedItem().(projectItem); ok {
 			cfg.DefaultProject = selected.id
@@ -601,7 +601,7 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 				DefaultProject: selected.id,
 			}
 		}
-		
+
 		config.Save(cfg)
 		m.currentStep = stepComplete
 		return m, nil
@@ -641,16 +641,16 @@ func (m *FirstRunModel) loadProjects(accountID string) tea.Cmd {
 		if err != nil {
 			return projectsLoadedMsg{err: err}
 		}
-		
+
 		// Create API client
 		apiClient := api.NewClient(accountID, token.AccessToken)
-		
+
 		// Fetch projects
 		projects, err := apiClient.GetProjects(context.Background())
 		if err != nil {
 			return projectsLoadedMsg{err: err}
 		}
-		
+
 		return projectsLoadedMsg{projects: projects}
 	}
 }

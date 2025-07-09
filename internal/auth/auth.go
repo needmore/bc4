@@ -100,7 +100,7 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	authURL := c.config.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	// Add the required 'type' parameter for Basecamp
 	authURL = authURL + "&type=web_server"
-	
+
 	// Silently open browser
 	browser.OpenURL(authURL)
 
@@ -109,7 +109,7 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	case code := <-codeChan:
 		// Exchange code for token
 		// Basecamp requires 'type' parameter for token exchange
-		token, err := c.config.Exchange(ctx, code, 
+		token, err := c.config.Exchange(ctx, code,
 			oauth2.SetAuthURLParam("type", "web_server"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to exchange code: %w", err)
@@ -368,7 +368,7 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 
 	basecampAccounts := 0
 	firstAccountID := ""
-	
+
 	// Save all BC3/BC4 accounts
 	for _, account := range authInfo.Accounts {
 		if account.Product == "bc3" || account.Product == "bc4" || account.Product == "basecamp3" || account.Product == "basecamp4" || account.Product == "basecamp" {
@@ -381,14 +381,14 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 				ExpiresIn:    token.ExpiresIn,
 				ObtainedAt:   token.ObtainedAt,
 			}
-			
+
 			c.authStore.Accounts[accountToken.AccountID] = accountToken
 			basecampAccounts++
-			
+
 			if firstAccountID == "" {
 				firstAccountID = accountToken.AccountID
 			}
-			
+
 			// Silent - added account
 		}
 	}

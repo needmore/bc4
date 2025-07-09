@@ -26,13 +26,13 @@ type accountItem struct {
 }
 
 type selectModel struct {
-	table     table.Model
-	accounts  []accountItem
-	spinner   spinner.Model
-	loading   bool
-	err       error
-	width     int
-	height    int
+	table    table.Model
+	accounts []accountItem
+	spinner  spinner.Model
+	loading  bool
+	err      error
+	width    int
+	height   int
 }
 
 func (m selectModel) Init() tea.Cmd {
@@ -101,7 +101,7 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if acc.current {
 				defaultStr = "✓"
 			}
-			
+
 			rows = append(rows, table.Row{
 				acc.name,
 				acc.id,
@@ -197,18 +197,18 @@ func (m *selectModel) setDefaultAccount(accountID, accountName string) tea.Cmd {
 
 		// Create auth client and set default
 		authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-		
+
 		// Check if we're changing accounts
 		oldDefaultAccount := authClient.GetDefaultAccount()
 		changingAccounts := oldDefaultAccount != "" && oldDefaultAccount != accountID
-		
+
 		if err := authClient.SetDefaultAccount(accountID); err != nil {
 			return nil
 		}
 
 		// Update config
 		cfg.DefaultAccount = accountID
-		
+
 		// Clear default project if changing accounts
 		if changingAccounts {
 			cfg.DefaultProject = ""
@@ -236,9 +236,9 @@ func (m *selectModel) setDefaultAccount(accountID, accountName string) tea.Cmd {
 
 func newSelectCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "select",
-		Short: "Select default account",
-		Long:  `Interactively select a default account for bc4 commands.`,
+		Use:     "select",
+		Short:   "Select default account",
+		Long:    `Interactively select a default account for bc4 commands.`,
 		Aliases: []string{"set-default", "default"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config

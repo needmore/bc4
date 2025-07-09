@@ -2,15 +2,13 @@ package todo
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/spf13/cobra"
-	
+
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
@@ -21,11 +19,12 @@ func newListCmd() *cobra.Command {
 	var jsonOutput bool
 	var accountID string
 	var projectID string
+	var formatStr string
 
 	cmd := &cobra.Command{
-		Use:   "list",
-		Short: "List all todo lists in a project",
-		Long:  `List all todo lists in the current or specified project.`,
+		Use:     "list",
+		Short:   "List all todo lists in a project",
+		Long:    `List all todo lists in the current or specified project.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
@@ -97,114 +96,64 @@ func newListCmd() *cobra.Command {
 				}
 			}
 
-			// Output JSON if requested
-			if jsonOutput {
-				encoder := json.NewEncoder(os.Stdout)
-				encoder.SetIndent("", "  ")
-				return encoder.Encode(todoLists)
-			}
-
 			// Check if there are any todo lists
 			if len(todoLists) == 0 {
 				fmt.Println("No todo lists found in this project.")
 				return nil
 			}
-			
 
-			// Get terminal width
-			termWidth := ui.GetTerminalWidth()
-
-			// Calculate column widths based on terminal width
-			nameWidth := 50
-			idWidth := 12
-			statusWidth := 10
-			
-			// Total minimum width needed
-			minWidth := nameWidth + idWidth + statusWidth + 6 // 6 for separators
-			
-			if termWidth < minWidth {
-				// Shrink columns proportionally
-				nameWidth = (termWidth * 50) / minWidth
-				statusWidth = (termWidth * 10) / minWidth
-				
-				// Ensure minimum widths
-				if nameWidth < 20 {
-					nameWidth = 20
-				}
-				if statusWidth < 8 {
-					statusWidth = 8
-				}
-			} else if termWidth > minWidth {
-				// Give extra space to name column
-				nameWidth = termWidth - idWidth - statusWidth - 6
+			// Parse output format
+			format, err := ui.ParseOutputFormat(formatStr)
+			if err != nil {
+				return err
 			}
 
-			// Create table
-			columns := []table.Column{
-				{Title: "", Width: nameWidth},
-				{Title: "", Width: idWidth},
-				{Title: "", Width: statusWidth},
+			// Handle legacy JSON flag
+			if jsonOutput {
+				format = ui.OutputFormatJSON
 			}
 
-			rows := []table.Row{}
-			defaultIndex := 0
-			for i, todoList := range todoLists {
+			// Create output config
+			config := ui.NewOutputConfig(os.Stdout)
+			config.Format = format
+			config.NoHeaders = true // We'll add custom formatting
+
+			// Create table writer
+			tw := ui.NewTableWriter(config)
+
+			// Add rows
+			for _, todoList := range todoLists {
 				idStr := strconv.FormatInt(todoList.ID, 10)
-				name := ui.TruncateString(todoList.Title, nameWidth-3)
 				status := todoList.CompletedRatio
 				if status == "" {
 					status = "0/0"
 				}
-				
-				// Track which row is the default
-				if idStr == defaultTodoListID {
-					defaultIndex = i
-				}
-				
-				rows = append(rows, table.Row{
-					name,
+
+				row := []string{
+					todoList.Title,
 					idStr,
 					status,
-				})
+				}
+
+				// Add a marker for the default todo list
+				if idStr == defaultTodoListID {
+					if config.Format == ui.OutputFormatTable && ui.IsTerminal(os.Stdout) && !config.NoColor {
+						// Add a subtle indicator for the default todo list
+						row[0] = "→ " + row[0]
+					}
+				}
+
+				tw.AddRow(row)
 			}
 
-			// Calculate the proper height - we need all rows plus borders
-			// Since we're skipping the header, we need to ensure all data rows are visible
-			tableHeight := len(rows) + 1  // +1 for borders
-			
-			t := table.New(
-				table.WithColumns(columns),
-				table.WithRows(rows),
-				table.WithHeight(tableHeight),
-			)
-
-			// Style the table with subtle list highlighting
-			t = ui.StyleTableForList(t)
-			
-			// Set cursor to the default todo list (for highlighting)
-			t.SetCursor(defaultIndex)
-			
-			// Make sure table shows all rows by blurring focus
-			t.Blur()
-
-			// Print the table, skipping the empty header row
-			tableView := t.View()
-			lines := strings.Split(tableView, "\n")
-			
-			if len(lines) > 1 {
-				// Skip the first line (empty header), keep all data rows
-				result := strings.Join(lines[1:], "\n")
-				fmt.Println(ui.BaseTableStyle.Render(result))
-			} else {
-				fmt.Println(ui.BaseTableStyle.Render(tableView))
-			}
-			return nil
+			return tw.Render()
 		},
 	}
 
-	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON")
+	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON (deprecated, use --format=json)")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID (overrides default)")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID (overrides default)")
+	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table, json, or tsv")
 
 	return cmd
 }

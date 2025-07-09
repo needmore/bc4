@@ -7,9 +7,9 @@ import (
 // NewProjectCmd creates the project command
 func NewProjectCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "project",
-		Short: "Manage Basecamp projects",
-		Long:  `Work with Basecamp projects - list, view, search, and manage projects.`,
+		Use:     "project",
+		Short:   "Manage Basecamp projects",
+		Long:    `Work with Basecamp projects - list, view, search, and manage projects.`,
 		Aliases: []string{"p"},
 	}
 

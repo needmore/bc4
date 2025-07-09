@@ -105,7 +105,7 @@ func newSearchCmd() *cobra.Command {
 				if len(desc) > 47 {
 					desc = desc[:44] + "..."
 				}
-				
+
 				rows = append(rows, table.Row{
 					project.Name,
 					strconv.FormatInt(project.ID, 10),
@@ -121,20 +121,20 @@ func newSearchCmd() *cobra.Command {
 
 			// Apply display-only table styling (no row selection)
 			t = ui.StyleTableForDisplay(t)
-			
+
 			// Make sure table shows all rows
 			t.Blur()
 
 			// Print results count
-			fmt.Printf("\nFound %d project%s matching \"%s\":\n\n", 
-				len(matchingProjects), 
-				pluralize(len(matchingProjects)), 
+			fmt.Printf("\nFound %d project%s matching \"%s\":\n\n",
+				len(matchingProjects),
+				pluralize(len(matchingProjects)),
 				strings.Join(args, " "))
-			
+
 			// Print the table, skipping the empty header row
 			tableView := t.View()
 			lines := strings.Split(tableView, "\n")
-			
+
 			if len(lines) > 1 {
 				// Skip the first line (empty header), keep all data rows
 				result := strings.Join(lines[1:], "\n")

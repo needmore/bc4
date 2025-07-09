@@ -16,21 +16,20 @@ import (
 	"github.com/needmore/bc4/internal/ui"
 )
 
-
 type projectsLoadedMsg struct {
 	projects []api.Project
 	err      error
 }
 
 type selectModel struct {
-	table        table.Model
-	projects     []api.Project
-	spinner      spinner.Model
-	loading      bool
-	err          error
-	width        int
-	height       int
-	accountID    string
+	table     table.Model
+	projects  []api.Project
+	spinner   spinner.Model
+	loading   bool
+	err       error
+	width     int
+	height    int
+	accountID string
 }
 
 func (m selectModel) Init() tea.Cmd {
@@ -105,7 +104,7 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(desc) > 47 {
 				desc = desc[:44] + "..."
 			}
-			
+
 			rows = append(rows, table.Row{
 				project.Name,
 				strconv.FormatInt(project.ID, 10),
@@ -224,14 +223,13 @@ func (m *selectModel) saveDefaultProject(project api.Project) tea.Cmd {
 	}
 }
 
-
 func newSelectCmd() *cobra.Command {
 	var accountID string
 
 	cmd := &cobra.Command{
-		Use:   "select",
-		Short: "Select default project",
-		Long:  `Interactively select a default project for bc4 commands.`,
+		Use:     "select",
+		Short:   "Select default project",
+		Long:    `Interactively select a default project for bc4 commands.`,
 		Aliases: []string{"set-default", "default"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config

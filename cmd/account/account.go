@@ -7,9 +7,9 @@ import (
 // NewAccountCmd creates the account command
 func NewAccountCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "account",
-		Short: "Manage Basecamp accounts",
-		Long:  `Work with Basecamp accounts - list, select, and manage accounts.`,
+		Use:     "account",
+		Short:   "Manage Basecamp accounts",
+		Long:    `Work with Basecamp accounts - list, select, and manage accounts.`,
 		Aliases: []string{"a"},
 	}
 

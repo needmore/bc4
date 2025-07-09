@@ -16,10 +16,10 @@ const (
 )
 
 type Client struct {
-	accountID    string
-	accessToken  string
-	httpClient   *http.Client
-	baseURL      string
+	accountID   string
+	accessToken string
+	httpClient  *http.Client
+	baseURL     string
 }
 
 func NewClient(accountID, accessToken string) *Client {
@@ -39,7 +39,7 @@ func (c *Client) getBaseURL() string {
 
 func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response, error) {
 	url := fmt.Sprintf("%s%s", c.getBaseURL(), path)
-	
+
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -111,10 +111,10 @@ type Project struct {
 func (c *Client) GetProjects(ctx context.Context) ([]Project, error) {
 	var allProjects []Project
 	page := 1
-	
+
 	for {
 		var projects []Project
-		
+
 		// Basecamp API returns projects at /projects.json with pagination
 		path := fmt.Sprintf("/projects.json?page=%d", page)
 		resp, err := c.doRequest("GET", path, nil)
@@ -122,83 +122,83 @@ func (c *Client) GetProjects(ctx context.Context) ([]Project, error) {
 			return nil, fmt.Errorf("failed to fetch projects: %w", err)
 		}
 		defer resp.Body.Close()
-		
+
 		if err := json.NewDecoder(resp.Body).Decode(&projects); err != nil {
 			return nil, fmt.Errorf("failed to decode projects: %w", err)
 		}
-		
+
 		// Add projects to our collection
 		allProjects = append(allProjects, projects...)
-		
+
 		// Check if there are more pages
 		linkHeader := resp.Header.Get("Link")
 		if !strings.Contains(linkHeader, `rel="next"`) || len(projects) == 0 {
 			break
 		}
-		
+
 		page++
-		
+
 		// Small delay to respect rate limits (50 requests per 10 seconds)
 		time.Sleep(200 * time.Millisecond)
 	}
-	
+
 	return allProjects, nil
 }
 
 // GetProject fetches a single project by ID
 func (c *Client) GetProject(ctx context.Context, projectID string) (*Project, error) {
 	var project Project
-	
+
 	path := fmt.Sprintf("/projects/%s.json", projectID)
 	resp, err := c.doRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch project: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if err := json.NewDecoder(resp.Body).Decode(&project); err != nil {
 		return nil, fmt.Errorf("failed to decode project: %w", err)
 	}
-	
+
 	return &project, nil
 }
 
 // TodoSet represents a Basecamp todo set (container for todo lists)
 type TodoSet struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	Name        string `json:"name"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	ID           int64  `json:"id"`
+	Title        string `json:"title"`
+	Name         string `json:"name"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
 	TodolistsURL string `json:"todolists_url"`
 }
 
 // TodoList represents a Basecamp todo list
 type TodoList struct {
-	ID               int64   `json:"id"`
-	Title            string  `json:"title"`
-	Name             string  `json:"name"`
-	Description      string  `json:"description"`
-	CreatedAt        string  `json:"created_at"`
-	UpdatedAt        string  `json:"updated_at"`
-	Completed        bool    `json:"completed"`
-	CompletedRatio   string  `json:"completed_ratio"`
-	TodosCount       int     `json:"todos_count"`
-	TodosURL         string  `json:"todos_url"`
+	ID             int64  `json:"id"`
+	Title          string `json:"title"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+	Completed      bool   `json:"completed"`
+	CompletedRatio string `json:"completed_ratio"`
+	TodosCount     int    `json:"todos_count"`
+	TodosURL       string `json:"todos_url"`
 }
 
 // Todo represents a Basecamp todo item
 type Todo struct {
-	ID          int64     `json:"id"`
-	Title       string    `json:"title"`
-	Content     string    `json:"content"`
-	Description string    `json:"description"`
-	CreatedAt   string    `json:"created_at"`
-	UpdatedAt   string    `json:"updated_at"`
-	Completed   bool      `json:"completed"`
-	DueOn       *string   `json:"due_on"`
-	StartsOn    *string   `json:"starts_on"`
-	TodolistID  int64     `json:"todolist_id"`
+	ID          int64   `json:"id"`
+	Title       string  `json:"title"`
+	Content     string  `json:"content"`
+	Description string  `json:"description"`
+	CreatedAt   string  `json:"created_at"`
+	UpdatedAt   string  `json:"updated_at"`
+	Completed   bool    `json:"completed"`
+	DueOn       *string `json:"due_on"`
+	StartsOn    *string `json:"starts_on"`
+	TodolistID  int64   `json:"todolist_id"`
 }
 
 // GetProjectTodoSet fetches the todo set for a project
@@ -208,16 +208,16 @@ func (c *Client) GetProjectTodoSet(ctx context.Context, projectID string) (*Todo
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Get project tools/features
 	path := fmt.Sprintf("/projects/%d.json", project.ID)
-	
+
 	resp, err := c.doRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch project tools: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	var projectData struct {
 		Dock []struct {
 			ID    int64  `json:"id"`
@@ -226,76 +226,76 @@ func (c *Client) GetProjectTodoSet(ctx context.Context, projectID string) (*Todo
 			URL   string `json:"url"`
 		} `json:"dock"`
 	}
-	
+
 	if err := json.NewDecoder(resp.Body).Decode(&projectData); err != nil {
 		return nil, fmt.Errorf("failed to decode project data: %w", err)
 	}
-	
+
 	// Find the todoset in the dock
 	for _, tool := range projectData.Dock {
 		if tool.Name == "todoset" {
 			return &TodoSet{
-				ID:    tool.ID,
-				Title: tool.Title,
-				Name:  tool.Name,
+				ID:           tool.ID,
+				Title:        tool.Title,
+				Name:         tool.Name,
 				TodolistsURL: tool.URL,
 			}, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("todo set not found for project")
 }
 
 // GetTodoLists fetches all todo lists in a todo set
 func (c *Client) GetTodoLists(ctx context.Context, projectID string, todoSetID int64) ([]TodoList, error) {
 	var todoLists []TodoList
-	
+
 	path := fmt.Sprintf("/buckets/%s/todosets/%d/todolists.json", projectID, todoSetID)
 	resp, err := c.doRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch todo lists: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if err := json.NewDecoder(resp.Body).Decode(&todoLists); err != nil {
 		return nil, fmt.Errorf("failed to decode todo lists: %w", err)
 	}
-	
+
 	return todoLists, nil
 }
 
 // GetTodoList fetches a single todo list by ID
 func (c *Client) GetTodoList(ctx context.Context, projectID string, todoListID int64) (*TodoList, error) {
 	var todoList TodoList
-	
+
 	path := fmt.Sprintf("/buckets/%s/todolists/%d.json", projectID, todoListID)
 	resp, err := c.doRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch todo list: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if err := json.NewDecoder(resp.Body).Decode(&todoList); err != nil {
 		return nil, fmt.Errorf("failed to decode todo list: %w", err)
 	}
-	
+
 	return &todoList, nil
 }
 
 // GetTodos fetches all todos in a todo list
 func (c *Client) GetTodos(ctx context.Context, projectID string, todoListID int64) ([]Todo, error) {
 	var todos []Todo
-	
+
 	path := fmt.Sprintf("/buckets/%s/todolists/%d/todos.json", projectID, todoListID)
 	resp, err := c.doRequest("GET", path, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch todos: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if err := json.NewDecoder(resp.Body).Decode(&todos); err != nil {
 		return nil, fmt.Errorf("failed to decode todos: %w", err)
 	}
-	
+
 	return todos, nil
 }

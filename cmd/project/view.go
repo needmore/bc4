@@ -17,7 +17,6 @@ import (
 	"github.com/needmore/bc4/internal/ui"
 )
 
-
 func newViewCmd() *cobra.Command {
 	var jsonOutput bool
 	var accountID string
@@ -54,7 +53,7 @@ func newViewCmd() *cobra.Command {
 			// Get project ID from args or default
 			var projectID string
 			var project *api.Project
-			
+
 			if len(args) > 0 {
 				projectID = args[0]
 			} else {
@@ -89,7 +88,7 @@ func newViewCmd() *cobra.Command {
 					if fetchErr != nil {
 						return fmt.Errorf("failed to fetch projects: %w", fetchErr)
 					}
-					
+
 					// Find first matching project (case-insensitive)
 					searchTerm := strings.ToLower(projectID)
 					for _, p := range allProjects {
@@ -99,7 +98,7 @@ func newViewCmd() *cobra.Command {
 							break
 						}
 					}
-					
+
 					if project == nil {
 						return fmt.Errorf("no project found matching '%s'", projectID)
 					}
@@ -125,7 +124,7 @@ func newViewCmd() *cobra.Command {
 			}
 
 			fmt.Printf("%s %s\n", ui.LabelStyle.Render("ID:"), ui.ValueStyle.Render(strconv.FormatInt(project.ID, 10)))
-			
+
 			// Only show purpose if it's not empty and not "topic"
 			if project.Purpose != "" && project.Purpose != "topic" {
 				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Purpose:"), ui.ValueStyle.Render(project.Purpose))

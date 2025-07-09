@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/spf13/cobra"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -67,7 +67,7 @@ func newLoginCmd() *cobra.Command {
 
 func newLogoutCmd() *cobra.Command {
 	var all bool
-	
+
 	cmd := &cobra.Command{
 		Use:   "logout [account-id]",
 		Short: "Log out of Basecamp",
@@ -101,7 +101,7 @@ func newLogoutCmd() *cobra.Command {
 			} else {
 				fmt.Println(successStyle.Render(fmt.Sprintf("✓ Logged out of account %s", accountID)))
 			}
-			
+
 			return nil
 		},
 	}
@@ -143,7 +143,7 @@ func newStatusCmd() *cobra.Command {
 			// Display status
 			fmt.Println(successStyle.Render("✓ Authenticated"))
 			fmt.Println()
-			
+
 			defaultAccount := authClient.GetDefaultAccount()
 			fmt.Println(infoStyle.Render("Accounts:"))
 			for _, account := range accounts {

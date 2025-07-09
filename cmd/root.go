@@ -7,7 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	
+
 	"github.com/needmore/bc4/cmd/account"
 	"github.com/needmore/bc4/cmd/auth"
 	"github.com/needmore/bc4/cmd/project"
@@ -38,11 +38,11 @@ Get started by running 'bc4' to launch the setup wizard.`,
 				tea.WithAltScreen(),
 				tea.WithMouseCellMotion(),
 			)
-			
+
 			if _, err := p.Run(); err != nil {
 				return fmt.Errorf("setup failed: %w", err)
 			}
-			
+
 			fmt.Println("\nSetup complete! You can now use bc4.")
 			fmt.Println("Try 'bc4 auth status' to see your account information.")
 			return nil
@@ -69,7 +69,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("project", "p", "", "Override default project ID")
 	rootCmd.PersistentFlags().Bool("json", false, "Output in JSON format")
 	rootCmd.PersistentFlags().Bool("no-color", false, "Disable color output")
-	
+
 	// Bind flags to viper
 	viper.BindPFlag("account", rootCmd.PersistentFlags().Lookup("account"))
 	viper.BindPFlag("project", rootCmd.PersistentFlags().Lookup("project"))

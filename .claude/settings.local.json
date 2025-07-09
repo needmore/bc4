@@ -13,7 +13,11 @@
       "Bash(go get:*)",
       "Bash(go mod:*)",
       "Bash(grep:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=60)",
+      "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=200)",
+      "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=80)",
+      "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=40)"
     ],
     "deny": []
   }

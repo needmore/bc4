@@ -41,21 +41,21 @@ type Todo struct {
 }
 
 type Person struct {
-	ID             int64  `json:"id"`
-	AttachableSgid string `json:"attachable_sgid"`
-	Name           string `json:"name"`
-	EmailAddress   string `json:"email_address"`
-	PersonableType string `json:"personable_type"`
-	Title          string `json:"title"`
-	Bio            string `json:"bio"`
-	Location       string `json:"location"`
+	ID             int64     `json:"id"`
+	AttachableSgid string    `json:"attachable_sgid"`
+	Name           string    `json:"name"`
+	EmailAddress   string    `json:"email_address"`
+	PersonableType string    `json:"personable_type"`
+	Title          string    `json:"title"`
+	Bio            string    `json:"bio"`
+	Location       string    `json:"location"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`
-	Admin          bool   `json:"admin"`
-	Owner          bool   `json:"owner"`
-	Client         bool   `json:"client"`
-	TimeZone       string `json:"time_zone"`
-	AvatarURL      string `json:"avatar_url"`
-	AvatarKind     string `json:"avatar_kind"`
-	CanPing        bool   `json:"can_ping"`
+	Admin          bool      `json:"admin"`
+	Owner          bool      `json:"owner"`
+	Client         bool      `json:"client"`
+	TimeZone       string    `json:"time_zone"`
+	AvatarURL      string    `json:"avatar_url"`
+	AvatarKind     string    `json:"avatar_kind"`
+	CanPing        bool      `json:"can_ping"`
 }
