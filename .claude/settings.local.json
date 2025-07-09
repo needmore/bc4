@@ -17,7 +17,8 @@
       "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=60)",
       "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=200)",
       "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=80)",
-      "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=40)"
+      "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=40)",
+      "WebFetch(domain:cli.github.com)"
     ],
     "deny": []
   }
