@@ -227,10 +227,9 @@ func newSelectCmd() *cobra.Command {
 	var accountID string
 
 	cmd := &cobra.Command{
-		Use:     "select",
-		Short:   "Select default project",
-		Long:    `Interactively select a default project for bc4 commands.`,
-		Aliases: []string{"set-default", "default"},
+		Use:   "select",
+		Short: "Select default project",
+		Long:  `Interactively select a default project for bc4 commands.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
 			cfg, err := config.Load()

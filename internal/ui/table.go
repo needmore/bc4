@@ -221,4 +221,3 @@ func stripAnsi(s string) string {
 	}
 	return result.String()
 }
-

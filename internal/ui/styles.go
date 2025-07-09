@@ -68,4 +68,3 @@ func DefaultTableSelectedStyle() lipgloss.Style {
 		Background(lipgloss.Color("57")).
 		Bold(false)
 }
-

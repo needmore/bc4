@@ -8,10 +8,9 @@ import (
 
 func newSelectCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "select",
-		Short:   "Select default todo list",
-		Long:    `Interactively select a default todo list for the current project.`,
-		Aliases: []string{"set-default", "default"},
+		Use:   "select",
+		Short: "Select default todo list",
+		Long:  `Interactively select a default todo list for the current project.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// TODO: Implement interactive todo list selection
 			fmt.Println("Todo list selection not yet implemented")

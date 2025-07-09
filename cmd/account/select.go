@@ -236,10 +236,9 @@ func (m *selectModel) setDefaultAccount(accountID, accountName string) tea.Cmd {
 
 func newSelectCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "select",
-		Short:   "Select default account",
-		Long:    `Interactively select a default account for bc4 commands.`,
-		Aliases: []string{"set-default", "default"},
+		Use:   "select",
+		Short: "Select default account",
+		Long:  `Interactively select a default account for bc4 commands.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
 			cfg, err := config.Load()

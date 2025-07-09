@@ -274,4 +274,3 @@ func (w *simpleTableWriter) renderTable() error {
 
 	return nil
 }
-
