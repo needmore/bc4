@@ -13,7 +13,7 @@ import (
 func GetTerminalWidth() int {
 	defaultWidth := 100
 	if width, _, err := term.GetSize(int(os.Stdout.Fd())); err == nil && width > 0 {
-		return width - 4 // Leave some margin for borders
+		return width - 2 // Leave minimal margin to prevent wrapping
 	}
 	return defaultWidth
 }

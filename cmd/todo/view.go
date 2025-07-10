@@ -25,6 +25,7 @@ func newViewCmd() *cobra.Command {
 	var formatStr string
 	var jsonFields string
 	var webView bool
+	var showAll bool
 
 	cmd := &cobra.Command{
 		Use:   "view [list-id|name]",
@@ -148,6 +149,25 @@ func newViewCmd() *cobra.Command {
 				return fmt.Errorf("failed to fetch todos: %w", err)
 			}
 
+			// Check if this todo list has groups instead of direct todos
+			var groups []api.TodoGroup
+			var groupedTodos map[string][]api.Todo
+
+			if len(todos) == 0 && todoList.GroupsURL != "" {
+				// Try fetching groups
+				groups, err = apiClient.GetTodoGroups(context.Background(), projectID, todoListID)
+				if err == nil && len(groups) > 0 {
+					// Fetch todos for each group
+					groupedTodos = make(map[string][]api.Todo)
+					for _, group := range groups {
+						groupTodos, err := apiClient.GetTodos(context.Background(), projectID, group.ID)
+						if err == nil {
+							groupedTodos[fmt.Sprintf("%d", group.ID)] = groupTodos
+						}
+					}
+				}
+			}
+
 			// Parse output format
 			format, err := ui.ParseOutputFormat(formatStr)
 			if err != nil {
@@ -156,11 +176,17 @@ func newViewCmd() *cobra.Command {
 
 			// Handle JSON output
 			if format == ui.OutputFormatJSON || jsonFields != "" {
+				if len(groups) > 0 {
+					return outputTodoListWithGroupsJSON(todoList, groups, groupedTodos, jsonFields)
+				}
 				return outputTodoListJSON(todoList, todos, jsonFields)
 			}
 
-			// Display todo list in terminal
-			return displayTodoList(todoList, todos, format)
+			// Display todo list in terminal - GitHub CLI style
+			if len(groups) > 0 {
+				return displayTodoListGitHubStyle(todoList, groups, groupedTodos, showAll)
+			}
+			return displayTodoListGitHubStyle(todoList, nil, map[string][]api.Todo{"": todos}, showAll)
 		},
 	}
 
@@ -169,11 +195,23 @@ func newViewCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table, json, or tsv")
 	cmd.Flags().StringVar(&jsonFields, "json", "", "Output JSON with specified fields")
 	cmd.Flags().BoolVarP(&webView, "web", "w", false, "Open in web browser")
+	cmd.Flags().BoolVarP(&showAll, "all", "A", false, "Show all todos including completed ones")
 
 	return cmd
 }
 
-func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputFormat) error {
+func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputFormat, showAll bool) error {
+	// Filter todos if not showing all
+	if !showAll {
+		var filteredTodos []api.Todo
+		for _, todo := range todos {
+			if !todo.Completed {
+				filteredTodos = append(filteredTodos, todo)
+			}
+		}
+		todos = filteredTodos
+	}
+
 	// Terminal display with nice formatting
 	if !ui.IsTerminal(os.Stdout) || format == ui.OutputFormatTSV {
 		// Non-TTY or TSV format - simple output
@@ -183,8 +221,7 @@ func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputF
 	// Pretty terminal display
 	titleStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.Color("99")).
-		MarginBottom(1)
+		Foreground(lipgloss.Color("99"))
 
 	metaStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241"))
@@ -192,15 +229,21 @@ func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputF
 	// Display title
 	fmt.Println(titleStyle.Render(todoList.Title))
 
-	// Display metadata
-	completed := 0
-	for _, todo := range todos {
-		if todo.Completed {
-			completed++
+	// Display metadata - use the API's completed ratio
+	meta := ""
+	if todoList.CompletedRatio != "" {
+		meta = todoList.CompletedRatio + " completed"
+	} else {
+		// Fallback to counting
+		completed := 0
+		for _, todo := range todos {
+			if todo.Completed {
+				completed++
+			}
 		}
+		meta = fmt.Sprintf("%d/%d completed", completed, len(todos))
 	}
 
-	meta := fmt.Sprintf("%d/%d completed", completed, len(todos))
 	if todoList.CreatedAt != "" {
 		if createdTime, err := time.Parse(time.RFC3339, todoList.CreatedAt); err == nil {
 			meta += fmt.Sprintf(" • Created %s", createdTime.Format("Jan 2, 2006"))
@@ -231,43 +274,53 @@ func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputF
 		return nil
 	}
 
-	// Create table for todos
-	config := ui.NewOutputConfig(os.Stdout)
-	config.Format = ui.OutputFormatTable
-	tw := ui.NewTableWriter(config)
+	// Create simple table for todos with consistent headers
+	table := ui.NewSimpleTable(os.Stdout, []string{"STATUS", "TITLE", "ASSIGNEE", "DUE"})
+	table.SetMaxWidth(ui.GetTerminalWidth())
 
-	// Add headers
-	tw.AddHeader([]string{"", "Todo", "Due", "Assignee"})
-
-	// Style for completed todos
+	noColor := os.Getenv("NO_COLOR") != ""
 	completedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
 
 	// Add todos
 	for _, todo := range todos {
-		status := "[ ]"
-		if todo.Completed {
-			status = "[✓]"
+		status := ui.StatusSymbol(todo.Completed, noColor)
+
+		title := todo.Content
+		if title == "" {
+			title = todo.Title
+		}
+		if todo.Completed && !noColor {
+			title = completedStyle.Render(title)
 		}
 
-		title := todo.Title
-		if todo.Completed {
-			title = completedStyle.Render(title)
+		// Get assignees
+		assignee := ""
+		if len(todo.Assignees) > 0 {
+			names := []string{}
+			for _, a := range todo.Assignees {
+				names = append(names, a.Name)
+			}
+			assignee = strings.Join(names, ", ")
 		}
 
 		due := ""
 		if todo.DueOn != nil && *todo.DueOn != "" {
 			if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
 				due = dueTime.Format("Jan 2")
+				if !noColor {
+					due = ui.MutedText(due, false)
+				}
 			}
 		}
 
-		assignee := ""
-		// Note: Assignee would need to be added to the Todo struct if available in API
+		// Build row with consistent columns: Status, Title, Assignee, Due
+		row := []string{status, title, assignee, due}
 
-		tw.AddRow([]string{status, title, due, assignee})
+		table.AddRow(row)
 	}
 
-	return tw.Render()
+	table.Render()
+	return nil
 }
 
 func displayTodoListSimple(todoList *api.TodoList, todos []api.Todo) error {
@@ -333,4 +386,380 @@ func countCompleted(todos []api.Todo) int {
 		}
 	}
 	return count
+}
+
+func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo, format ui.OutputFormat, showAll bool) error {
+	// Filter todos if not showing all
+	if !showAll {
+		filteredGroupedTodos := make(map[string][]api.Todo)
+		for groupID, todos := range groupedTodos {
+			var filteredTodos []api.Todo
+			for _, todo := range todos {
+				if !todo.Completed {
+					filteredTodos = append(filteredTodos, todo)
+				}
+			}
+			filteredGroupedTodos[groupID] = filteredTodos
+		}
+		groupedTodos = filteredGroupedTodos
+	}
+
+	// Terminal display with nice formatting
+	if !ui.IsTerminal(os.Stdout) || format == ui.OutputFormatTSV {
+		// Non-TTY or TSV format - simple output
+		return displayTodoListWithGroupsSimple(todoList, groups, groupedTodos)
+	}
+
+	// Pretty terminal display
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("99"))
+
+	metaStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("241"))
+
+
+	// Display title
+	fmt.Println(titleStyle.Render(todoList.Title))
+
+	// Display metadata - use the API's completed ratio if available
+	meta := ""
+	if todoList.CompletedRatio != "" {
+		meta = todoList.CompletedRatio + " completed"
+	} else {
+		// Fallback to counting
+		totalCompleted := 0
+		totalTodos := 0
+		for _, group := range groups {
+			if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
+				for _, todo := range todos {
+					totalTodos++
+					if todo.Completed {
+						totalCompleted++
+					}
+				}
+			}
+		}
+		meta = fmt.Sprintf("%d/%d completed", totalCompleted, totalTodos)
+	}
+
+	if todoList.CreatedAt != "" {
+		if createdTime, err := time.Parse(time.RFC3339, todoList.CreatedAt); err == nil {
+			meta += fmt.Sprintf(" • Created %s", createdTime.Format("Jan 2, 2006"))
+		}
+	}
+	fmt.Println(metaStyle.Render(meta))
+	fmt.Println()
+
+	// Display description if present
+	if todoList.Description != "" {
+		// Render markdown description
+		renderer, _ := glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+			glamour.WithWordWrap(ui.GetTerminalWidth()-4),
+		)
+
+		if rendered, err := renderer.Render(todoList.Description); err == nil {
+			fmt.Print(rendered)
+		} else {
+			fmt.Println(todoList.Description)
+		}
+		fmt.Println()
+	}
+
+	noColor := os.Getenv("NO_COLOR") != ""
+
+	groupTitleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("75"))
+
+	// Display groups and their todos separately
+	for i, group := range groups {
+		// Add spacing between groups
+		if i > 0 {
+			fmt.Println()
+		}
+
+		// Display group title with completion ratio
+		groupTitle := group.Title
+		if group.CompletedRatio != "" {
+			groupTitle += " " + metaStyle.Render("("+group.CompletedRatio+")")
+		}
+		fmt.Println(groupTitleStyle.Render(groupTitle))
+
+		// Get todos for this group
+		if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok && len(todos) > 0 {
+			// Create simple table for todos in this group with consistent headers
+			table := ui.NewSimpleTable(os.Stdout, []string{"STATUS", "TITLE", "ASSIGNEE", "DUE"})
+			table.SetMaxWidth(ui.GetTerminalWidth())
+
+			completedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+
+			// Add todos from this group
+			for _, todo := range todos {
+				status := ui.StatusSymbol(todo.Completed, noColor)
+
+				title := todo.Content
+				if title == "" {
+					title = todo.Title
+				}
+				if todo.Completed && !noColor {
+					title = completedStyle.Render(title)
+				}
+
+				// Get assignees
+				assignee := ""
+				if len(todo.Assignees) > 0 {
+					names := []string{}
+					for _, a := range todo.Assignees {
+						names = append(names, a.Name)
+					}
+					assignee = strings.Join(names, ", ")
+				}
+
+				due := ""
+				if todo.DueOn != nil && *todo.DueOn != "" {
+					if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
+						due = dueTime.Format("Jan 2")
+						if !noColor {
+							due = ui.MutedText(due, false)
+						}
+					}
+				}
+
+				// Build row with consistent columns: Status, Title, Assignee, Due
+				row := []string{status, title, assignee, due}
+
+				table.AddRow(row)
+			}
+
+			table.Render()
+		} else {
+			fmt.Println(metaStyle.Render("  No todos in this group"))
+		}
+	}
+
+	return nil
+}
+
+func displayTodoListWithGroupsSimple(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo) error {
+	// Simple TSV output
+	fmt.Printf("Todo List: %s\n", todoList.Title)
+	fmt.Printf("ID: %d\n", todoList.ID)
+
+	totalCompleted := 0
+	totalTodos := 0
+	for _, group := range groups {
+		if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
+			for _, todo := range todos {
+				totalTodos++
+				if todo.Completed {
+					totalCompleted++
+				}
+			}
+		}
+	}
+	fmt.Printf("Progress: %d/%d completed\n\n", totalCompleted, totalTodos)
+
+	// Output groups and todos as TSV
+	fmt.Println("Group\tStatus\tTodo\tDue")
+	for _, group := range groups {
+		if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
+			for _, todo := range todos {
+				status := "[ ]"
+				if todo.Completed {
+					status = "[x]"
+				}
+
+				due := ""
+				if todo.DueOn != nil {
+					due = *todo.DueOn
+				}
+
+				fmt.Printf("%s\t%s\t%s\t%s\n", group.Title, status, todo.Title, due)
+			}
+		}
+	}
+
+	return nil
+}
+
+func outputTodoListWithGroupsJSON(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo, fields string) error {
+	// Combine todo list, groups, and todos data
+	groupData := make([]map[string]interface{}, len(groups))
+	for i, group := range groups {
+		todos := groupedTodos[fmt.Sprintf("%d", group.ID)]
+		groupData[i] = map[string]interface{}{
+			"id":              group.ID,
+			"title":           group.Title,
+			"description":     group.Description,
+			"completed_ratio": group.CompletedRatio,
+			"todos":           todos,
+		}
+	}
+
+	data := map[string]interface{}{
+		"id":          todoList.ID,
+		"title":       todoList.Title,
+		"description": todoList.Description,
+		"created_at":  todoList.CreatedAt,
+		"updated_at":  todoList.UpdatedAt,
+		"groups":      groupData,
+	}
+
+	// If specific fields requested, filter the output
+	if fields != "" {
+		// This is a simplified version - in production you'd parse the fields
+		// and extract only requested fields
+	}
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(data)
+}
+
+func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo, showAll bool) error {
+	// Filter todos if not showing all
+	if !showAll {
+		filteredGroupedTodos := make(map[string][]api.Todo)
+		for groupID, todos := range groupedTodos {
+			var filteredTodos []api.Todo
+			for _, todo := range todos {
+				if !todo.Completed {
+					filteredTodos = append(filteredTodos, todo)
+				}
+			}
+			filteredGroupedTodos[groupID] = filteredTodos
+		}
+		groupedTodos = filteredGroupedTodos
+	}
+
+	// Count total todos
+	totalTodos := 0
+	displayedTodos := 0
+	allTodos := []api.Todo{}
+	
+	for _, todos := range groupedTodos {
+		for _, todo := range todos {
+			totalTodos++
+			if showAll || !todo.Completed {
+				displayedTodos++
+				allTodos = append(allTodos, todo)
+			}
+		}
+	}
+
+	// Display GitHub CLI style summary line
+	if showAll {
+		fmt.Printf("Showing %d of %d todos in %s\n\n", displayedTodos, totalTodos, todoList.Title)
+	} else {
+		fmt.Printf("Showing %d of %d open todos in %s\n\n", displayedTodos, totalTodos, todoList.Title)
+	}
+
+	// Create single table for all todos (GitHub CLI style)
+	var headers []string
+	if groups != nil && len(groups) > 0 {
+		headers = []string{"STATUS", "TITLE", "GROUP", "ASSIGNEE", "DUE"}
+	} else {
+		headers = []string{"STATUS", "TITLE", "ASSIGNEE", "DUE"}
+	}
+	
+	table := ui.NewSimpleTable(os.Stdout, headers)
+	// Don't set any width constraints - let tabwriter handle it naturally
+	// table.SetMaxWidth(ui.GetTerminalWidth())
+
+	noColor := os.Getenv("NO_COLOR") != ""
+	completedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+
+	// Add all todos to single table
+	if groups != nil && len(groups) > 0 {
+		// With groups
+		for _, group := range groups {
+			if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
+				for _, todo := range todos {
+					status := ui.StatusSymbol(todo.Completed, noColor)
+
+					title := todo.Content
+					if title == "" {
+						title = todo.Title
+					}
+					// Truncate very long titles like GitHub CLI does
+					if len(title) > 60 {
+						title = title[:57] + "..."
+					}
+					if todo.Completed && !noColor {
+						title = completedStyle.Render(title)
+					}
+
+					// Get assignees
+					assignee := ""
+					if len(todo.Assignees) > 0 {
+						names := []string{}
+						for _, a := range todo.Assignees {
+							names = append(names, a.Name)
+						}
+						assignee = strings.Join(names, ", ")
+					}
+
+					due := ""
+					if todo.DueOn != nil && *todo.DueOn != "" {
+						if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
+							due = dueTime.Format("Jan 2")
+							if !noColor {
+								due = ui.MutedText(due, false)
+							}
+						}
+					}
+
+					// Build row with consistent columns: Status, Title, Group, Assignee, Due
+					row := []string{status, title, group.Title, assignee, due}
+					table.AddRow(row)
+				}
+			}
+		}
+	} else {
+		// Without groups
+		for _, todo := range allTodos {
+			status := ui.StatusSymbol(todo.Completed, noColor)
+
+			title := todo.Content
+			if title == "" {
+				title = todo.Title
+			}
+			// Truncate very long titles like GitHub CLI does
+			if len(title) > 60 {
+				title = title[:57] + "..."
+			}
+			if todo.Completed && !noColor {
+				title = completedStyle.Render(title)
+			}
+
+			// Get assignees
+			assignee := ""
+			if len(todo.Assignees) > 0 {
+				names := []string{}
+				for _, a := range todo.Assignees {
+					names = append(names, a.Name)
+				}
+				assignee = strings.Join(names, ", ")
+			}
+
+			due := ""
+			if todo.DueOn != nil && *todo.DueOn != "" {
+				if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
+					due = dueTime.Format("Jan 2")
+					if !noColor {
+						due = ui.MutedText(due, false)
+					}
+				}
+			}
+
+			// Build row with consistent columns: Status, Title, Assignee, Due
+			row := []string{status, title, assignee, due}
+			table.AddRow(row)
+		}
+	}
+
+	table.Render()
+	return nil
 }

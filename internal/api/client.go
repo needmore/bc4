@@ -185,20 +185,47 @@ type TodoList struct {
 	CompletedRatio string `json:"completed_ratio"`
 	TodosCount     int    `json:"todos_count"`
 	TodosURL       string `json:"todos_url"`
+	GroupsURL      string `json:"groups_url"`
+}
+
+// TodoGroup represents a group of todos within a todo list
+type TodoGroup struct {
+	ID             int64  `json:"id"`
+	Title          string `json:"title"`
+	Name           string `json:"name"`
+	Description    string `json:"description"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+	Completed      bool   `json:"completed"`
+	CompletedRatio string `json:"completed_ratio"`
+	TodosCount     int    `json:"todos_count"`
+	TodosURL       string `json:"todos_url"`
+	Position       int    `json:"position"`
+}
+
+// Person represents a Basecamp user
+type Person struct {
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	EmailAddress string `json:"email_address"`
+	Title        string `json:"title"`
+	AvatarURL    string `json:"avatar_url"`
 }
 
 // Todo represents a Basecamp todo item
 type Todo struct {
-	ID          int64   `json:"id"`
-	Title       string  `json:"title"`
-	Content     string  `json:"content"`
-	Description string  `json:"description"`
-	CreatedAt   string  `json:"created_at"`
-	UpdatedAt   string  `json:"updated_at"`
-	Completed   bool    `json:"completed"`
-	DueOn       *string `json:"due_on"`
-	StartsOn    *string `json:"starts_on"`
-	TodolistID  int64   `json:"todolist_id"`
+	ID          int64    `json:"id"`
+	Title       string   `json:"title"`
+	Content     string   `json:"content"`
+	Description string   `json:"description"`
+	CreatedAt   string   `json:"created_at"`
+	UpdatedAt   string   `json:"updated_at"`
+	Completed   bool     `json:"completed"`
+	DueOn       *string  `json:"due_on"`
+	StartsOn    *string  `json:"starts_on"`
+	TodolistID  int64    `json:"todolist_id"`
+	Creator     *Person  `json:"creator"`
+	Assignees   []Person `json:"assignees"`
 }
 
 // GetProjectTodoSet fetches the todo set for a project
@@ -298,4 +325,22 @@ func (c *Client) GetTodos(ctx context.Context, projectID string, todoListID int6
 	}
 
 	return todos, nil
+}
+
+// GetTodoGroups fetches all groups in a todo list
+func (c *Client) GetTodoGroups(ctx context.Context, projectID string, todoListID int64) ([]TodoGroup, error) {
+	var groups []TodoGroup
+
+	path := fmt.Sprintf("/buckets/%s/todolists/%d/groups.json", projectID, todoListID)
+	resp, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch todo groups: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&groups); err != nil {
+		return nil, fmt.Errorf("failed to decode todo groups: %w", err)
+	}
+
+	return groups, nil
 }
