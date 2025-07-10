@@ -21,6 +21,7 @@ bc4 is a command-line interface for Basecamp 4, inspired by GitHub's `gh` CLI. I
 - **HTTP Client**: Standard library with custom middleware
 - **OAuth2**: golang.org/x/oauth2
 - **Terminal UI**: Charm tools (Bubbletea, Bubbles, Lipgloss, Glamour)
+- **Table Rendering**: GitHub CLI-inspired table system with intelligent column widths
 - **Configuration**: JSON format with Viper
 - **Testing**: Standard library + testify
 
@@ -41,7 +42,10 @@ bc4/
 │   ├── api/               # API client and models
 │   ├── auth/              # OAuth2 implementation
 │   ├── config/            # Configuration management
+│   ├── tableprinter/      # Core GitHub CLI-style table rendering
 │   ├── tui/               # Bubbletea components
+│   ├── ui/                # UI utilities and table wrapper
+│   │   └── tableprinter/  # bc4-specific table enhancements
 │   └── utils/             # Helper functions
 ├── pkg/                   # Public packages (if needed)
 ├── main.go               # Entry point
@@ -186,12 +190,22 @@ Note: The `project select` command provides an interactive table-based UI for br
 
 #### todo
 ```bash
-bc4 todo list               # List todos in project
-bc4 todo create             # Interactive todo creation
+bc4 todo list               # List todo lists in project (GitHub CLI-style table)
+bc4 todo view [ID|name]     # View todos in a specific list (GitHub CLI-style table)
+bc4 todo select             # Interactive todo list selection
+bc4 todo set [ID]           # Set default todo list
 bc4 todo add "Task"         # Quick todo creation
-bc4 todo complete [ID]      # Mark todo as complete
-bc4 todo view [ID]          # View todo details
+bc4 todo check [ID]         # Mark todo as complete
+bc4 todo uncheck [ID]       # Mark todo as incomplete
+bc4 todo create-list        # Create a new todo list
 ```
+
+**Table Output Features:**
+- Dynamic headers: TTY mode shows human-readable columns, non-TTY adds STATE column for scripts
+- Status symbols: ✓ for completed, ○ for incomplete (TTY mode)
+- Intelligent column widths with GitHub CLI's responsive algorithm
+- Color coding: Green for incomplete, Red for completed, Cyan for names, Muted for timestamps
+- Default indicators: * suffix for default todo lists/projects/accounts
 
 #### message
 ```bash
@@ -257,6 +271,70 @@ type Client struct {
 - **404 Not Found**: Clear error message
 - **429 Too Many Requests**: Wait and retry
 - **5xx Server Errors**: Retry with backoff
+
+## Table Rendering System
+
+### GitHub CLI-Inspired Architecture
+
+bc4 implements a comprehensive table rendering system modeled after GitHub CLI's proven approach, providing professional, responsive table output across all commands.
+
+#### Two-Layer Design
+
+1. **Core Layer** (`internal/tableprinter`):
+   - `TablePrinter` interface with fluent API (AddHeader/AddField/EndRow)
+   - `ttyTablePrinter`: Terminal output with formatting, colors, intelligent column widths
+   - `tsvTablePrinter`: Tab-separated output for scripts/pipes
+   - Field-level formatting options (WithColor, WithTruncate, WithPadding)
+
+2. **Integration Layer** (`internal/ui/tableprinter`):
+   - bc4-specific wrapper with Basecamp entity helpers
+   - Time formatting utilities (relative for TTY, RFC3339 for non-TTY)
+   - Color scheme with state-based functions
+   - Convenience methods: AddIDField, AddProjectField, AddTodoField, etc.
+
+#### Key Features
+
+**TTY vs Non-TTY Behavior:**
+- **TTY Mode**: Human-readable with colors, symbols (✓/○), relative times, #ID prefixes
+- **Non-TTY Mode**: Machine-readable TSV, RFC3339 times, additional STATE columns
+
+**Intelligent Column Widths:**
+- GitHub CLI's exact proportional distribution algorithm
+- 8-character minimums, 3-space separators, responsive to terminal width
+- Natural width measurement with ANSI code stripping
+
+**Dynamic Headers:**
+- TTY mode: User-friendly headers like ["ID", "NAME", "DESCRIPTION", "UPDATED"]
+- Non-TTY mode: Adds "STATE" column for programmatic access
+
+**Color Scheme:**
+- Green: active/open items • Red: completed/closed items
+- Cyan: names/identifiers • Gray: inactive/draft items  
+- Muted: timestamps/secondary info
+- Respects NO_COLOR, CLICOLOR, FORCE_COLOR environment variables
+
+#### Usage Examples
+
+```go
+// Create table with automatic TTY detection
+table := tableprinter.New(os.Stdout)
+
+// Dynamic headers based on mode
+if table.IsTTY() {
+    table.AddHeader("ID", "NAME", "STATUS", "UPDATED")
+} else {
+    table.AddHeader("ID", "NAME", "STATUS", "STATE", "UPDATED")
+}
+
+// Add data with field-specific formatting
+table.AddIDField("123", "active")           // #123 in TTY, 123 in non-TTY
+table.AddProjectField("My Project", "active") // Green color for active
+table.AddStatusField(false)                  // ○ symbol for incomplete
+table.AddTimeField(now, updatedAt)          // "2 hours ago" vs RFC3339
+table.EndRow()
+
+table.Render()
+```
 
 ## Interactive Features (Charm Integration)
 
@@ -403,14 +481,35 @@ release:        # Create GitHub release
 
 ## Version 1.0 Deliverables
 
-- [ ] OAuth2 authentication with first-run wizard
-- [ ] Multi-account support with defaults
-- [ ] Project listing and selection
-- [ ] Todo creation and management
+- [x] **GitHub CLI-style table rendering system** - Complete two-layer architecture with intelligent column widths, TTY/non-TTY behavior, and responsive design
+- [x] **OAuth2 authentication with first-run wizard** - Interactive setup flow with account selection
+- [x] **Multi-account support with defaults** - Account management with default indicators
+- [x] **Project listing and selection** - Interactive and direct selection with table output
+- [x] **Todo list management** - List, view, and set default todo lists
+- [x] **Todo viewing** - Display todos in lists with status indicators and grouping support
+- [ ] Todo creation and completion commands (add, check, uncheck, create-list)
 - [ ] Message posting
-- [ ] Campfire messaging
+- [ ] Campfire messaging  
 - [ ] Card table management with kanban board view
-- [ ] Beautiful TUI with Charm tools
+- [x] **Professional table output** - GitHub CLI-quality formatting across all commands
 - [ ] Rate limiting and error handling
 - [ ] Homebrew distribution
 - [ ] Comprehensive documentation
+
+### Current Implementation Status
+
+**Completed Core Features:**
+- Full table rendering system matching GitHub CLI standards
+- Account management (list, select, set, current)
+- Project management (list, select, set, view, search)
+- Todo list management (list, view, select, set)
+- OAuth2 authentication flow with secure token storage
+- Multi-account configuration with defaults
+
+**Table System Features:**
+- Dynamic headers based on output mode (TTY vs scripts)
+- Intelligent column width distribution
+- Color-coded status indicators (✓/○ symbols)
+- State-based coloring (green/red/cyan/gray/muted)
+- Default item indicators (* suffix)
+- Responsive design adapting to terminal width
