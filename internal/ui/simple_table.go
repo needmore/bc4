@@ -70,7 +70,7 @@ func (t *SimpleTable) Render() {
 			// GitHub CLI style: underlined headers (actual underlines, not dashes)
 			headerStyle := lipgloss.NewStyle().Bold(true).Underline(true).Foreground(lipgloss.Color("240"))
 			headers := make([]string, len(t.headers))
-			
+
 			for i, h := range t.headers {
 				if t.noColor {
 					headers[i] = h
@@ -78,7 +78,7 @@ func (t *SimpleTable) Render() {
 					headers[i] = headerStyle.Render(h)
 				}
 			}
-			
+
 			fmt.Fprintln(tw, strings.Join(headers, "\t")+"\t")
 		}
 	}
@@ -116,7 +116,6 @@ func (t *SimpleTable) renderTSV() {
 		fmt.Fprintln(t.writer, strings.Join(cleanRow, "\t"))
 	}
 }
-
 
 // truncateWithEllipsis truncates a string to maxLen with ellipsis
 func truncateWithEllipsis(s string, maxLen int) string {
@@ -162,4 +161,3 @@ func MutedText(text string, noColor bool) string {
 	}
 	return lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(text)
 }
-

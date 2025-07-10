@@ -14,6 +14,7 @@ import (
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/ui"
+	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
 func newListCmd() *cobra.Command {
@@ -81,46 +82,74 @@ func newListCmd() *cobra.Command {
 				return outputJSON(projects)
 			}
 
+			// Check output format for non-table output
+			format, err := ui.ParseOutputFormat(formatStr)
+			if err != nil {
+				return err
+			}
+
+			if format == ui.OutputFormatJSON {
+				return outputJSON(projects)
+			}
+
 			// Check if there are any projects
 			if len(projects) == 0 {
 				fmt.Println("No projects found.")
 				return nil
 			}
 
-			// Parse output format
-			format, err := ui.ParseOutputFormat(formatStr)
-			if err != nil {
-				return err
+			// Create new GitHub CLI-style table
+			table := tableprinter.New(os.Stdout)
+
+			// Add headers dynamically based on TTY mode (like GitHub CLI)
+			if table.IsTTY() {
+				table.AddHeader("ID", "NAME", "DESCRIPTION", "UPDATED")
+			} else {
+				// Add STATE column for non-TTY mode (machine readable)
+				table.AddHeader("ID", "NAME", "DESCRIPTION", "STATE", "UPDATED")
 			}
 
-			// Create output config
-			config := ui.NewOutputConfig(os.Stdout)
-			config.Format = format
-			config.NoHeaders = true // We'll add custom headers
-
-			// Create table writer
-			tw := ui.NewTableWriter(config)
-
-			// Add rows (headers are implicit from the data)
+			// Add projects to table
 			for _, project := range projects {
-				row := []string{
-					project.Name,
-					strconv.FormatInt(project.ID, 10),
-					project.Description,
-				}
+				// For now, assume all projects are active (no status field in API yet)
+				state := "active"
 
-				// Add a marker for the default project
-				if strconv.FormatInt(project.ID, 10) == defaultProjectID {
-					if config.Format == ui.OutputFormatTable && ui.IsTerminal(os.Stdout) && !config.NoColor {
-						// Add a subtle indicator for the default project
-						row[0] = "→ " + row[0]
+				// Add ID field with color based on state and default indicator
+				projectID := strconv.FormatInt(project.ID, 10)
+				if projectID == defaultProjectID {
+					// Mark default project with special color/indicator
+					if table.IsTTY() {
+						table.AddIDField(projectID+"*", state) // Add asterisk for default
+					} else {
+						table.AddIDField(projectID, state)
 					}
+				} else {
+					table.AddIDField(projectID, state)
 				}
 
-				tw.AddRow(row)
+				// Add project name with appropriate coloring
+				table.AddProjectField(project.Name, state)
+
+				// Add description with muted color
+				cs := table.GetColorScheme()
+				table.AddField(project.Description, cs.Muted)
+
+				// Add STATE column only for non-TTY
+				if !table.IsTTY() {
+					table.AddField(state)
+				}
+
+				// Add updated time - use UpdatedAt if available, otherwise created
+				timeStr := project.UpdatedAt
+				if timeStr == "" {
+					timeStr = project.CreatedAt
+				}
+				table.AddField(timeStr, cs.Muted)
+
+				table.EndRow()
 			}
 
-			return tw.Render()
+			return table.Render()
 		},
 	}
 

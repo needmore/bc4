@@ -11,6 +11,7 @@ import (
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/ui"
+	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
 type accountInfo struct {
@@ -80,39 +81,58 @@ func newListCmd() *cobra.Command {
 				format = ui.OutputFormatJSON
 			}
 
-			// Create output config
-			config := ui.NewOutputConfig(os.Stdout)
-			config.Format = format
-			config.NoHeaders = true // We'll add custom formatting
-
-			// Create table writer
-			tw := ui.NewTableWriter(config)
-
-			// Add rows
-			for _, acc := range accountList {
-				row := []string{
-					acc.Name,
-					acc.ID,
-				}
-
-				// Add a marker for the default account
-				if acc.Default {
-					if config.Format == ui.OutputFormatTable && ui.IsTerminal(os.Stdout) && !config.NoColor {
-						// Add a subtle indicator for the default account
-						row[0] = "→ " + row[0]
-					} else if config.Format != ui.OutputFormatTable {
-						// For non-table formats, add a third column
-						row = append(row, "default")
-					}
-				} else if config.Format != ui.OutputFormatTable {
-					// Add empty third column for consistency
-					row = append(row, "")
-				}
-
-				tw.AddRow(row)
+			// Handle JSON output directly
+			if format == ui.OutputFormatJSON {
+				// TODO: Implement JSON output for accounts
+				return fmt.Errorf("JSON output not yet implemented for accounts")
 			}
 
-			return tw.Render()
+			// Create new GitHub CLI-style table
+			table := tableprinter.New(os.Stdout)
+
+			// Add headers dynamically based on TTY mode (like GitHub CLI)
+			if table.IsTTY() {
+				table.AddHeader("ID", "NAME", "UPDATED")
+			} else {
+				// Add STATE column for non-TTY mode (machine readable)
+				table.AddHeader("ID", "NAME", "STATE", "UPDATED")
+			}
+
+			// Add accounts to table
+			for _, acc := range accountList {
+				// Determine account state
+				state := "active"
+				if acc.Default {
+					state = "default"
+				}
+
+				// Add ID field with default indicator
+				if acc.Default {
+					if table.IsTTY() {
+						table.AddIDField(acc.ID+"*", state) // Add asterisk for default
+					} else {
+						table.AddIDField(acc.ID, state)
+					}
+				} else {
+					table.AddIDField(acc.ID, state)
+				}
+
+				// Add account name with appropriate coloring
+				cs := table.GetColorScheme()
+				table.AddField(acc.Name, cs.AccountName)
+
+				// Add STATE column only for non-TTY
+				if !table.IsTTY() {
+					table.AddField(state)
+				}
+
+				// Add updated time placeholder
+				table.AddField("N/A", cs.Muted)
+
+				table.EndRow()
+			}
+
+			return table.Render()
 		},
 	}
 

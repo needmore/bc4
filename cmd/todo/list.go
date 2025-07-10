@@ -13,6 +13,7 @@ import (
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/ui"
+	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
 func newListCmd() *cobra.Command {
@@ -113,40 +114,65 @@ func newListCmd() *cobra.Command {
 				format = ui.OutputFormatJSON
 			}
 
-			// Create output config
-			config := ui.NewOutputConfig(os.Stdout)
-			config.Format = format
-			config.NoHeaders = true // We'll add custom formatting
+			// Handle JSON output directly
+			if format == ui.OutputFormatJSON {
+				// TODO: Implement JSON output for todo lists
+				return fmt.Errorf("JSON output not yet implemented for todo lists")
+			}
 
-			// Create table writer
-			tw := ui.NewTableWriter(config)
+			// Create new GitHub CLI-style table
+			table := tableprinter.New(os.Stdout)
 
-			// Add rows
+			// Add headers dynamically based on TTY mode (like GitHub CLI)
+			if table.IsTTY() {
+				table.AddHeader("ID", "NAME", "PROGRESS", "UPDATED")
+			} else {
+				// Add STATE column for non-TTY mode (machine readable)
+				table.AddHeader("ID", "NAME", "PROGRESS", "STATE", "UPDATED")
+			}
+
+			// Add todo lists to table
 			for _, todoList := range todoLists {
 				idStr := strconv.FormatInt(todoList.ID, 10)
+
+				// Add ID field with default indicator
+				if idStr == defaultTodoListID {
+					if table.IsTTY() {
+						table.AddIDField(idStr+"*", "active") // Add asterisk for default
+					} else {
+						table.AddIDField(idStr, "active")
+					}
+				} else {
+					table.AddIDField(idStr, "active")
+				}
+
+				// Add todo list name with cyan color (like GitHub CLI branch names)
+				cs := table.GetColorScheme()
+				table.AddField(todoList.Title, cs.TodoListName)
+
+				// Add progress/completion ratio
 				status := todoList.CompletedRatio
 				if status == "" {
 					status = "0/0"
 				}
+				table.AddField(status, cs.Muted)
 
-				row := []string{
-					todoList.Title,
-					idStr,
-					status,
+				// Add STATE column only for non-TTY
+				if !table.IsTTY() {
+					table.AddField("active")
 				}
 
-				// Add a marker for the default todo list
-				if idStr == defaultTodoListID {
-					if config.Format == ui.OutputFormatTable && ui.IsTerminal(os.Stdout) && !config.NoColor {
-						// Add a subtle indicator for the default todo list
-						row[0] = "→ " + row[0]
-					}
+				// Add updated time - use UpdatedAt if available
+				timeStr := todoList.UpdatedAt
+				if timeStr == "" {
+					timeStr = "N/A"
 				}
+				table.AddField(timeStr, cs.Muted)
 
-				tw.AddRow(row)
+				table.EndRow()
 			}
 
-			return tw.Render()
+			return table.Render()
 		},
 	}
 

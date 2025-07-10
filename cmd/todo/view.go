@@ -17,6 +17,7 @@ import (
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/ui"
+	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
 func newViewCmd() *cobra.Command {
@@ -274,24 +275,37 @@ func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputF
 		return nil
 	}
 
-	// Create simple table for todos with consistent headers
-	table := ui.NewSimpleTable(os.Stdout, []string{"STATUS", "TITLE", "ASSIGNEE", "DUE"})
-	table.SetMaxWidth(ui.GetTerminalWidth())
+	// Create GitHub CLI-style table
+	table := tableprinter.New(os.Stdout)
 
-	noColor := os.Getenv("NO_COLOR") != ""
-	completedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	// Add headers dynamically based on TTY mode
+	if table.IsTTY() {
+		table.AddHeader("", "TODO", "ASSIGNEE", "DUE")
+	} else {
+		table.AddHeader("STATUS", "TODO", "ASSIGNEE", "STATE", "DUE")
+	}
+
+	cs := table.GetColorScheme()
 
 	// Add todos
 	for _, todo := range todos {
-		status := ui.StatusSymbol(todo.Completed, noColor)
+		// Status column - symbol for TTY, text for non-TTY
+		if table.IsTTY() {
+			table.AddStatusField(todo.Completed)
+		} else {
+			if todo.Completed {
+				table.AddField("completed")
+			} else {
+				table.AddField("incomplete")
+			}
+		}
 
+		// Todo title with completion styling
 		title := todo.Content
 		if title == "" {
 			title = todo.Title
 		}
-		if todo.Completed && !noColor {
-			title = completedStyle.Render(title)
-		}
+		table.AddTodoField(title, todo.Completed)
 
 		// Get assignees
 		assignee := ""
@@ -302,21 +316,27 @@ func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputF
 			}
 			assignee = strings.Join(names, ", ")
 		}
+		table.AddField(assignee, cs.Muted)
 
+		// Add STATE column only for non-TTY
+		if !table.IsTTY() {
+			if todo.Completed {
+				table.AddField("completed")
+			} else {
+				table.AddField("incomplete")
+			}
+		}
+
+		// Due date
 		due := ""
 		if todo.DueOn != nil && *todo.DueOn != "" {
 			if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
 				due = dueTime.Format("Jan 2")
-				if !noColor {
-					due = ui.MutedText(due, false)
-				}
 			}
 		}
+		table.AddField(due, cs.Muted)
 
-		// Build row with consistent columns: Status, Title, Assignee, Due
-		row := []string{status, title, assignee, due}
-
-		table.AddRow(row)
+		table.EndRow()
 	}
 
 	table.Render()
@@ -418,7 +438,6 @@ func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, g
 	metaStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241"))
 
-
 	// Display title
 	fmt.Println(titleStyle.Render(todoList.Title))
 
@@ -467,8 +486,6 @@ func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, g
 		fmt.Println()
 	}
 
-	noColor := os.Getenv("NO_COLOR") != ""
-
 	groupTitleStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(lipgloss.Color("75"))
@@ -489,23 +506,37 @@ func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, g
 
 		// Get todos for this group
 		if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok && len(todos) > 0 {
-			// Create simple table for todos in this group with consistent headers
-			table := ui.NewSimpleTable(os.Stdout, []string{"STATUS", "TITLE", "ASSIGNEE", "DUE"})
-			table.SetMaxWidth(ui.GetTerminalWidth())
+			// Create GitHub CLI-style table for this group
+			table := tableprinter.New(os.Stdout)
 
-			completedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+			// Add headers dynamically based on TTY mode
+			if table.IsTTY() {
+				table.AddHeader("", "TODO", "ASSIGNEE", "DUE")
+			} else {
+				table.AddHeader("STATUS", "TODO", "ASSIGNEE", "STATE", "DUE")
+			}
+
+			cs := table.GetColorScheme()
 
 			// Add todos from this group
 			for _, todo := range todos {
-				status := ui.StatusSymbol(todo.Completed, noColor)
+				// Status column - symbol for TTY, text for non-TTY
+				if table.IsTTY() {
+					table.AddStatusField(todo.Completed)
+				} else {
+					if todo.Completed {
+						table.AddField("completed")
+					} else {
+						table.AddField("incomplete")
+					}
+				}
 
+				// Todo title with completion styling
 				title := todo.Content
 				if title == "" {
 					title = todo.Title
 				}
-				if todo.Completed && !noColor {
-					title = completedStyle.Render(title)
-				}
+				table.AddTodoField(title, todo.Completed)
 
 				// Get assignees
 				assignee := ""
@@ -516,21 +547,27 @@ func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, g
 					}
 					assignee = strings.Join(names, ", ")
 				}
+				table.AddField(assignee, cs.Muted)
 
+				// Add STATE column only for non-TTY
+				if !table.IsTTY() {
+					if todo.Completed {
+						table.AddField("completed")
+					} else {
+						table.AddField("incomplete")
+					}
+				}
+
+				// Due date
 				due := ""
 				if todo.DueOn != nil && *todo.DueOn != "" {
 					if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
 						due = dueTime.Format("Jan 2")
-						if !noColor {
-							due = ui.MutedText(due, false)
-						}
 					}
 				}
+				table.AddField(due, cs.Muted)
 
-				// Build row with consistent columns: Status, Title, Assignee, Due
-				row := []string{status, title, assignee, due}
-
-				table.AddRow(row)
+				table.EndRow()
 			}
 
 			table.Render()
@@ -638,7 +675,7 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 	totalTodos := 0
 	displayedTodos := 0
 	allTodos := []api.Todo{}
-	
+
 	for _, todos := range groupedTodos {
 		for _, todo := range todos {
 			totalTodos++
@@ -656,20 +693,26 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 		fmt.Printf("Showing %d of %d open todos in %s\n\n", displayedTodos, totalTodos, todoList.Title)
 	}
 
-	// Create single table for all todos (GitHub CLI style)
-	var headers []string
-	if groups != nil && len(groups) > 0 {
-		headers = []string{"STATUS", "TITLE", "GROUP", "ASSIGNEE", "DUE"}
-	} else {
-		headers = []string{"STATUS", "TITLE", "ASSIGNEE", "DUE"}
-	}
-	
-	table := ui.NewSimpleTable(os.Stdout, headers)
-	// Don't set any width constraints - let tabwriter handle it naturally
-	// table.SetMaxWidth(ui.GetTerminalWidth())
+	// Create GitHub CLI-style table
+	table := tableprinter.New(os.Stdout)
 
-	noColor := os.Getenv("NO_COLOR") != ""
-	completedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	// Add headers dynamically based on TTY mode and groups
+	if table.IsTTY() {
+		if groups != nil && len(groups) > 0 {
+			table.AddHeader("", "TODO", "GROUP", "ASSIGNEE", "DUE")
+		} else {
+			table.AddHeader("", "TODO", "ASSIGNEE", "DUE")
+		}
+	} else {
+		// Add STATE column for non-TTY mode (machine readable)
+		if groups != nil && len(groups) > 0 {
+			table.AddHeader("STATUS", "TODO", "GROUP", "ASSIGNEE", "STATE", "DUE")
+		} else {
+			table.AddHeader("STATUS", "TODO", "ASSIGNEE", "STATE", "DUE")
+		}
+	}
+
+	cs := table.GetColorScheme()
 
 	// Add all todos to single table
 	if groups != nil && len(groups) > 0 {
@@ -677,19 +720,26 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 		for _, group := range groups {
 			if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
 				for _, todo := range todos {
-					status := ui.StatusSymbol(todo.Completed, noColor)
+					// Status column - symbol for TTY, text for non-TTY
+					if table.IsTTY() {
+						table.AddStatusField(todo.Completed)
+					} else {
+						if todo.Completed {
+							table.AddField("completed")
+						} else {
+							table.AddField("incomplete")
+						}
+					}
 
+					// Todo title with completion styling
 					title := todo.Content
 					if title == "" {
 						title = todo.Title
 					}
-					// Truncate very long titles like GitHub CLI does
-					if len(title) > 60 {
-						title = title[:57] + "..."
-					}
-					if todo.Completed && !noColor {
-						title = completedStyle.Render(title)
-					}
+					table.AddTodoField(title, todo.Completed)
+
+					// Group name with cyan color (like GitHub CLI branch names)
+					table.AddField(group.Title, cs.Cyan)
 
 					// Get assignees
 					assignee := ""
@@ -700,39 +750,50 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 						}
 						assignee = strings.Join(names, ", ")
 					}
+					table.AddField(assignee, cs.Muted)
 
+					// Add STATE column only for non-TTY
+					if !table.IsTTY() {
+						if todo.Completed {
+							table.AddField("completed")
+						} else {
+							table.AddField("incomplete")
+						}
+					}
+
+					// Due date
 					due := ""
 					if todo.DueOn != nil && *todo.DueOn != "" {
 						if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
 							due = dueTime.Format("Jan 2")
-							if !noColor {
-								due = ui.MutedText(due, false)
-							}
 						}
 					}
+					table.AddField(due, cs.Muted)
 
-					// Build row with consistent columns: Status, Title, Group, Assignee, Due
-					row := []string{status, title, group.Title, assignee, due}
-					table.AddRow(row)
+					table.EndRow()
 				}
 			}
 		}
 	} else {
 		// Without groups
 		for _, todo := range allTodos {
-			status := ui.StatusSymbol(todo.Completed, noColor)
+			// Status column - symbol for TTY, text for non-TTY
+			if table.IsTTY() {
+				table.AddStatusField(todo.Completed)
+			} else {
+				if todo.Completed {
+					table.AddField("completed")
+				} else {
+					table.AddField("incomplete")
+				}
+			}
 
+			// Todo title with completion styling
 			title := todo.Content
 			if title == "" {
 				title = todo.Title
 			}
-			// Truncate very long titles like GitHub CLI does
-			if len(title) > 60 {
-				title = title[:57] + "..."
-			}
-			if todo.Completed && !noColor {
-				title = completedStyle.Render(title)
-			}
+			table.AddTodoField(title, todo.Completed)
 
 			// Get assignees
 			assignee := ""
@@ -743,23 +804,29 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 				}
 				assignee = strings.Join(names, ", ")
 			}
+			table.AddField(assignee, cs.Muted)
 
+			// Add STATE column only for non-TTY
+			if !table.IsTTY() {
+				if todo.Completed {
+					table.AddField("completed")
+				} else {
+					table.AddField("incomplete")
+				}
+			}
+
+			// Due date
 			due := ""
 			if todo.DueOn != nil && *todo.DueOn != "" {
 				if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
 					due = dueTime.Format("Jan 2")
-					if !noColor {
-						due = ui.MutedText(due, false)
-					}
 				}
 			}
+			table.AddField(due, cs.Muted)
 
-			// Build row with consistent columns: Status, Title, Assignee, Due
-			row := []string{status, title, assignee, due}
-			table.AddRow(row)
+			table.EndRow()
 		}
 	}
 
-	table.Render()
-	return nil
+	return table.Render()
 }
