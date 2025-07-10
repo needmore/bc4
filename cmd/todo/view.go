@@ -27,6 +27,7 @@ func newViewCmd() *cobra.Command {
 	var jsonFields string
 	var webView bool
 	var showAll bool
+	var grouped bool
 
 	cmd := &cobra.Command{
 		Use:   "view [list-id|name]",
@@ -145,7 +146,12 @@ func newViewCmd() *cobra.Command {
 			}
 
 			// Get todos in the list
-			todos, err := apiClient.GetTodos(context.Background(), projectID, todoListID)
+			var todos []api.Todo
+			if showAll {
+				todos, err = apiClient.GetAllTodos(context.Background(), projectID, todoListID)
+			} else {
+				todos, err = apiClient.GetTodos(context.Background(), projectID, todoListID)
+			}
 			if err != nil {
 				return fmt.Errorf("failed to fetch todos: %w", err)
 			}
@@ -161,7 +167,12 @@ func newViewCmd() *cobra.Command {
 					// Fetch todos for each group
 					groupedTodos = make(map[string][]api.Todo)
 					for _, group := range groups {
-						groupTodos, err := apiClient.GetTodos(context.Background(), projectID, group.ID)
+						var groupTodos []api.Todo
+						if showAll {
+							groupTodos, err = apiClient.GetAllTodos(context.Background(), projectID, group.ID)
+						} else {
+							groupTodos, err = apiClient.GetTodos(context.Background(), projectID, group.ID)
+						}
 						if err == nil {
 							groupedTodos[fmt.Sprintf("%d", group.ID)] = groupTodos
 						}
@@ -185,7 +196,13 @@ func newViewCmd() *cobra.Command {
 
 			// Display todo list in terminal - GitHub CLI style
 			if len(groups) > 0 {
-				return displayTodoListGitHubStyle(todoList, groups, groupedTodos, showAll)
+				if grouped {
+					// Show groups separately with headers between them
+					return displayTodoListWithGroups(todoList, groups, groupedTodos, ui.OutputFormatTable, showAll)
+				} else {
+					// Show all todos in single table with GROUP column
+					return displayTodoListGitHubStyle(todoList, groups, groupedTodos, showAll)
+				}
 			}
 			return displayTodoListGitHubStyle(todoList, nil, map[string][]api.Todo{"": todos}, showAll)
 		},
@@ -197,6 +214,7 @@ func newViewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&jsonFields, "json", "", "Output JSON with specified fields")
 	cmd.Flags().BoolVarP(&webView, "web", "w", false, "Open in web browser")
 	cmd.Flags().BoolVarP(&showAll, "all", "A", false, "Show all todos including completed ones")
+	cmd.Flags().BoolVar(&grouped, "grouped", false, "Show groups separately with headers instead of in columns")
 
 	return cmd
 }
@@ -409,6 +427,18 @@ func countCompleted(todos []api.Todo) int {
 }
 
 func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo, format ui.OutputFormat, showAll bool) error {
+	// First, count total todos before any filtering
+	totalTodos := 0
+	completedTodos := 0
+	for _, todos := range groupedTodos {
+		for _, todo := range todos {
+			totalTodos++
+			if todo.Completed {
+				completedTodos++
+			}
+		}
+	}
+
 	// Filter todos if not showing all
 	if !showAll {
 		filteredGroupedTodos := make(map[string][]api.Todo)
@@ -656,35 +686,35 @@ func outputTodoListWithGroupsJSON(todoList *api.TodoList, groups []api.TodoGroup
 }
 
 func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo, showAll bool) error {
-	// Filter todos if not showing all
-	if !showAll {
-		filteredGroupedTodos := make(map[string][]api.Todo)
-		for groupID, todos := range groupedTodos {
-			var filteredTodos []api.Todo
-			for _, todo := range todos {
-				if !todo.Completed {
-					filteredTodos = append(filteredTodos, todo)
-				}
-			}
-			filteredGroupedTodos[groupID] = filteredTodos
-		}
-		groupedTodos = filteredGroupedTodos
-	}
-
-	// Count total todos
+	// First, count total todos before any filtering
 	totalTodos := 0
-	displayedTodos := 0
-	allTodos := []api.Todo{}
-
+	completedTodos := 0
 	for _, todos := range groupedTodos {
 		for _, todo := range todos {
 			totalTodos++
+			if todo.Completed {
+				completedTodos++
+			}
+		}
+	}
+
+	// Filter todos if not showing all
+	filteredGroupedTodos := make(map[string][]api.Todo)
+	displayedTodos := 0
+	allTodos := []api.Todo{}
+
+	for groupID, todos := range groupedTodos {
+		var filteredTodos []api.Todo
+		for _, todo := range todos {
 			if showAll || !todo.Completed {
+				filteredTodos = append(filteredTodos, todo)
 				displayedTodos++
 				allTodos = append(allTodos, todo)
 			}
 		}
+		filteredGroupedTodos[groupID] = filteredTodos
 	}
+	groupedTodos = filteredGroupedTodos
 
 	// Display GitHub CLI style summary line
 	if showAll {

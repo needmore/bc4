@@ -192,6 +192,8 @@ Note: The `project select` command provides an interactive table-based UI for br
 ```bash
 bc4 todo list               # List todo lists in project (GitHub CLI-style table)
 bc4 todo view [ID|name]     # View todos in a specific list (GitHub CLI-style table)
+bc4 todo view [ID|name] --all      # Include completed todos
+bc4 todo view [ID|name] --grouped  # Show groups separately with headers instead of columns
 bc4 todo select             # Interactive todo list selection
 bc4 todo set [ID]           # Set default todo list
 bc4 todo add "Task"         # Quick todo creation
@@ -206,6 +208,12 @@ bc4 todo create-list        # Create a new todo list
 - Intelligent column widths with GitHub CLI's responsive algorithm
 - Color coding: Green for incomplete, Red for completed, Cyan for names, Muted for timestamps
 - Default indicators: * suffix for default todo lists/projects/accounts
+
+**Todo View Modes:**
+- **Default**: Single table with GROUP column for grouped todo lists
+- **--grouped**: Separate sections for each group with group headers
+- **--all**: Include completed todos (by default only shows open todos)
+- **Combination**: Use `--grouped --all` to show all todos organized by group sections
 
 #### message
 ```bash

@@ -327,6 +327,41 @@ func (c *Client) GetTodos(ctx context.Context, projectID string, todoListID int6
 	return todos, nil
 }
 
+// GetAllTodos fetches all todos in a todo list including completed ones
+func (c *Client) GetAllTodos(ctx context.Context, projectID string, todoListID int64) ([]Todo, error) {
+	var allTodos []Todo
+
+	// Get incomplete todos
+	incompleteTodos, err := c.GetTodos(ctx, projectID, todoListID)
+	if err != nil {
+		return nil, err
+	}
+	allTodos = append(allTodos, incompleteTodos...)
+
+	// Get completed todos using the completed=true parameter
+	path := fmt.Sprintf("/buckets/%s/todolists/%d/todos.json?completed=true", projectID, todoListID)
+	resp, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		// If we can't get completed todos, just return the incomplete ones
+		return allTodos, nil
+	}
+	defer resp.Body.Close()
+
+	var completedTodos []Todo
+	if err := json.NewDecoder(resp.Body).Decode(&completedTodos); err != nil {
+		// If we can't decode completed todos, just return the incomplete ones
+		return allTodos, nil
+	}
+
+	// Mark them as completed (in case the API doesn't set this)
+	for i := range completedTodos {
+		completedTodos[i].Completed = true
+	}
+
+	allTodos = append(allTodos, completedTodos...)
+	return allTodos, nil
+}
+
 // GetTodoGroups fetches all groups in a todo list
 func (c *Client) GetTodoGroups(ctx context.Context, projectID string, todoListID int64) ([]TodoGroup, error) {
 	var groups []TodoGroup

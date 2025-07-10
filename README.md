@@ -11,7 +11,7 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), inspire
 - 💬 **Message Posting** - Post messages to project message boards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
 - 🎯 **Card Management** - Manage cards with kanban board view
-- 🎨 **Beautiful TUI** - Interactive interface powered by Charm tools
+- 🎨 **Beautiful TUI** - Interactive interface powered by Charm tools (maybe)
 - 🔍 **Smart Search** - Find projects by pattern matching
 
 ## Installation
