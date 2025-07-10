@@ -5,16 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
-	"github.com/needmore/bc4/internal/ui"
+	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
 func newSearchCmd() *cobra.Command {
@@ -91,58 +89,54 @@ func newSearchCmd() *cobra.Command {
 				return nil
 			}
 
-			// Create table
-			columns := []table.Column{
-				{Title: "", Width: 40},
-				{Title: "", Width: 10},
-				{Title: "", Width: 50},
-			}
-
-			rows := []table.Row{}
-			for _, project := range matchingProjects {
-				desc := project.Description
-				// Truncate description if too long
-				if len(desc) > 47 {
-					desc = desc[:44] + "..."
-				}
-
-				rows = append(rows, table.Row{
-					project.Name,
-					strconv.FormatInt(project.ID, 10),
-					desc,
-				})
-			}
-
-			t := table.New(
-				table.WithColumns(columns),
-				table.WithRows(rows),
-				table.WithHeight(len(rows)+1),
-			)
-
-			// Apply display-only table styling (no row selection)
-			t = ui.StyleTableForDisplay(t)
-
-			// Make sure table shows all rows
-			t.Blur()
-
 			// Print results count
 			fmt.Printf("\nFound %d project%s matching \"%s\":\n\n",
 				len(matchingProjects),
 				pluralize(len(matchingProjects)),
 				strings.Join(args, " "))
 
-			// Print the table, skipping the empty header row
-			tableView := t.View()
-			lines := strings.Split(tableView, "\n")
+			// Create GitHub CLI-style table
+			table := tableprinter.New(os.Stdout)
 
-			if len(lines) > 1 {
-				// Skip the first line (empty header), keep all data rows
-				result := strings.Join(lines[1:], "\n")
-				fmt.Println(ui.BaseTableStyle.Render(result))
+			// Add headers dynamically based on TTY mode
+			if table.IsTTY() {
+				table.AddHeader("NAME", "ID", "DESCRIPTION", "UPDATED")
 			} else {
-				fmt.Println(ui.BaseTableStyle.Render(tableView))
+				// Add STATE column for non-TTY mode (machine readable)
+				table.AddHeader("NAME", "ID", "DESCRIPTION", "STATE", "UPDATED")
 			}
-			return nil
+
+			// Get color scheme for consistent styling
+			cs := table.GetColorScheme()
+
+			// Add projects to table
+			for _, project := range matchingProjects {
+				// Add project name with appropriate coloring
+				state := "active"
+				table.AddProjectField(project.Name, state)
+
+				// Add ID field
+				table.AddIDField(fmt.Sprintf("%d", project.ID), state)
+
+				// Add description with truncation
+				desc := project.Description
+				if len(desc) > 50 {
+					desc = desc[:47] + "..."
+				}
+				table.AddField(desc, cs.Muted)
+
+				// Add STATE column only for non-TTY
+				if !table.IsTTY() {
+					table.AddField(state)
+				}
+
+				// Add updated time
+				table.AddField(project.UpdatedAt, cs.Muted)
+
+				table.EndRow()
+			}
+
+			return table.Render()
 		},
 	}
 
