@@ -20,7 +20,9 @@
       "Bash(BC4_FORCE_TTY=1 ./bc4 demo-table --width=40)",
       "WebFetch(domain:cli.github.com)",
       "Bash(go test:*)",
-      "Bash(go vet:*)"
+      "Bash(go vet:*)",
+      "Bash(gh issue view:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

@@ -6,6 +6,8 @@ bc4 is a command-line interface for Basecamp 4, inspired by GitHub's `gh` CLI. I
 
 ## Core Principles
 
+Our NUMBER ONE PRIORITY is to deliver a CLI app that matches the GitHub CLI tool as closely as we can. Borrow from https://github.com/cli/cli as much as possible.
+
 1. **User-Friendly**: Interactive prompts using Charm's Bubbletea for beautiful TUIs
 2. **Secure**: OAuth2 authentication with secure token storage
 3. **Efficient**: Respect API rate limits with intelligent retry logic
@@ -343,45 +345,6 @@ table.EndRow()
 
 table.Render()
 ```
-
-## Interactive Features (Charm Integration)
-
-### Components
-
-1. **Account/Project Selector**
-   - Fuzzy search with bubble/textinput
-   - List navigation with bubble/list
-   - Preview pane for details
-
-2. **Todo Creator**
-   - Multi-step form with bubbles/form
-   - Due date picker
-   - Assignee selector
-   - Batch creation mode
-
-3. **Message Composer**
-   - Rich text input with syntax highlighting
-   - Preview with glamour markdown rendering
-   - Attachment support (future)
-
-4. **Card Board View**
-   - Kanban-style column display with Bubbletea
-   - Drag-and-drop simulation with keyboard controls
-   - Card preview in modal
-   - Column management interface
-   - Filter and search capabilities
-
-5. **Progress Indicators**
-   - Spinner for API calls
-   - Progress bar for batch operations
-   - Rate limit status display
-
-### Styling with Lipgloss
-
-- Consistent color scheme
-- Responsive layouts
-- Accessibility considerations
-- Honor NO_COLOR environment
 
 ## Security Considerations
 
