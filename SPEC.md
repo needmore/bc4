@@ -246,10 +246,45 @@ bc4 message view [ID]       # View message thread
 
 #### campfire
 ```bash
-bc4 campfire post           # Interactive campfire post
-bc4 campfire post "Message" # Quick campfire message
-bc4 campfire history        # View recent campfire messages
+bc4 campfire list              # List all campfires in project (GitHub CLI-style table)
+bc4 campfire select            # Interactive campfire selection to set default
+bc4 campfire set [ID|name]     # Set default campfire (non-interactive)  
+bc4 campfire view [ID|name]    # View recent messages in a campfire
+bc4 campfire post              # Interactive message composition
+bc4 campfire post "Message"    # Quick message to default campfire
 ```
+
+**Campfire Command Details:**
+
+- **`campfire list`**: Shows all campfires in the current project
+  - Table columns: ID, NAME, STATUS, LAST ACTIVITY
+  - Default campfire marked with * suffix
+  - Color coding: green for active, gray for inactive
+
+- **`campfire select`**: Interactive selection to set default campfire (not yet implemented)
+
+- **`campfire set [ID|name]`**: Set default campfire by ID or name
+  - Saves to per-project configuration
+  - Accepts campfire ID or partial name match
+
+- **`campfire view [ID|name]`**: View recent messages from a campfire
+  - Shows last 50 messages by default
+  - `--limit, -n`: Specify number of messages to show
+  - `--since`: Show messages since timestamp
+  - `--follow, -f`: Follow mode for live updates (future enhancement)
+  - Uses campfire specified or default if none provided
+
+- **`campfire post`**: Post messages to campfire
+  - Interactive mode: Multi-line message composition with Bubbletea
+  - Quick mode: Single argument for simple messages
+  - `--campfire, -c`: Specify campfire (overrides default)
+  - Posts to default campfire if none specified
+
+**Default Campfire Behavior:**
+- Each project can have a default campfire set via `campfire set` 
+- Commands use the default campfire when no explicit campfire is specified
+- The `--campfire` flag overrides the default for any command
+- Follows the same pattern as todo list defaults
 
 #### card
 ```bash
@@ -479,7 +514,7 @@ release:        # Create GitHub release
 - [x] **Todo viewing** - Display todos in lists with status indicators and grouping support
 - [x] **Todo creation and completion commands** - add, check, uncheck, create-list implemented
 - [ ] Message posting
-- [ ] Campfire messaging  
+- [ ] **Campfire messaging** (in progress - spec defined, implementation started)
 - [ ] Card table management with kanban board view
 - [x] **Professional table output** - GitHub CLI-quality formatting across all commands
 - [ ] Rate limiting and error handling
