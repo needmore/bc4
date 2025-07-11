@@ -289,16 +289,88 @@ bc4 campfire post "Message"    # Quick message to default campfire
 #### card
 ```bash
 bc4 card list               # List card tables in project
-bc4 card table [ID]         # View cards in a specific table
+bc4 card table [ID|name]    # View cards in a specific table
+bc4 card select             # Interactive card table selection (not yet implemented)
+bc4 card set [ID|name]      # Set default card table
+bc4 card view [ID]          # View card details including steps
 bc4 card create             # Interactive card creation
 bc4 card add "Title"        # Quick card creation
-bc4 card move [ID]          # Move card between columns/steps
-bc4 card view [ID]          # View card details
 bc4 card edit [ID]          # Edit card title/content
+bc4 card move [ID]          # Move card between columns
+bc4 card assign [ID]        # Assign people to card
+bc4 card unassign [ID]      # Remove assignees from card
 bc4 card archive [ID]       # Archive a card
+
+# Column management
 bc4 card column list        # List columns in current table
 bc4 card column create      # Create new column
+bc4 card column edit [ID]   # Edit column name/description
+bc4 card column move [ID]   # Reorder columns
+bc4 card column color [ID]  # Set column color
+
+# Step management (subtasks within cards)
+bc4 card step add [ID] "Title"      # Add step to card
+bc4 card step list [ID]             # List all steps in card
+bc4 card step check [ID]:[step]     # Mark step as complete
+bc4 card step uncheck [ID]:[step]   # Mark step as incomplete
+bc4 card step edit [ID]:[step]      # Edit step details
+bc4 card step move [ID]:[step]      # Reorder steps
+bc4 card step assign [ID]:[step]    # Assign step to someone
+bc4 card step delete [ID]:[step]    # Delete a step
 ```
+
+**Card Command Details:**
+
+- **`card list`**: Shows all card tables in the current project
+  - Table columns: ID, NAME, DESCRIPTION, CARDS, UPDATED
+  - Default card table marked with * suffix
+  
+- **`card table [ID|name]`**: Shows cards in a specific table
+  - List view with columns showing card status
+  - Shows step progress (e.g., "Steps: 2/5")
+  - Groups cards by column
+  - `--column`: Filter to show only specific column
+  - `--format`: Output format (table, json, tsv)
+  
+- **`card view [ID]`**: Shows detailed card information
+  - Card title, description, assignees, due date
+  - Complete list of steps with completion status
+  - Step assignees and due dates
+  - `--steps-only`: Show only the steps list
+  
+- **`card create`**: Interactive card creation with TUI
+  - Select table and column
+  - Add title, description, assignees
+  - Add initial steps
+  
+- **`card add "Title"`**: Quick card creation
+  - Creates in default table's first column
+  - `--table`: Specify card table
+  - `--column`: Specify target column
+  - `--assign`: Add assignees
+  - `--step`: Add steps (can be used multiple times)
+  
+- **`card move [ID]`**: Move card to different column
+  - Interactive column selection if not specified
+  - `--column`: Target column name or ID
+  
+- **Column Management:**
+  - Columns represent workflow stages in card tables
+  - Support for custom colors (white, red, orange, yellow, green, blue, aqua, purple, gray, pink, brown)
+  - Columns can be reordered to match workflow
+  
+- **Step Management:**
+  - Steps are mini-todos within cards
+  - Reference format: `[card]:[step]` (e.g., `123:1` for step 1 in card 123)
+  - Steps can be individually assigned and have due dates
+  - Step completion is independent of card status
+  - Steps maintain order and can be reordered
+
+**Default Card Table Behavior:**
+- Each project can have a default card table set via `card set`
+- Commands use the default table when none is specified
+- The `--table` flag overrides the default for any command
+- Follows the same pattern as todo list and campfire defaults
 
 ## API Integration
 
@@ -515,7 +587,7 @@ release:        # Create GitHub release
 - [x] **Todo creation and completion commands** - add, check, uncheck, create-list implemented
 - [ ] Message posting
 - [ ] **Campfire messaging** (in progress - spec defined, implementation started)
-- [ ] Card table management with kanban board view
+- [x] **Card table management specification** - Complete command structure with step support
 - [x] **Professional table output** - GitHub CLI-quality formatting across all commands
 - [ ] Rate limiting and error handling
 - [ ] Homebrew distribution
