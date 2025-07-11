@@ -80,21 +80,63 @@ func (c *Client) Get(path string, result interface{}) error {
 }
 
 func (c *Client) Post(path string, payload interface{}, result interface{}) error {
-	// Implementation for POST requests
-	// TODO: Implement
-	return fmt.Errorf("not implemented")
+	var body io.Reader
+	if payload != nil {
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal payload: %w", err)
+		}
+		body = strings.NewReader(string(jsonData))
+	}
+
+	resp, err := c.doRequest("POST", path, body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if result != nil {
+		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+			return fmt.Errorf("failed to decode response: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (c *Client) Put(path string, payload interface{}, result interface{}) error {
-	// Implementation for PUT requests
-	// TODO: Implement
-	return fmt.Errorf("not implemented")
+	var body io.Reader
+	if payload != nil {
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal payload: %w", err)
+		}
+		body = strings.NewReader(string(jsonData))
+	}
+
+	resp, err := c.doRequest("PUT", path, body)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if result != nil {
+		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+			return fmt.Errorf("failed to decode response: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (c *Client) Delete(path string) error {
-	// Implementation for DELETE requests
-	// TODO: Implement
-	return fmt.Errorf("not implemented")
+	resp, err := c.doRequest("DELETE", path, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }
 
 // Project represents a Basecamp project
@@ -378,4 +420,81 @@ func (c *Client) GetTodoGroups(ctx context.Context, projectID string, todoListID
 	}
 
 	return groups, nil
+}
+
+// TodoCreateRequest represents the payload for creating a new todo
+type TodoCreateRequest struct {
+	Content     string  `json:"content"`
+	Description string  `json:"description,omitempty"`
+	DueOn       *string `json:"due_on,omitempty"`
+	StartsOn    *string `json:"starts_on,omitempty"`
+	AssigneeIDs []int64 `json:"assignee_ids,omitempty"`
+}
+
+// CreateTodo creates a new todo in a todo list
+func (c *Client) CreateTodo(ctx context.Context, projectID string, todoListID int64, req TodoCreateRequest) (*Todo, error) {
+	var todo Todo
+
+	path := fmt.Sprintf("/buckets/%s/todolists/%d/todos.json", projectID, todoListID)
+	if err := c.Post(path, req, &todo); err != nil {
+		return nil, fmt.Errorf("failed to create todo: %w", err)
+	}
+
+	return &todo, nil
+}
+
+// CompleteTodo marks a todo as complete
+func (c *Client) CompleteTodo(ctx context.Context, projectID string, todoID int64) error {
+	path := fmt.Sprintf("/buckets/%s/todos/%d/completion.json", projectID, todoID)
+	if err := c.Put(path, nil, nil); err != nil {
+		return fmt.Errorf("failed to complete todo: %w", err)
+	}
+
+	return nil
+}
+
+// UncompleteTodo marks a todo as incomplete
+func (c *Client) UncompleteTodo(ctx context.Context, projectID string, todoID int64) error {
+	path := fmt.Sprintf("/buckets/%s/todos/%d/completion.json", projectID, todoID)
+	if err := c.Delete(path); err != nil {
+		return fmt.Errorf("failed to uncomplete todo: %w", err)
+	}
+
+	return nil
+}
+
+// TodoListCreateRequest represents the payload for creating a new todo list
+type TodoListCreateRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// CreateTodoList creates a new todo list in a project
+func (c *Client) CreateTodoList(ctx context.Context, projectID string, todoSetID int64, req TodoListCreateRequest) (*TodoList, error) {
+	var todoList TodoList
+
+	path := fmt.Sprintf("/buckets/%s/todosets/%d/todolists.json", projectID, todoSetID)
+	if err := c.Post(path, req, &todoList); err != nil {
+		return nil, fmt.Errorf("failed to create todo list: %w", err)
+	}
+
+	return &todoList, nil
+}
+
+// GetTodo fetches a single todo by ID
+func (c *Client) GetTodo(ctx context.Context, projectID string, todoID int64) (*Todo, error) {
+	var todo Todo
+
+	path := fmt.Sprintf("/buckets/%s/todos/%d.json", projectID, todoID)
+	resp, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch todo: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&todo); err != nil {
+		return nil, fmt.Errorf("failed to decode todo: %w", err)
+	}
+
+	return &todo, nil
 }

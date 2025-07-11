@@ -4,9 +4,12 @@
 
 bc4 is a command-line interface for Basecamp 4, inspired by GitHub's `gh` CLI. It provides a modern, interactive experience for managing Basecamp projects, todos, messages, and campfires directly from the terminal.
 
+Our NUMBER ONE PRIORITY is to deliver a CLI app that matches the GitHub CLI tool as closely as we can. Borrow from https://github.com/cli/cli as much as possible.
+
+Instead of talking to GitHub, we're talking to Basecamp 3 (aka 4) whose API is documented at https://github.com/basecamp/bc3-api in detail.
+
 ## Core Principles
 
-Our NUMBER ONE PRIORITY is to deliver a CLI app that matches the GitHub CLI tool as closely as we can. Borrow from https://github.com/cli/cli as much as possible.
 
 1. **User-Friendly**: Interactive prompts using Charm's Bubbletea for beautiful TUIs
 2. **Secure**: OAuth2 authentication with secure token storage
@@ -192,16 +195,17 @@ Note: The `project select` command provides an interactive table-based UI for br
 
 #### todo
 ```bash
-bc4 todo list               # List todo lists in project (GitHub CLI-style table)
-bc4 todo view [ID|name]     # View todos in a specific list (GitHub CLI-style table)
-bc4 todo view [ID|name] --all      # Include completed todos
-bc4 todo view [ID|name] --grouped  # Show groups separately with headers instead of columns
-bc4 todo select             # Interactive todo list selection
+bc4 todo lists              # List all todo lists in project (GitHub CLI-style table)
+bc4 todo list [ID|name]     # View todos in a specific list (GitHub CLI-style table)
+bc4 todo list [ID|name] --all      # Include completed todos
+bc4 todo list [ID|name] --grouped  # Show groups separately with headers instead of columns
+bc4 todo view [ID]          # View details of a specific todo
+bc4 todo select             # Interactive todo list selection (not yet implemented)
 bc4 todo set [ID]           # Set default todo list
-bc4 todo add "Task"         # Quick todo creation
+bc4 todo add "Task"         # Create a new todo (supports --list, --description, --due flags)
 bc4 todo check [ID]         # Mark todo as complete
 bc4 todo uncheck [ID]       # Mark todo as incomplete
-bc4 todo create-list        # Create a new todo list
+bc4 todo create-list "Name" # Create a new todo list (supports --description flag)
 ```
 
 **Table Output Features:**
@@ -211,11 +215,26 @@ bc4 todo create-list        # Create a new todo list
 - Color coding: Green for incomplete, Red for completed, Cyan for names, Muted for timestamps
 - Default indicators: * suffix for default todo lists/projects/accounts
 
-**Todo View Modes:**
+**Todo List Display Modes:**
 - **Default**: Single table with GROUP column for grouped todo lists
 - **--grouped**: Separate sections for each group with group headers
 - **--all**: Include completed todos (by default only shows open todos)
 - **Combination**: Use `--grouped --all` to show all todos organized by group sections
+
+**Todo Commands Details:**
+
+- **`todo lists`**: Shows all todo lists in the project
+- **`todo list [ID|name]`**: Shows todos within a specific list
+- **`todo view [ID]`**: Shows detailed information about a single todo
+- **`todo add "Task"`**: Creates a new todo in the default list
+  - `--list, -l`: Specify todo list by ID or name
+  - `--description, -d`: Add a description to the todo
+  - `--due`: Set due date (YYYY-MM-DD format)
+  - `--assign`: Assign to team members (not yet implemented)
+- **`todo check [ID]`**: Marks a todo as complete (accepts #ID or ID)
+- **`todo uncheck [ID]`**: Marks a todo as incomplete (accepts #ID or ID)
+- **`todo create-list "Name"`**: Creates a new todo list
+  - `--description, -d`: Add a description to the list
 
 #### message
 ```bash
@@ -458,7 +477,7 @@ release:        # Create GitHub release
 - [x] **Project listing and selection** - Interactive and direct selection with table output
 - [x] **Todo list management** - List, view, and set default todo lists
 - [x] **Todo viewing** - Display todos in lists with status indicators and grouping support
-- [ ] Todo creation and completion commands (add, check, uncheck, create-list)
+- [x] **Todo creation and completion commands** - add, check, uncheck, create-list implemented
 - [ ] Message posting
 - [ ] Campfire messaging  
 - [ ] Card table management with kanban board view
@@ -474,6 +493,7 @@ release:        # Create GitHub release
 - Account management (list, select, set, current)
 - Project management (list, select, set, view, search)
 - Todo list management (list, view, select, set)
+- Todo operations (add, check, uncheck, create-list)
 - OAuth2 authentication flow with secure token storage
 - Multi-account configuration with defaults
 

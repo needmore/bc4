@@ -7,7 +7,7 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), inspire
 - 🔐 **OAuth2 Authentication** - Secure authentication with token management
 - 👥 **Multi-Account Support** - Manage multiple Basecamp accounts with ease
 - 📁 **Project Management** - List, search, and select projects
-- ✅ **Todo Management** - Create and list todos across projects
+- ✅ **Todo Management** - Create, list, check/uncheck todos across projects
 - 💬 **Message Posting** - Post messages to project message boards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
 - 🎯 **Card Management** - Manage cards with kanban board view
@@ -127,11 +127,48 @@ bc4 project select
 ### Todo Management
 
 ```bash
-# Create new todos interactively
-bc4 todo create
+# List all todo lists in the current project
+bc4 todo lists
 
-# List todos in a project
-bc4 todo list "project name"
+# View todos in a specific list
+bc4 todo list [list-id|name]
+
+# View todos with completed items included
+bc4 todo list [list-id|name] --all
+
+# View todos grouped by sections (for grouped todo lists)
+bc4 todo list [list-id|name] --grouped
+
+# View details of a specific todo
+bc4 todo view [todo-id]
+
+# Create a new todo
+bc4 todo add "Review pull request"
+
+# Create a todo with description and due date
+bc4 todo add "Deploy to production" --description "After all tests pass" --due 2025-01-15
+
+# Create a todo in a specific list
+bc4 todo add "Update documentation" --list "Documentation Tasks"
+
+# Mark a todo as complete
+bc4 todo check 12345
+bc4 todo check #12345  # Also accepts # prefix
+
+# Mark a todo as incomplete
+bc4 todo uncheck 12345
+
+# Create a new todo list
+bc4 todo create-list "Sprint 1 Tasks"
+
+# Create a todo list with description
+bc4 todo create-list "Bug Fixes" --description "Critical bugs to fix before release"
+
+# Select a default todo list (interactive - not yet implemented)
+bc4 todo select
+
+# Set a default todo list by ID
+bc4 todo set 12345
 ```
 
 ### Messaging
@@ -186,8 +223,17 @@ bc4 campfire post "marketing" "New campaign is live!"
 ### Create Todos
 
 ```bash
-bc4 todo create
-# Follow the prompts to select project, list, and add todos
+# Quick todo creation with default list
+bc4 todo add "Fix login bug"
+
+# Add to a specific list with details
+bc4 todo add "Update API docs" --list "Documentation" --due 2025-01-20
+
+# Mark as done when complete
+bc4 todo check 12345
+
+# Create a new list for organizing todos
+bc4 todo create-list "Q1 2025 Goals"
 ```
 
 ## Configuration

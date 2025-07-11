@@ -22,7 +22,10 @@
       "Bash(go test:*)",
       "Bash(go vet:*)",
       "Bash(gh issue view:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(gh:*)",
+      "Bash(git mv:*)",
+      "Bash(go fmt:*)"
     ],
     "deny": []
   }

@@ -17,6 +17,7 @@ Use these commands to navigate and manage your tasks.`,
 	}
 
 	// Add subcommands
+	cmd.AddCommand(newListsCmd())
 	cmd.AddCommand(newListCmd())
 	cmd.AddCommand(newSelectCmd())
 	cmd.AddCommand(newSetCmd())
