@@ -51,7 +51,9 @@ func (c *Client) ListCampfires(ctx context.Context, projectID string) ([]Campfir
 	var campfires []Campfire
 	path := fmt.Sprintf("/buckets/%s/chats.json", projectID)
 	
-	if err := c.Get(path, &campfires); err != nil {
+	// Use paginated request to get all campfires
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &campfires); err != nil {
 		return nil, fmt.Errorf("failed to list campfires: %w", err)
 	}
 
@@ -75,12 +77,18 @@ func (c *Client) GetCampfireLines(ctx context.Context, projectID string, campfir
 	var lines []CampfireLine
 	path := fmt.Sprintf("/buckets/%s/chats/%d/lines.json", projectID, campfireID)
 	
-	// Add pagination parameter if limit is specified
+	// If limit is specified, just get one page with that limit
 	if limit > 0 {
 		path = fmt.Sprintf("%s?limit=%d", path, limit)
+		if err := c.Get(path, &lines); err != nil {
+			return nil, fmt.Errorf("failed to get campfire lines: %w", err)
+		}
+		return lines, nil
 	}
 	
-	if err := c.Get(path, &lines); err != nil {
+	// Otherwise, use paginated request to get all lines
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &lines); err != nil {
 		return nil, fmt.Errorf("failed to get campfire lines: %w", err)
 	}
 

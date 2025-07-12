@@ -151,40 +151,15 @@ type Project struct {
 
 // GetProjects fetches all projects for the account (handles pagination)
 func (c *Client) GetProjects(ctx context.Context) ([]Project, error) {
-	var allProjects []Project
-	page := 1
-
-	for {
-		var projects []Project
-
-		// Basecamp API returns projects at /projects.json with pagination
-		path := fmt.Sprintf("/projects.json?page=%d", page)
-		resp, err := c.doRequest("GET", path, nil)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch projects: %w", err)
-		}
-		defer resp.Body.Close()
-
-		if err := json.NewDecoder(resp.Body).Decode(&projects); err != nil {
-			return nil, fmt.Errorf("failed to decode projects: %w", err)
-		}
-
-		// Add projects to our collection
-		allProjects = append(allProjects, projects...)
-
-		// Check if there are more pages
-		linkHeader := resp.Header.Get("Link")
-		if !strings.Contains(linkHeader, `rel="next"`) || len(projects) == 0 {
-			break
-		}
-
-		page++
-
-		// Small delay to respect rate limits (50 requests per 10 seconds)
-		time.Sleep(200 * time.Millisecond)
+	var projects []Project
+	
+	// Use paginated request to get all projects
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll("/projects.json", &projects); err != nil {
+		return nil, fmt.Errorf("failed to fetch projects: %w", err)
 	}
 
-	return allProjects, nil
+	return projects, nil
 }
 
 // GetProject fetches a single project by ID
@@ -318,16 +293,12 @@ func (c *Client) GetProjectTodoSet(ctx context.Context, projectID string) (*Todo
 // GetTodoLists fetches all todo lists in a todo set
 func (c *Client) GetTodoLists(ctx context.Context, projectID string, todoSetID int64) ([]TodoList, error) {
 	var todoLists []TodoList
-
 	path := fmt.Sprintf("/buckets/%s/todosets/%d/todolists.json", projectID, todoSetID)
-	resp, err := c.doRequest("GET", path, nil)
-	if err != nil {
+	
+	// Use paginated request to get all todo lists
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &todoLists); err != nil {
 		return nil, fmt.Errorf("failed to fetch todo lists: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := json.NewDecoder(resp.Body).Decode(&todoLists); err != nil {
-		return nil, fmt.Errorf("failed to decode todo lists: %w", err)
 	}
 
 	return todoLists, nil
@@ -354,16 +325,12 @@ func (c *Client) GetTodoList(ctx context.Context, projectID string, todoListID i
 // GetTodos fetches all todos in a todo list
 func (c *Client) GetTodos(ctx context.Context, projectID string, todoListID int64) ([]Todo, error) {
 	var todos []Todo
-
 	path := fmt.Sprintf("/buckets/%s/todolists/%d/todos.json", projectID, todoListID)
-	resp, err := c.doRequest("GET", path, nil)
-	if err != nil {
+	
+	// Use paginated request to get all todos
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &todos); err != nil {
 		return nil, fmt.Errorf("failed to fetch todos: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := json.NewDecoder(resp.Body).Decode(&todos); err != nil {
-		return nil, fmt.Errorf("failed to decode todos: %w", err)
 	}
 
 	return todos, nil
@@ -381,17 +348,13 @@ func (c *Client) GetAllTodos(ctx context.Context, projectID string, todoListID i
 	allTodos = append(allTodos, incompleteTodos...)
 
 	// Get completed todos using the completed=true parameter
-	path := fmt.Sprintf("/buckets/%s/todolists/%d/todos.json?completed=true", projectID, todoListID)
-	resp, err := c.doRequest("GET", path, nil)
-	if err != nil {
-		// If we can't get completed todos, just return the incomplete ones
-		return allTodos, nil
-	}
-	defer resp.Body.Close()
-
 	var completedTodos []Todo
-	if err := json.NewDecoder(resp.Body).Decode(&completedTodos); err != nil {
-		// If we can't decode completed todos, just return the incomplete ones
+	path := fmt.Sprintf("/buckets/%s/todolists/%d/todos.json?completed=true", projectID, todoListID)
+	
+	// Use paginated request to get all completed todos
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &completedTodos); err != nil {
+		// If we can't get completed todos, just return the incomplete ones
 		return allTodos, nil
 	}
 
@@ -407,16 +370,12 @@ func (c *Client) GetAllTodos(ctx context.Context, projectID string, todoListID i
 // GetTodoGroups fetches all groups in a todo list
 func (c *Client) GetTodoGroups(ctx context.Context, projectID string, todoListID int64) ([]TodoGroup, error) {
 	var groups []TodoGroup
-
 	path := fmt.Sprintf("/buckets/%s/todolists/%d/groups.json", projectID, todoListID)
-	resp, err := c.doRequest("GET", path, nil)
-	if err != nil {
+	
+	// Use paginated request to get all groups
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &groups); err != nil {
 		return nil, fmt.Errorf("failed to fetch todo groups: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := json.NewDecoder(resp.Body).Decode(&groups); err != nil {
-		return nil, fmt.Errorf("failed to decode todo groups: %w", err)
 	}
 
 	return groups, nil
