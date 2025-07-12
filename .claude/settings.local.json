@@ -25,7 +25,8 @@
       "Bash(find:*)",
       "Bash(gh:*)",
       "Bash(git mv:*)",
-      "Bash(go fmt:*)"
+      "Bash(go fmt:*)",
+      "Bash(git push:*)"
     ],
     "deny": []
   }

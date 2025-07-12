@@ -15,10 +15,14 @@ import (
 )
 
 func newListCmd() *cobra.Command {
+	var showAll bool
+	
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all campfires in the project",
-		Long:  `Display all campfires (chat rooms) in the current project with their status and activity.`,
+		Long:  `Display all campfires (chat rooms) in the current project with their status and activity.
+		
+Use --all to show campfires across all projects you have access to.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
 			cfg, err := config.Load()
@@ -62,6 +66,18 @@ func newListCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("failed to list campfires: %w", err)
 			}
+			
+			// Filter campfires to only show those in the current project unless --all is specified
+			if !showAll {
+				var projectCampfires []api.Campfire
+				projectIDInt, _ := strconv.ParseInt(projectID, 10, 64)
+				for _, cf := range campfires {
+					if cf.Bucket.ID == projectIDInt {
+						projectCampfires = append(projectCampfires, cf)
+					}
+				}
+				campfires = projectCampfires
+			}
 
 			if len(campfires) == 0 {
 				fmt.Println("No campfires found in this project.")
@@ -80,10 +96,18 @@ func newListCmd() *cobra.Command {
 			table := tableprinter.New(os.Stdout)
 
 			// Add headers
-			if table.IsTTY() {
-				table.AddHeader("ID", "NAME", "STATUS", "LAST ACTIVITY")
+			if showAll {
+				if table.IsTTY() {
+					table.AddHeader("ID", "NAME", "PROJECT", "STATUS", "LAST ACTIVITY")
+				} else {
+					table.AddHeader("ID", "NAME", "PROJECT", "STATUS", "STATE", "LAST_ACTIVITY")
+				}
 			} else {
-				table.AddHeader("ID", "NAME", "STATUS", "STATE", "LAST_ACTIVITY")
+				if table.IsTTY() {
+					table.AddHeader("ID", "NAME", "STATUS", "LAST ACTIVITY")
+				} else {
+					table.AddHeader("ID", "NAME", "STATUS", "STATE", "LAST_ACTIVITY")
+				}
 			}
 
 			// Sort campfires by updated_at (most recent first)
@@ -108,6 +132,11 @@ func newListCmd() *cobra.Command {
 					name = "(untitled)"
 				}
 				table.AddProjectField(name, cf.Status)
+				
+				// Add project field if showing all
+				if showAll {
+					table.AddField(cf.Bucket.Name)
+				}
 
 				// Add status field
 				if table.IsTTY() {
@@ -132,6 +161,8 @@ func newListCmd() *cobra.Command {
 			return table.Render()
 		},
 	}
+	
+	cmd.Flags().BoolVar(&showAll, "all", false, "Show campfires from all projects")
 
 	return cmd
 }

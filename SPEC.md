@@ -260,6 +260,7 @@ bc4 campfire post "Message"    # Quick message to default campfire
   - Table columns: ID, NAME, STATUS, LAST ACTIVITY
   - Default campfire marked with * suffix
   - Color coding: green for active, gray for inactive
+  - `--all`: Show campfires from all projects (adds PROJECT column)
 
 - **`campfire select`**: Interactive selection to set default campfire (not yet implemented)
 
@@ -589,7 +590,7 @@ release:        # Create GitHub release
 - [ ] **Campfire messaging** (in progress - spec defined, implementation started)
 - [x] **Card table management specification** - Complete command structure with step support
 - [x] **Professional table output** - GitHub CLI-quality formatting across all commands
-- [ ] Rate limiting and error handling
+- [x] **Rate limiting and pagination** - Global pagination utility with token bucket rate limiter
 - [ ] Homebrew distribution
 - [ ] Comprehensive documentation
 
