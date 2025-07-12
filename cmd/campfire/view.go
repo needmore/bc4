@@ -117,22 +117,22 @@ func newViewCmd() *cobra.Command {
 			// Display messages in chronological order (API returns newest first, so reverse)
 			for i := len(lines) - 1; i >= 0; i-- {
 				line := lines[i]
-				
+
 				// Format timestamp
 				timestamp := line.CreatedAt.Local().Format("15:04")
-				
+
 				// Format creator name
 				creatorName := line.Creator.Name
 				if creatorName == "" {
 					creatorName = "Unknown"
 				}
-				
+
 				// Format and display message
 				content := strings.TrimSpace(line.Content)
 				if content == "" {
 					continue // Skip empty messages
 				}
-				
+
 				// Handle multi-line messages
 				contentLines := strings.Split(content, "\n")
 				if len(contentLines) == 1 {
@@ -148,7 +148,7 @@ func newViewCmd() *cobra.Command {
 					}
 				}
 			}
-			
+
 			// Add spacing and info
 			fmt.Println()
 			if limit > 0 && len(lines) == limit {

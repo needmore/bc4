@@ -60,7 +60,7 @@ func newSetCmd() *cobra.Command {
 			campfireArg := args[0]
 			var campfireID int64
 			var campfireName string
-			
+
 			// Try to parse as ID first
 			id, err := strconv.ParseInt(campfireArg, 10, 64)
 			if err == nil {
@@ -89,7 +89,7 @@ func newSetCmd() *cobra.Command {
 
 			// Get or create account config
 			acc := cfg.Accounts[accountID]
-			
+
 			// Initialize project defaults if needed
 			if acc.ProjectDefaults == nil {
 				acc.ProjectDefaults = make(map[string]config.ProjectDefaults)

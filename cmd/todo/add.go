@@ -131,7 +131,7 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 				}
 			}
 		}
-		
+
 		if defaultTodoListID != "" {
 			_, err := fmt.Sscanf(defaultTodoListID, "%d", &todoListID)
 			if err != nil {

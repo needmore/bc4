@@ -16,11 +16,11 @@ import (
 
 func newListCmd() *cobra.Command {
 	var showAll bool
-	
+
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all campfires in the project",
-		Long:  `Display all campfires (chat rooms) in the current project with their status and activity.
+		Long: `Display all campfires (chat rooms) in the current project with their status and activity.
 		
 Use --all to show campfires across all projects you have access to.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -66,7 +66,7 @@ Use --all to show campfires across all projects you have access to.`,
 			if err != nil {
 				return fmt.Errorf("failed to list campfires: %w", err)
 			}
-			
+
 			// Filter campfires to only show those in the current project unless --all is specified
 			if !showAll {
 				var projectCampfires []api.Campfire
@@ -132,7 +132,7 @@ Use --all to show campfires across all projects you have access to.`,
 					name = "(untitled)"
 				}
 				table.AddProjectField(name, cf.Status)
-				
+
 				// Add project field if showing all
 				if showAll {
 					table.AddField(cf.Bucket.Name)
@@ -161,7 +161,7 @@ Use --all to show campfires across all projects you have access to.`,
 			return table.Render()
 		},
 	}
-	
+
 	cmd.Flags().BoolVar(&showAll, "all", false, "Show campfires from all projects")
 
 	return cmd

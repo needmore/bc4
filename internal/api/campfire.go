@@ -50,7 +50,7 @@ type CampfireLineCreate struct {
 func (c *Client) ListCampfires(ctx context.Context, projectID string) ([]Campfire, error) {
 	var campfires []Campfire
 	path := fmt.Sprintf("/buckets/%s/chats.json", projectID)
-	
+
 	// Use paginated request to get all campfires
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll(path, &campfires); err != nil {
@@ -64,7 +64,7 @@ func (c *Client) ListCampfires(ctx context.Context, projectID string) ([]Campfir
 func (c *Client) GetCampfire(ctx context.Context, projectID string, campfireID int64) (*Campfire, error) {
 	var campfire Campfire
 	path := fmt.Sprintf("/buckets/%s/chats/%d.json", projectID, campfireID)
-	
+
 	if err := c.Get(path, &campfire); err != nil {
 		return nil, fmt.Errorf("failed to get campfire: %w", err)
 	}
@@ -76,7 +76,7 @@ func (c *Client) GetCampfire(ctx context.Context, projectID string, campfireID i
 func (c *Client) GetCampfireLines(ctx context.Context, projectID string, campfireID int64, limit int) ([]CampfireLine, error) {
 	var lines []CampfireLine
 	path := fmt.Sprintf("/buckets/%s/chats/%d/lines.json", projectID, campfireID)
-	
+
 	// If limit is specified, just get one page with that limit
 	if limit > 0 {
 		path = fmt.Sprintf("%s?limit=%d", path, limit)
@@ -85,7 +85,7 @@ func (c *Client) GetCampfireLines(ctx context.Context, projectID string, campfir
 		}
 		return lines, nil
 	}
-	
+
 	// Otherwise, use paginated request to get all lines
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll(path, &lines); err != nil {
@@ -99,7 +99,7 @@ func (c *Client) GetCampfireLines(ctx context.Context, projectID string, campfir
 func (c *Client) PostCampfireLine(ctx context.Context, projectID string, campfireID int64, content string) (*CampfireLine, error) {
 	var line CampfireLine
 	path := fmt.Sprintf("/buckets/%s/chats/%d/lines.json", projectID, campfireID)
-	
+
 	payload := CampfireLineCreate{
 		Content: content,
 	}
@@ -114,7 +114,7 @@ func (c *Client) PostCampfireLine(ctx context.Context, projectID string, campfir
 // DeleteCampfireLine deletes a message from a campfire
 func (c *Client) DeleteCampfireLine(ctx context.Context, projectID string, campfireID int64, lineID int64) error {
 	path := fmt.Sprintf("/buckets/%s/chats/%d/lines/%d.json", projectID, campfireID, lineID)
-	
+
 	if err := c.Delete(path); err != nil {
 		return fmt.Errorf("failed to delete campfire line: %w", err)
 	}

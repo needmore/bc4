@@ -8,16 +8,16 @@ import (
 // RateLimiter implements a token bucket algorithm for rate limiting
 // Basecamp allows 50 requests per 10 seconds
 type RateLimiter struct {
-	mu       sync.Mutex
-	tokens   int
-	maxTokens int
+	mu         sync.Mutex
+	tokens     int
+	maxTokens  int
 	refillRate time.Duration
 	lastRefill time.Time
 }
 
 var (
 	globalRateLimiter *RateLimiter
-	once             sync.Once
+	once              sync.Once
 )
 
 // GetRateLimiter returns the global rate limiter instance
@@ -84,10 +84,10 @@ func (rl *RateLimiter) TryAcquire() bool {
 func (rl *RateLimiter) refill() {
 	now := time.Now()
 	elapsed := now.Sub(rl.lastRefill)
-	
+
 	// Calculate how many tokens to add
 	tokensToAdd := int(elapsed / rl.refillRate)
-	
+
 	if tokensToAdd > 0 {
 		rl.tokens = min(rl.tokens+tokensToAdd, rl.maxTokens)
 		rl.lastRefill = rl.lastRefill.Add(time.Duration(tokensToAdd) * rl.refillRate)
@@ -98,7 +98,7 @@ func (rl *RateLimiter) refill() {
 func (rl *RateLimiter) Reset() {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
-	
+
 	rl.tokens = rl.maxTokens
 	rl.lastRefill = time.Now()
 }

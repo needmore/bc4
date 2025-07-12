@@ -152,7 +152,7 @@ type Project struct {
 // GetProjects fetches all projects for the account (handles pagination)
 func (c *Client) GetProjects(ctx context.Context) ([]Project, error) {
 	var projects []Project
-	
+
 	// Use paginated request to get all projects
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll("/projects.json", &projects); err != nil {
@@ -294,7 +294,7 @@ func (c *Client) GetProjectTodoSet(ctx context.Context, projectID string) (*Todo
 func (c *Client) GetTodoLists(ctx context.Context, projectID string, todoSetID int64) ([]TodoList, error) {
 	var todoLists []TodoList
 	path := fmt.Sprintf("/buckets/%s/todosets/%d/todolists.json", projectID, todoSetID)
-	
+
 	// Use paginated request to get all todo lists
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll(path, &todoLists); err != nil {
@@ -326,7 +326,7 @@ func (c *Client) GetTodoList(ctx context.Context, projectID string, todoListID i
 func (c *Client) GetTodos(ctx context.Context, projectID string, todoListID int64) ([]Todo, error) {
 	var todos []Todo
 	path := fmt.Sprintf("/buckets/%s/todolists/%d/todos.json", projectID, todoListID)
-	
+
 	// Use paginated request to get all todos
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll(path, &todos); err != nil {
@@ -350,7 +350,7 @@ func (c *Client) GetAllTodos(ctx context.Context, projectID string, todoListID i
 	// Get completed todos using the completed=true parameter
 	var completedTodos []Todo
 	path := fmt.Sprintf("/buckets/%s/todolists/%d/todos.json?completed=true", projectID, todoListID)
-	
+
 	// Use paginated request to get all completed todos
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll(path, &completedTodos); err != nil {
@@ -371,7 +371,7 @@ func (c *Client) GetAllTodos(ctx context.Context, projectID string, todoListID i
 func (c *Client) GetTodoGroups(ctx context.Context, projectID string, todoListID int64) ([]TodoGroup, error) {
 	var groups []TodoGroup
 	path := fmt.Sprintf("/buckets/%s/todolists/%d/groups.json", projectID, todoListID)
-	
+
 	// Use paginated request to get all groups
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll(path, &groups); err != nil {
