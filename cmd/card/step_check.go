@@ -1,11 +1,22 @@
 package card
 
 import (
+	"context"
+	"fmt"
+	"strconv"
+
+	"github.com/needmore/bc4/internal/api"
+	"github.com/needmore/bc4/internal/auth"
+	"github.com/needmore/bc4/internal/config"
 	"github.com/spf13/cobra"
 )
 
 // newStepCheckCmd creates the step check command
 func newStepCheckCmd() *cobra.Command {
+	var accountID string
+	var projectID string
+	var note string
+
 	cmd := &cobra.Command{
 		Use:   "check CARD_ID STEP_ID",
 		Short: "Mark a step as completed",
@@ -16,18 +27,80 @@ Examples:
   bc4 card step check 123 456 --note "Fixed in PR #789"`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// TODO: Implement step check functionality
-			// 1. Parse card ID from args[0]
-			// 2. Parse step ID from args[1]
-			// 3. Get optional completion note from flags
-			// 4. Call API to mark step as completed
-			// 5. Display success message
+			ctx := context.Background()
+
+			// Parse card ID and step ID
+			cardID, err := strconv.ParseInt(args[0], 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid card ID: %s", args[0])
+			}
+
+			stepID, err := strconv.ParseInt(args[1], 10, 64)
+			if err != nil {
+				return fmt.Errorf("invalid step ID: %s", args[1])
+			}
+
+			// Load config
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+
+			// Check authentication
+			if cfg.DefaultAccount == "" {
+				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
+			}
+
+			// Get account ID
+			if accountID == "" {
+				accountID = cfg.DefaultAccount
+			}
+
+			// Get project ID
+			if projectID == "" {
+				projectID = cfg.DefaultProject
+				if projectID == "" {
+					// Check for account-specific default project
+					if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
+						projectID = acc.DefaultProject
+					}
+				}
+			}
+			if projectID == "" {
+				return fmt.Errorf("no project specified and no default project set")
+			}
+
+			// Create auth client
+			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
+			token, err := authClient.GetToken(accountID)
+			if err != nil {
+				return fmt.Errorf("failed to get auth token: %w", err)
+			}
+
+			// Create API client
+			client := api.NewClient(accountID, token.AccessToken)
+
+			// Mark step as completed
+			err = client.SetStepCompletion(ctx, projectID, stepID, true)
+			if err != nil {
+				return fmt.Errorf("failed to mark step as completed: %w", err)
+			}
+
+			// Display success message
+			fmt.Printf("✓ Marked step %d as completed in card #%d\n", stepID, cardID)
+
+			// TODO: If note flag is provided, add a comment to the card
+			if note != "" {
+				fmt.Printf("Note: Adding comments to cards is not yet implemented\n")
+			}
+
 			return nil
 		},
 	}
 
-	// TODO: Add flags for completion notes
-	cmd.Flags().String("note", "", "Add a completion note")
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
+	cmd.Flags().StringVar(&note, "note", "", "Add a completion note")
 
 	return cmd
 }

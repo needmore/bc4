@@ -175,7 +175,7 @@ func showStepsTable(card *api.Card) error {
 	}
 
 	// Add each step
-	for i, step := range card.Steps {
+	for _, step := range card.Steps {
 		// Status indicator
 		if table.IsTTY() {
 			table.AddStatusField(step.Completed)
@@ -187,9 +187,9 @@ func showStepsTable(card *api.Card) error {
 			}
 		}
 
-		// Step reference (card:step format)
-		stepRef := fmt.Sprintf("%d:%d", card.ID, i+1)
-		table.AddIDField(stepRef, step.Status)
+		// Step ID
+		stepID := fmt.Sprintf("%d", step.ID)
+		table.AddIDField(stepID, step.Status)
 
 		// Title
 		table.AddTodoField(step.Title, step.Completed)
