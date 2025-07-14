@@ -1,20 +1,22 @@
 package campfire
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 func newViewCmd() *cobra.Command {
 	var limit int
+	var noPager bool
 
 	cmd := &cobra.Command{
 		Use:   "view [ID|name]",
@@ -106,12 +108,20 @@ func newViewCmd() *cobra.Command {
 				return fmt.Errorf("failed to get campfire lines: %w", err)
 			}
 
+			// Prepare output for pager
+			var buf bytes.Buffer
+
 			// Display header
-			fmt.Printf("=== %s ===\n\n", campfire.Name)
+			fmt.Fprintf(&buf, "=== %s ===\n\n", campfire.Name)
 
 			if len(lines) == 0 {
-				fmt.Println("No messages in this campfire yet.")
-				return nil
+				fmt.Fprintln(&buf, "No messages in this campfire yet.")
+				// Display using pager
+				pagerOpts := &utils.PagerOptions{
+					Pager:   cfg.Preferences.Pager,
+					NoPager: noPager,
+				}
+				return utils.ShowInPager(buf.String(), pagerOpts)
 			}
 
 			// Display messages in chronological order (API returns newest first, so reverse)
@@ -137,32 +147,38 @@ func newViewCmd() *cobra.Command {
 				contentLines := strings.Split(content, "\n")
 				if len(contentLines) == 1 {
 					// Single line message
-					fmt.Printf("[%s] @%s: %s\n", timestamp, creatorName, content)
+					fmt.Fprintf(&buf, "[%s] @%s: %s\n", timestamp, creatorName, content)
 				} else {
 					// Multi-line message
-					fmt.Printf("[%s] @%s:\n", timestamp, creatorName)
+					fmt.Fprintf(&buf, "[%s] @%s:\n", timestamp, creatorName)
 					for _, contentLine := range contentLines {
 						if contentLine != "" {
-							fmt.Printf("  %s\n", contentLine)
+							fmt.Fprintf(&buf, "  %s\n", contentLine)
 						}
 					}
 				}
 			}
 
 			// Add spacing and info
-			fmt.Println()
+			fmt.Fprintln(&buf)
 			if limit > 0 && len(lines) == limit {
-				fmt.Fprintf(os.Stderr, "Showing last %d messages. Use --limit to see more.\n", limit)
+				fmt.Fprintf(&buf, "Showing last %d messages. Use --limit to see more.\n", limit)
 			} else {
-				fmt.Fprintf(os.Stderr, "Showing last %d messages.\n", len(lines))
+				fmt.Fprintf(&buf, "Showing last %d messages.\n", len(lines))
 			}
 
-			return nil
+			// Display using pager
+			pagerOpts := &utils.PagerOptions{
+				Pager:   cfg.Preferences.Pager,
+				NoPager: noPager,
+			}
+			return utils.ShowInPager(buf.String(), pagerOpts)
 		},
 	}
 
 	// Add flags
 	cmd.Flags().IntVarP(&limit, "limit", "n", 50, "Number of messages to show")
+	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Disable pager for output")
 
 	return cmd
 }

@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -16,6 +17,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/utils"
 )
 
 func newViewCmd() *cobra.Command {
@@ -24,6 +26,7 @@ func newViewCmd() *cobra.Command {
 	var formatStr string
 	var jsonFields string
 	var webView bool
+	var noPager bool
 
 	cmd := &cobra.Command{
 		Use:   "view [todo-id]",
@@ -133,8 +136,8 @@ func newViewCmd() *cobra.Command {
 				return encoder.Encode(output)
 			}
 
-			// Display todo details
-			fmt.Println()
+			// Prepare output for pager
+			var buf bytes.Buffer
 
 			// Title style
 			titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
@@ -150,16 +153,15 @@ func newViewCmd() *cobra.Command {
 			statusStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(statusColor))
 
 			// Display todo content with status
-			fmt.Printf("%s %s\n", statusStyle.Render(statusIcon), titleStyle.Render(todo.Content))
-			fmt.Println()
+			fmt.Fprintf(&buf, "\n%s %s\n\n", statusStyle.Render(statusIcon), titleStyle.Render(todo.Content))
 
 			// Show metadata
-			fmt.Printf("%s %d\n", labelStyle.Render("ID:"), todo.ID)
+			fmt.Fprintf(&buf, "%s %d\n", labelStyle.Render("ID:"), todo.ID)
 			statusText := "active"
 			if todo.Completed {
 				statusText = "completed"
 			}
-			fmt.Printf("%s %s\n", labelStyle.Render("Status:"), statusText)
+			fmt.Fprintf(&buf, "%s %s\n", labelStyle.Render("Status:"), statusText)
 
 			if todo.DueOn != nil && *todo.DueOn != "" {
 				// Parse and format due date
@@ -177,13 +179,13 @@ func newViewCmd() *cobra.Command {
 						dueText += fmt.Sprintf(" (%d days ago)", -daysUntil)
 					}
 
-					fmt.Printf("%s %s\n", labelStyle.Render("Due:"), dueText)
+					fmt.Fprintf(&buf, "%s %s\n", labelStyle.Render("Due:"), dueText)
 				}
 			}
 
 			// Show creator
 			if todo.Creator.Name != "" {
-				fmt.Printf("%s %s\n", labelStyle.Render("Created by:"), todo.Creator.Name)
+				fmt.Fprintf(&buf, "%s %s\n", labelStyle.Render("Created by:"), todo.Creator.Name)
 			}
 
 			// Show assignees
@@ -192,13 +194,13 @@ func newViewCmd() *cobra.Command {
 				for _, assignee := range todo.Assignees {
 					assigneeNames = append(assigneeNames, assignee.Name)
 				}
-				fmt.Printf("%s %s\n", labelStyle.Render("Assigned to:"), strings.Join(assigneeNames, ", "))
+				fmt.Fprintf(&buf, "%s %s\n", labelStyle.Render("Assigned to:"), strings.Join(assigneeNames, ", "))
 			}
 
 			// Show description if present
 			if todo.Description != "" {
-				fmt.Println()
-				fmt.Println(labelStyle.Render("Description:"))
+				fmt.Fprintln(&buf)
+				fmt.Fprintln(&buf, labelStyle.Render("Description:"))
 
 				// Try to render as markdown
 				r, err := glamour.NewTermRenderer(
@@ -208,33 +210,38 @@ func newViewCmd() *cobra.Command {
 				if err == nil {
 					rendered, err := r.Render(todo.Description)
 					if err == nil {
-						fmt.Print(rendered)
+						fmt.Fprint(&buf, rendered)
 					} else {
-						fmt.Println(todo.Description)
+						fmt.Fprintln(&buf, todo.Description)
 					}
 				} else {
-					fmt.Println(todo.Description)
+					fmt.Fprintln(&buf, todo.Description)
 				}
 			}
 
 			// Show todo list ID
 			if todo.TodolistID > 0 {
-				fmt.Println()
-				fmt.Printf("%s %d\n", labelStyle.Render("Todo List ID:"), todo.TodolistID)
+				fmt.Fprintln(&buf)
+				fmt.Fprintf(&buf, "%s %d\n", labelStyle.Render("Todo List ID:"), todo.TodolistID)
 			}
 
 			// Show timestamps
-			fmt.Println()
+			fmt.Fprintln(&buf)
 			if created, err := time.Parse(time.RFC3339, todo.CreatedAt); err == nil {
-				fmt.Printf("%s %s\n", labelStyle.Render("Created:"), created.Format("January 2, 2006 at 3:04 PM"))
+				fmt.Fprintf(&buf, "%s %s\n", labelStyle.Render("Created:"), created.Format("January 2, 2006 at 3:04 PM"))
 			}
 			if updated, err := time.Parse(time.RFC3339, todo.UpdatedAt); err == nil {
-				fmt.Printf("%s %s\n", labelStyle.Render("Updated:"), updated.Format("January 2, 2006 at 3:04 PM"))
+				fmt.Fprintf(&buf, "%s %s\n", labelStyle.Render("Updated:"), updated.Format("January 2, 2006 at 3:04 PM"))
 			}
 
-			fmt.Println()
+			fmt.Fprintln(&buf)
 
-			return nil
+			// Display using pager
+			pagerOpts := &utils.PagerOptions{
+				Pager:   cfg.Preferences.Pager,
+				NoPager: noPager,
+			}
+			return utils.ShowInPager(buf.String(), pagerOpts)
 		},
 	}
 
@@ -244,6 +251,7 @@ func newViewCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&formatStr, "format", "f", "", "Output format (json)")
 	cmd.Flags().StringVar(&jsonFields, "json-fields", "", "Comma-separated list of JSON fields to output")
 	cmd.Flags().BoolVarP(&webView, "web", "w", false, "Open in browser")
+	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Disable pager for output")
 
 	return cmd
 }

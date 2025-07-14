@@ -1,6 +1,7 @@
 package project
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -15,11 +16,13 @@ import (
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/ui"
+	"github.com/needmore/bc4/internal/utils"
 )
 
 func newViewCmd() *cobra.Command {
 	var jsonOutput bool
 	var accountID string
+	var noPager bool
 
 	cmd := &cobra.Command{
 		Use:   "view [project-id]",
@@ -114,39 +117,48 @@ func newViewCmd() *cobra.Command {
 				return encoder.Encode(project)
 			}
 
+			// Prepare output for pager
+			var buf bytes.Buffer
+
 			// Display project details
-			fmt.Println()
-			fmt.Println(ui.TitleStyle.Render(project.Name))
-			fmt.Println()
+			fmt.Fprintln(&buf)
+			fmt.Fprintln(&buf, ui.TitleStyle.Render(project.Name))
+			fmt.Fprintln(&buf)
 
 			if project.Description != "" {
-				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Description:"), ui.ValueStyle.Render(project.Description))
+				fmt.Fprintf(&buf, "%s %s\n", ui.LabelStyle.Render("Description:"), ui.ValueStyle.Render(project.Description))
 			}
 
-			fmt.Printf("%s %s\n", ui.LabelStyle.Render("ID:"), ui.ValueStyle.Render(strconv.FormatInt(project.ID, 10)))
+			fmt.Fprintf(&buf, "%s %s\n", ui.LabelStyle.Render("ID:"), ui.ValueStyle.Render(strconv.FormatInt(project.ID, 10)))
 
 			// Only show purpose if it's not empty and not "topic"
 			if project.Purpose != "" && project.Purpose != "topic" {
-				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Purpose:"), ui.ValueStyle.Render(project.Purpose))
+				fmt.Fprintf(&buf, "%s %s\n", ui.LabelStyle.Render("Purpose:"), ui.ValueStyle.Render(project.Purpose))
 			}
 
 			// Parse and format dates
 			if created, err := time.Parse(time.RFC3339, project.CreatedAt); err == nil {
-				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Created:"), ui.ValueStyle.Render(created.Format("January 2, 2006")))
+				fmt.Fprintf(&buf, "%s %s\n", ui.LabelStyle.Render("Created:"), ui.ValueStyle.Render(created.Format("January 2, 2006")))
 			}
 
 			if updated, err := time.Parse(time.RFC3339, project.UpdatedAt); err == nil {
-				fmt.Printf("%s %s\n", ui.LabelStyle.Render("Updated:"), ui.ValueStyle.Render(updated.Format("January 2, 2006")))
+				fmt.Fprintf(&buf, "%s %s\n", ui.LabelStyle.Render("Updated:"), ui.ValueStyle.Render(updated.Format("January 2, 2006")))
 			}
 
-			fmt.Println()
+			fmt.Fprintln(&buf)
 
-			return nil
+			// Display using pager
+			pagerOpts := &utils.PagerOptions{
+				Pager:   cfg.Preferences.Pager,
+				NoPager: noPager,
+			}
+			return utils.ShowInPager(buf.String(), pagerOpts)
 		},
 	}
 
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID (overrides default)")
+	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Disable pager for output")
 
 	return cmd
 }

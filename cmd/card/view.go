@@ -1,9 +1,9 @@
 package card
 
 import (
+	"bytes"
 	"context"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -11,6 +11,7 @@ import (
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +21,7 @@ func newViewCmd() *cobra.Command {
 	var projectID string
 	var stepsOnly bool
 	var web bool
+	var noPager bool
 
 	cmd := &cobra.Command{
 		Use:   "view [ID]",
@@ -100,25 +102,28 @@ func newViewCmd() *cobra.Command {
 
 			// If steps only, show just the steps
 			if stepsOnly {
-				return showStepsTable(card)
+				return showStepsTable(card, cfg, noPager)
 			}
 
+			// Prepare output for pager
+			var buf bytes.Buffer
+
 			// Show card header
-			fmt.Printf("Card #%d: %s\n", card.ID, card.Title)
-			fmt.Println(strings.Repeat("-", 50))
+			fmt.Fprintf(&buf, "Card #%d: %s\n", card.ID, card.Title)
+			fmt.Fprintln(&buf, strings.Repeat("-", 50))
 
 			// Show card details
 			if card.Content != "" {
-				fmt.Printf("Description: %s\n", card.Content)
+				fmt.Fprintf(&buf, "Description: %s\n", card.Content)
 			}
 
 			// Column
 			if card.Parent != nil {
-				fmt.Printf("Column: %s", card.Parent.Title)
+				fmt.Fprintf(&buf, "Column: %s", card.Parent.Title)
 				if card.Parent.Color != "" && card.Parent.Color != "white" {
-					fmt.Printf(" (%s)", card.Parent.Color)
+					fmt.Fprintf(&buf, " (%s)", card.Parent.Color)
 				}
-				fmt.Println()
+				fmt.Fprintln(&buf)
 			}
 
 			// Assignees
@@ -127,31 +132,88 @@ func newViewCmd() *cobra.Command {
 				for _, assignee := range card.Assignees {
 					assigneeNames = append(assigneeNames, assignee.Name)
 				}
-				fmt.Printf("Assignees: %s\n", strings.Join(assigneeNames, ", "))
+				fmt.Fprintf(&buf, "Assignees: %s\n", strings.Join(assigneeNames, ", "))
 			}
 
 			// Due date
 			if card.DueOn != nil && *card.DueOn != "" {
-				fmt.Printf("Due: %s\n", *card.DueOn)
+				fmt.Fprintf(&buf, "Due: %s\n", *card.DueOn)
 			}
 
 			// Creator
 			if card.Creator != nil {
-				fmt.Printf("Created by: %s\n", card.Creator.Name)
+				fmt.Fprintf(&buf, "Created by: %s\n", card.Creator.Name)
 			}
 
 			// Timestamps
-			fmt.Printf("Created: %s\n", card.CreatedAt.Format("2006-01-02 15:04"))
-			fmt.Printf("Updated: %s\n", card.UpdatedAt.Format("2006-01-02 15:04"))
+			fmt.Fprintf(&buf, "Created: %s\n", card.CreatedAt.Format("2006-01-02 15:04"))
+			fmt.Fprintf(&buf, "Updated: %s\n", card.UpdatedAt.Format("2006-01-02 15:04"))
 
 			// Show steps if any
 			if len(card.Steps) > 0 {
-				fmt.Printf("\nSteps (%d):\n", len(card.Steps))
-				fmt.Println(strings.Repeat("-", 50))
-				return showStepsTable(card)
+				fmt.Fprintf(&buf, "\nSteps (%d):\n", len(card.Steps))
+				fmt.Fprintln(&buf, strings.Repeat("-", 50))
+				
+				// Get steps table output
+				var stepsBuf bytes.Buffer
+				table := tableprinter.New(&stepsBuf)
+				
+				// Add headers
+				if table.IsTTY() {
+					table.AddHeader("", "ID", "TITLE", "ASSIGNEES", "DUE", "UPDATED")
+				} else {
+					table.AddHeader("STATUS", "ID", "TITLE", "ASSIGNEES", "DUE", "UPDATED")
+				}
+
+				// Add each step
+				for _, step := range card.Steps {
+					// Status indicator
+					if table.IsTTY() {
+						table.AddStatusField(step.Completed)
+					} else {
+						if step.Completed {
+							table.AddField("completed")
+						} else {
+							table.AddField("incomplete")
+						}
+					}
+
+					// Step ID
+					stepID := fmt.Sprintf("%d", step.ID)
+					table.AddIDField(stepID, step.Status)
+
+					// Title
+					table.AddTodoField(step.Title, step.Completed)
+
+					// Assignees
+					assigneeNames := []string{}
+					for _, assignee := range step.Assignees {
+						assigneeNames = append(assigneeNames, assignee.Name)
+					}
+					table.AddField(strings.Join(assigneeNames, ", "))
+
+					// Due date
+					if step.DueOn != nil && *step.DueOn != "" {
+						table.AddField(*step.DueOn)
+					} else {
+						table.AddField("-")
+					}
+
+					// Updated timestamp
+					table.AddTimeField(step.CreatedAt, step.UpdatedAt)
+					table.EndRow()
+				}
+
+				table.Render()
+				buf.Write(stepsBuf.Bytes())
 			}
 
-			return nil
+			// Display using pager
+			pagerOpts := &utils.PagerOptions{
+				Pager:   cfg.Preferences.Pager,
+				NoPager: noPager,
+			}
+			return utils.ShowInPager(buf.String(), pagerOpts)
 		},
 	}
 
@@ -160,12 +222,14 @@ func newViewCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().BoolVar(&stepsOnly, "steps-only", false, "Show only the steps list")
 	cmd.Flags().BoolVarP(&web, "web", "w", false, "Open card in web browser")
+	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Disable pager for output")
 
 	return cmd
 }
 
-func showStepsTable(card *api.Card) error {
-	table := tableprinter.New(os.Stdout)
+func showStepsTable(card *api.Card, cfg *config.Config, noPager bool) error {
+	var buf bytes.Buffer
+	table := tableprinter.New(&buf)
 
 	// Add headers
 	if table.IsTTY() {
@@ -214,5 +278,11 @@ func showStepsTable(card *api.Card) error {
 	}
 
 	table.Render()
-	return nil
+
+	// Display using pager
+	pagerOpts := &utils.PagerOptions{
+		Pager:   cfg.Preferences.Pager,
+		NoPager: noPager,
+	}
+	return utils.ShowInPager(buf.String(), pagerOpts)
 }
