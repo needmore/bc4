@@ -3,12 +3,12 @@ package todo
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -152,9 +152,18 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 		req.DueOn = &opts.due
 	}
 
-	// TODO: Handle assignee lookup by email
+	// Handle assignee lookup
 	if len(opts.assign) > 0 {
-		fmt.Fprintln(os.Stderr, "Warning: --assign flag not yet implemented")
+		// Create user resolver
+		userResolver := utils.NewUserResolver(client, projectID)
+
+		// Resolve user identifiers to person IDs
+		personIDs, err := userResolver.ResolveUsers(ctx, opts.assign)
+		if err != nil {
+			return fmt.Errorf("failed to resolve assignees: %w", err)
+		}
+
+		req.AssigneeIDs = personIDs
 	}
 
 	todo, err := client.CreateTodo(ctx, projectID, todoListID, req)
