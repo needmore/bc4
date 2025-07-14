@@ -153,11 +153,11 @@ func newViewCmd() *cobra.Command {
 			if len(card.Steps) > 0 {
 				fmt.Fprintf(&buf, "\nSteps (%d):\n", len(card.Steps))
 				fmt.Fprintln(&buf, strings.Repeat("-", 50))
-				
+
 				// Get steps table output
 				var stepsBuf bytes.Buffer
 				table := tableprinter.New(&stepsBuf)
-				
+
 				// Add headers
 				if table.IsTTY() {
 					table.AddHeader("", "ID", "TITLE", "ASSIGNEES", "DUE", "UPDATED")
