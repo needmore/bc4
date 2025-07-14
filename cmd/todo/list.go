@@ -729,16 +729,16 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 	// Add headers dynamically based on TTY mode and groups
 	if table.IsTTY() {
 		if groups != nil && len(groups) > 0 {
-			table.AddHeader("", "TODO", "GROUP", "ASSIGNEE", "DUE")
+			table.AddHeader("ID", "", "TODO", "GROUP", "ASSIGNEE", "DUE")
 		} else {
-			table.AddHeader("", "TODO", "ASSIGNEE", "DUE")
+			table.AddHeader("ID", "", "TODO", "ASSIGNEE", "DUE")
 		}
 	} else {
 		// Add STATE column for non-TTY mode (machine readable)
 		if groups != nil && len(groups) > 0 {
-			table.AddHeader("STATUS", "TODO", "GROUP", "ASSIGNEE", "STATE", "DUE")
+			table.AddHeader("ID", "STATUS", "TODO", "GROUP", "ASSIGNEE", "STATE", "DUE")
 		} else {
-			table.AddHeader("STATUS", "TODO", "ASSIGNEE", "STATE", "DUE")
+			table.AddHeader("ID", "STATUS", "TODO", "ASSIGNEE", "STATE", "DUE")
 		}
 	}
 
@@ -750,6 +750,9 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 		for _, group := range groups {
 			if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
 				for _, todo := range todos {
+					// ID column
+					table.AddField(fmt.Sprintf("%d", todo.ID))
+
 					// Status column - symbol for TTY, text for non-TTY
 					if table.IsTTY() {
 						table.AddStatusField(todo.Completed)
@@ -807,6 +810,9 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 	} else {
 		// Without groups
 		for _, todo := range allTodos {
+			// ID column
+			table.AddField(fmt.Sprintf("%d", todo.ID))
+
 			// Status column - symbol for TTY, text for non-TTY
 			if table.IsTTY() {
 				table.AddStatusField(todo.Completed)

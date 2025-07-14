@@ -158,6 +158,30 @@ Use flags to specify table, column, assignees, and initial steps.`,
 
 			fmt.Printf("Created card #%d: %s in column '%s'\n", card.ID, card.Title, targetColumn.Title)
 
+			// Handle assignees - parse as IDs and update the card
+			if len(assignees) > 0 {
+				var assigneeIDs []int64
+				for _, assignee := range assignees {
+					// Try to parse as ID
+					if id, err := strconv.ParseInt(assignee, 10, 64); err == nil {
+						assigneeIDs = append(assigneeIDs, id)
+					} else {
+						fmt.Printf("Warning: '%s' is not a valid user ID, skipping\n", assignee)
+					}
+				}
+				if len(assigneeIDs) > 0 {
+					updateReq := api.CardUpdateRequest{
+						AssigneeIDs: assigneeIDs,
+					}
+					_, err := client.UpdateCard(ctx, projectID, card.ID, updateReq)
+					if err != nil {
+						fmt.Printf("Warning: failed to assign users: %v\n", err)
+					} else {
+						fmt.Printf("Assigned %d user(s) to the card\n", len(assigneeIDs))
+					}
+				}
+			}
+
 			// Add steps if provided
 			if len(steps) > 0 {
 				fmt.Printf("Adding %d steps...\n", len(steps))
@@ -172,11 +196,6 @@ Use flags to specify table, column, assignees, and initial steps.`,
 				}
 			}
 
-			// Handle assignees (not implemented in API yet)
-			if len(assignees) > 0 {
-				fmt.Printf("Note: Assignee functionality not yet implemented\n")
-			}
-
 			return nil
 		},
 	}
@@ -185,7 +204,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().StringVar(&tableID, "table", "", "Specify card table ID")
 	cmd.Flags().StringVar(&columnName, "column", "", "Target column name")
-	cmd.Flags().StringSliceVar(&assignees, "assign", []string{}, "Add assignees (comma-separated)")
+	cmd.Flags().StringSliceVar(&assignees, "assign", []string{}, "Add assignees by user ID (comma-separated)")
 	cmd.Flags().StringSliceVar(&steps, "step", []string{}, "Add steps (can be used multiple times)")
 	cmd.Flags().StringVar(&dueOn, "due", "", "Set due date (YYYY-MM-DD)")
 	cmd.Flags().StringVarP(&description, "description", "d", "", "Card description")
