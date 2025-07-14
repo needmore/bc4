@@ -9,6 +9,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -158,18 +159,16 @@ Use flags to specify table, column, assignees, and initial steps.`,
 
 			fmt.Printf("Created card #%d: %s in column '%s'\n", card.ID, card.Title, targetColumn.Title)
 
-			// Handle assignees - parse as IDs and update the card
+			// Handle assignees - resolve user identifiers
 			if len(assignees) > 0 {
-				var assigneeIDs []int64
-				for _, assignee := range assignees {
-					// Try to parse as ID
-					if id, err := strconv.ParseInt(assignee, 10, 64); err == nil {
-						assigneeIDs = append(assigneeIDs, id)
-					} else {
-						fmt.Printf("Warning: '%s' is not a valid user ID, skipping\n", assignee)
-					}
-				}
-				if len(assigneeIDs) > 0 {
+				// Create user resolver
+				userResolver := utils.NewUserResolver(client, projectID)
+
+				// Resolve user identifiers to person IDs
+				assigneeIDs, err := userResolver.ResolveUsers(ctx, assignees)
+				if err != nil {
+					fmt.Printf("Warning: failed to resolve assignees: %v\n", err)
+				} else if len(assigneeIDs) > 0 {
 					updateReq := api.CardUpdateRequest{
 						AssigneeIDs: assigneeIDs,
 					}
@@ -204,7 +203,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().StringVar(&tableID, "table", "", "Specify card table ID")
 	cmd.Flags().StringVar(&columnName, "column", "", "Target column name")
-	cmd.Flags().StringSliceVar(&assignees, "assign", []string{}, "Add assignees by user ID (comma-separated)")
+	cmd.Flags().StringSliceVar(&assignees, "assign", []string{}, "Add assignees by email or @mention (comma-separated)")
 	cmd.Flags().StringSliceVar(&steps, "step", []string{}, "Add steps (can be used multiple times)")
 	cmd.Flags().StringVar(&dueOn, "due", "", "Set due date (YYYY-MM-DD)")
 	cmd.Flags().StringVarP(&description, "description", "d", "", "Card description")

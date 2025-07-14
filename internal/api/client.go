@@ -457,3 +457,35 @@ func (c *Client) GetTodo(ctx context.Context, projectID string, todoID int64) (*
 
 	return &todo, nil
 }
+
+// GetProjectPeople fetches all people associated with a project
+func (c *Client) GetProjectPeople(ctx context.Context, projectID string) ([]Person, error) {
+	var people []Person
+	path := fmt.Sprintf("/projects/%s/people.json", projectID)
+
+	// Use paginated request to get all people
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &people); err != nil {
+		return nil, fmt.Errorf("failed to fetch project people: %w", err)
+	}
+
+	return people, nil
+}
+
+// GetPerson fetches a specific person by ID
+func (c *Client) GetPerson(ctx context.Context, personID int64) (*Person, error) {
+	var person Person
+
+	path := fmt.Sprintf("/people/%d.json", personID)
+	resp, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch person: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if err := json.NewDecoder(resp.Body).Decode(&person); err != nil {
+		return nil, fmt.Errorf("failed to decode person: %w", err)
+	}
+
+	return &person, nil
+}
