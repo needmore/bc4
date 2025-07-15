@@ -10,14 +10,14 @@ import (
 
 // UserResolver helps resolve user identifiers to Person objects
 type UserResolver struct {
-	client    *api.Client
+	client    api.APIClient
 	projectID string
 	people    []api.Person
 	cached    bool
 }
 
 // NewUserResolver creates a new user resolver for a project
-func NewUserResolver(client *api.Client, projectID string) *UserResolver {
+func NewUserResolver(client api.APIClient, projectID string) *UserResolver {
 	return &UserResolver{
 		client:    client,
 		projectID: projectID,

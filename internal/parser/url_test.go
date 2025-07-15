@@ -267,4 +267,3 @@ func TestParseArgument(t *testing.T) {
 		})
 	}
 }
-

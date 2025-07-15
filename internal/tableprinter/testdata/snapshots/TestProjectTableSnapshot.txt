@@ -1,0 +1,5 @@
+ID      Name             Description                            Created      Updated                                    
+12345   Web Redesign     Complete redesign of company website   2024-01-15   2024-11-20                                 
+12346   Mobile App       Native iOS and Android apps            2024-02-01   2024-11-19                                 
+12347   API v2           REST API version 2.0                   2024-03-10   2024-11-18                                 
+12348   Data Migration   Migrate from MySQL to PostgreSQL       2024-04-05   2024-11-17                                 
