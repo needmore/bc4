@@ -296,4 +296,3 @@ func ParseArgument(arg string) (int64, *ParsedURL, error) {
 
 	return id, nil, nil
 }
-

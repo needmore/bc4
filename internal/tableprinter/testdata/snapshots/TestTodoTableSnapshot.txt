@@ -1,0 +1,6 @@
+      Title                  Assignee   Due Date     Status                                         
+□   Write unit tests       Alice      2024-11-25   [33mIn Progress[0m                                    
+□   Review PR #123         Bob        2024-11-24   [90mPending[0m                                        
+✓   Fix bug #456           Charlie    2024-11-23   [32mCompleted[0m                                      
+□   Update documentation   Alice      2024-11-26   [90mNot Started[0m                                    
+□   Deploy to staging                 2024-11-27   [31mBlocked[0m                                        

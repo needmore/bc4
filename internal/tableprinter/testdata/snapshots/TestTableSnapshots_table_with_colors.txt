@@ -1,0 +1,4 @@
+Status    Count   Percentage                                                    
+[32mSuccess[0m   150     75%                                                           
+[31mFailed[0m    30      15%                                                           
+Pending   20      10%                                                           
