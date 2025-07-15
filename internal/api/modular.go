@@ -1,18 +1,17 @@
 package api
 
-import "context"
+import (
+	"context"
+)
 
-// ModularAPIClient demonstrates how the interface could be split into smaller interfaces
-// This file shows the proposed modular design without breaking existing code
-
-// ProjectClient defines project-related operations
-type ProjectClient interface {
+// ProjectOperations defines project-specific operations
+type ProjectOperations interface {
 	GetProjects(ctx context.Context) ([]Project, error)
 	GetProject(ctx context.Context, projectID string) (*Project, error)
 }
 
-// TodoClient defines todo-related operations
-type TodoClient interface {
+// TodoOperations defines todo-specific operations
+type TodoOperations interface {
 	GetProjectTodoSet(ctx context.Context, projectID string) (*TodoSet, error)
 	GetTodoLists(ctx context.Context, projectID string, todoSetID int64) ([]TodoList, error)
 	GetTodoList(ctx context.Context, projectID string, todoListID int64) (*TodoList, error)
@@ -26,8 +25,8 @@ type TodoClient interface {
 	UncompleteTodo(ctx context.Context, projectID string, todoID int64) error
 }
 
-// CampfireClient defines campfire-related operations
-type CampfireClient interface {
+// CampfireOperations defines campfire-specific operations
+type CampfireOperations interface {
 	ListCampfires(ctx context.Context, projectID string) ([]Campfire, error)
 	GetCampfire(ctx context.Context, projectID string, campfireID int64) (*Campfire, error)
 	GetCampfireByName(ctx context.Context, projectID string, name string) (*Campfire, error)
@@ -36,8 +35,8 @@ type CampfireClient interface {
 	DeleteCampfireLine(ctx context.Context, projectID string, campfireID int64, lineID int64) error
 }
 
-// CardClient defines card table-related operations
-type CardClient interface {
+// CardOperations defines card table-specific operations
+type CardOperations interface {
 	GetProjectCardTable(ctx context.Context, projectID string) (*CardTable, error)
 	GetCardTable(ctx context.Context, projectID string, cardTableID int64) (*CardTable, error)
 	GetCardsInColumn(ctx context.Context, projectID string, columnID int64) ([]Card, error)
@@ -48,8 +47,8 @@ type CardClient interface {
 	ArchiveCard(ctx context.Context, projectID string, cardID int64) error
 }
 
-// StepClient defines card step-related operations
-type StepClient interface {
+// StepOperations defines card step-specific operations
+type StepOperations interface {
 	CreateStep(ctx context.Context, projectID string, cardID int64, req StepCreateRequest) (*Step, error)
 	UpdateStep(ctx context.Context, projectID string, stepID int64, req StepUpdateRequest) (*Step, error)
 	SetStepCompletion(ctx context.Context, projectID string, stepID int64, completed bool) error
@@ -57,19 +56,61 @@ type StepClient interface {
 	DeleteStep(ctx context.Context, projectID string, stepID int64) error
 }
 
-// PeopleClient defines people-related operations
-type PeopleClient interface {
+// PeopleOperations defines people-specific operations
+type PeopleOperations interface {
 	GetProjectPeople(ctx context.Context, projectID string) ([]Person, error)
 	GetPerson(ctx context.Context, personID int64) (*Person, error)
 }
 
-// ModularClient combines all the modular interfaces
-// This could be used as a drop-in replacement for APIClient
-type ModularClient interface {
-	ProjectClient
-	TodoClient
-	CampfireClient
-	CardClient
-	StepClient
-	PeopleClient
+// ModularClient provides access to all API operations through focused interfaces
+type ModularClient struct {
+	*Client // Embed the existing client for now
 }
+
+// NewModularClient creates a new modular client that exposes focused interfaces
+func NewModularClient(accountID, accessToken string) *ModularClient {
+	return &ModularClient{
+		Client: NewClient(accountID, accessToken),
+	}
+}
+
+// Projects returns the project operations interface
+func (c *ModularClient) Projects() ProjectOperations {
+	return c.Client
+}
+
+// Todos returns the todo operations interface
+func (c *ModularClient) Todos() TodoOperations {
+	return c.Client
+}
+
+// Campfires returns the campfire operations interface
+func (c *ModularClient) Campfires() CampfireOperations {
+	return c.Client
+}
+
+// Cards returns the card operations interface
+func (c *ModularClient) Cards() CardOperations {
+	return c.Client
+}
+
+// Steps returns the step operations interface
+func (c *ModularClient) Steps() StepOperations {
+	return c.Client
+}
+
+// People returns the people operations interface
+func (c *ModularClient) People() PeopleOperations {
+	return c.Client
+}
+
+// Example of how to extend with new operations without modifying existing code:
+// 
+// type MessageOperations interface {
+//     GetMessages(ctx context.Context, projectID string) ([]Message, error)
+//     PostMessage(ctx context.Context, projectID string, content string) (*Message, error)
+// }
+//
+// func (c *ModularClient) Messages() MessageOperations {
+//     return c.Client
+// }

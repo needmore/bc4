@@ -57,11 +57,12 @@ func newListCmd() *cobra.Command {
 				return fmt.Errorf("failed to get auth token: %w", err)
 			}
 
-			// Create API client
-			apiClient := api.NewClient(accountID, token.AccessToken)
+			// Create modular API client
+			client := api.NewModularClient(accountID, token.AccessToken)
+			projectOps := client.Projects()
 
-			// Fetch projects
-			projects, err := apiClient.GetProjects(context.Background())
+			// Fetch projects using the focused interface
+			projects, err := projectOps.GetProjects(context.Background())
 			if err != nil {
 				return fmt.Errorf("failed to fetch projects: %w", err)
 			}

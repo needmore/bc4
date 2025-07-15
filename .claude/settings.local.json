@@ -32,7 +32,10 @@
       "Bash(echo:*)",
       "Bash(git pull:*)",
       "Bash(UPDATE_SNAPSHOTS=true go test -run TestProjectTableSnapshot -v)",
-      "Bash(bc4 campfire:*)"
+      "Bash(bc4 campfire:*)",
+      "Bash(curl:*)",
+      "Bash(git stash:*)",
+      "Bash(git restore:*)"
     ],
     "deny": []
   }

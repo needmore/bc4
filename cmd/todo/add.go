@@ -133,11 +133,12 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 		return fmt.Errorf("no project selected. Run 'bc4 project select' first")
 	}
 
-	// Create API client
-	client := api.NewClient(cfg.DefaultAccount, token.AccessToken)
+	// Create modular API client
+	client := api.NewModularClient(cfg.DefaultAccount, token.AccessToken)
+	todoOps := client.Todos()
 
 	// Get the todo set for the project
-	todoSet, err := client.GetProjectTodoSet(ctx, projectID)
+	todoSet, err := todoOps.GetProjectTodoSet(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("failed to get todo set: %w", err)
 	}
@@ -157,7 +158,7 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 			todoListID = parsed.ResourceID
 		} else {
 			// User specified a list - try to find it
-			todoLists, err := client.GetTodoLists(ctx, projectID, todoSet.ID)
+			todoLists, err := todoOps.GetTodoLists(ctx, projectID, todoSet.ID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch todo lists: %w", err)
 			}
@@ -230,7 +231,7 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 	// Handle assignee lookup
 	if len(opts.assign) > 0 {
 		// Create user resolver
-		userResolver := utils.NewUserResolver(client, projectID)
+		userResolver := utils.NewUserResolver(client.Client, projectID)
 
 		// Resolve user identifiers to person IDs
 		personIDs, err := userResolver.ResolveUsers(ctx, opts.assign)
@@ -241,7 +242,7 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 		req.AssigneeIDs = personIDs
 	}
 
-	todo, err := client.CreateTodo(ctx, projectID, todoListID, req)
+	todo, err := todoOps.CreateTodo(ctx, projectID, todoListID, req)
 	if err != nil {
 		return fmt.Errorf("failed to create todo: %w", err)
 	}
