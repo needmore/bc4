@@ -1,11 +1,12 @@
 package todo
 
 import (
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
 // NewTodoCmd creates the todo command
-func NewTodoCmd() *cobra.Command {
+func NewTodoCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "todo",
 		Short: "Work with Basecamp todos - list, view, create, and manage todos",
@@ -17,15 +18,15 @@ Use these commands to navigate and manage your tasks.`,
 	}
 
 	// Add subcommands
-	cmd.AddCommand(newListsCmd())
-	cmd.AddCommand(newListCmd())
-	cmd.AddCommand(newSelectCmd())
-	cmd.AddCommand(newSetCmd())
-	cmd.AddCommand(newViewCmd())
-	cmd.AddCommand(newAddCmd())
-	cmd.AddCommand(newCheckCmd())
-	cmd.AddCommand(newUncheckCmd())
-	cmd.AddCommand(newCreateListCmd())
+	cmd.AddCommand(newListsCmd(f))
+	cmd.AddCommand(newListCmd(f))
+	cmd.AddCommand(newSelectCmd(f))
+	cmd.AddCommand(newSetCmd(f))
+	cmd.AddCommand(newViewCmd(f))
+	cmd.AddCommand(newAddCmd(f))
+	cmd.AddCommand(newCheckCmd(f))
+	cmd.AddCommand(newUncheckCmd(f))
+	cmd.AddCommand(newCreateListCmd(f))
 
 	return cmd
 }

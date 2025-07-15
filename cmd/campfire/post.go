@@ -1,20 +1,18 @@
 package campfire
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
 )
 
-func newPostCmd() *cobra.Command {
+func newPostCmd(f *factory.Factory) *cobra.Command {
 	var campfireFlag string
 
 	cmd := &cobra.Command{
@@ -23,42 +21,26 @@ func newPostCmd() *cobra.Command {
 		Long:  `Post a message to a campfire. The message is required.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Get required dependencies
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use default account
-			accountID := authClient.GetDefaultAccount()
-			if accountID == "" {
-				return fmt.Errorf("no default account set. Use 'bc4 account select' to set one")
-			}
-
-			// Get project ID
-			projectID := cfg.DefaultProject
-			if cfg.Accounts != nil && cfg.Accounts[accountID].DefaultProject != "" {
-				projectID = cfg.Accounts[accountID].DefaultProject
-			}
-			if projectID == "" {
-				return fmt.Errorf("no default project set. Use 'bc4 project select' to set one")
-			}
-			// Get token
-			token, err := authClient.GetToken(accountID)
+			accountID, err := f.AccountID()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
 
-			// Create modular API client
-			client := api.NewModularClient(accountID, token.AccessToken)
+			projectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
 			campfireOps := client.Campfires()
 
 			// Determine which campfire to post to
@@ -83,7 +65,7 @@ func newPostCmd() *cobra.Command {
 						campfireID = id
 					} else {
 						// It's a name, find by name
-						cf, err := campfireOps.GetCampfireByName(context.Background(), projectID, campfireFlag)
+						cf, err := campfireOps.GetCampfireByName(f.Context(), projectID, campfireFlag)
 						if err != nil {
 							return fmt.Errorf("campfire '%s' not found", campfireFlag)
 						}
@@ -107,7 +89,7 @@ func newPostCmd() *cobra.Command {
 
 			// Get campfire details if we don't have them yet
 			if campfire == nil {
-				cf, err := campfireOps.GetCampfire(context.Background(), projectID, campfireID)
+				cf, err := campfireOps.GetCampfire(f.Context(), projectID, campfireID)
 				if err != nil {
 					return fmt.Errorf("failed to get campfire: %w", err)
 				}
@@ -133,7 +115,7 @@ func newPostCmd() *cobra.Command {
 			// }
 
 			// Post the message
-			line, err := campfireOps.PostCampfireLine(context.Background(), projectID, campfireID, content)
+			line, err := campfireOps.PostCampfireLine(f.Context(), projectID, campfireID, content)
 			if err != nil {
 				return fmt.Errorf("failed to post message: %w", err)
 			}

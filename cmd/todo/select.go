@@ -3,10 +3,11 @@ package todo
 import (
 	"fmt"
 
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
-func newSelectCmd() *cobra.Command {
+func newSelectCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "select",
 		Short: "Select default todo list",

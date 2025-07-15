@@ -1,7 +1,6 @@
 package project
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
 )
 
@@ -30,6 +30,7 @@ type selectModel struct {
 	width     int
 	height    int
 	accountID string
+	factory   *factory.Factory
 }
 
 func (m selectModel) Init() tea.Cmd {
@@ -162,27 +163,15 @@ func (m selectModel) View() string {
 
 func (m *selectModel) loadProjects() tea.Cmd {
 	return func() tea.Msg {
-		// Load config
-		cfg, err := config.Load()
+		// Create API client through factory
+		apiClient, err := m.factory.ApiClient()
 		if err != nil {
 			return projectsLoadedMsg{err: err}
 		}
-
-		// Create auth client
-		authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-		// Get token
-		token, err := authClient.GetToken(m.accountID)
-		if err != nil {
-			return projectsLoadedMsg{err: err}
-		}
-
-		// Create API client
-		apiClient := api.NewModularClient(m.accountID, token.AccessToken)
 		projectOps := apiClient.Projects()
 
 		// Fetch projects
-		projects, err := projectOps.GetProjects(context.Background())
+		projects, err := projectOps.GetProjects(m.factory.Context())
 		if err != nil {
 			return projectsLoadedMsg{err: err}
 		}
@@ -224,7 +213,7 @@ func (m *selectModel) saveDefaultProject(project api.Project) tea.Cmd {
 	}
 }
 
-func newSelectCmd() *cobra.Command {
+func newSelectCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 
 	cmd := &cobra.Command{
@@ -232,19 +221,11 @@ func newSelectCmd() *cobra.Command {
 		Short: "Select default project",
 		Long:  `Interactively select a default project for bc4 commands.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Get auth through factory
+			authClient, err := f.AuthClient()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
-
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
 
 			// Use specified account or default
 			if accountID == "" {
@@ -260,11 +241,17 @@ func newSelectCmd() *cobra.Command {
 			s.Spinner = spinner.Dot
 			s.Style = ui.SelectedItemStyle
 
+			// If accountID was specified, use a new factory with that account
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			
 			// Create model
 			m := selectModel{
 				spinner:   s,
 				loading:   true,
 				accountID: accountID,
+				factory:   f,
 			}
 
 			// Run the interactive selector

@@ -5,11 +5,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 )
 
-func newSetCmd() *cobra.Command {
+func newSetCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 	var projectID string
 
@@ -21,41 +21,32 @@ func newSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			todoListID := args[0]
 
-			// Load config
-			cfg, err := config.Load()
+			// Apply account override if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+
+			// Apply project override if specified
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
+			// Get config
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
+			// Get resolved account ID
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
 			}
 
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use specified account or default
-			if accountID == "" {
-				accountID = authClient.GetDefaultAccount()
-			}
-
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
-			// Use specified project or default
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-				if projectID == "" && cfg.Accounts != nil {
-					if acc, ok := cfg.Accounts[accountID]; ok {
-						projectID = acc.DefaultProject
-					}
-				}
-			}
-
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set")
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
 			}
 
 			// Update config
@@ -63,22 +54,22 @@ func newSetCmd() *cobra.Command {
 				cfg.Accounts = make(map[string]config.AccountConfig)
 			}
 
-			acc := cfg.Accounts[accountID]
+			acc := cfg.Accounts[resolvedAccountID]
 			if acc.ProjectDefaults == nil {
 				acc.ProjectDefaults = make(map[string]config.ProjectDefaults)
 			}
 
-			projDefaults := acc.ProjectDefaults[projectID]
+			projDefaults := acc.ProjectDefaults[resolvedProjectID]
 			projDefaults.DefaultTodoList = todoListID
-			acc.ProjectDefaults[projectID] = projDefaults
-			cfg.Accounts[accountID] = acc
+			acc.ProjectDefaults[resolvedProjectID] = projDefaults
+			cfg.Accounts[resolvedAccountID] = acc
 
 			// Save config
 			if err := config.Save(cfg); err != nil {
 				return fmt.Errorf("failed to save config: %w", err)
 			}
 
-			fmt.Printf("Default todo list set to %s for project %s\n", todoListID, projectID)
+			fmt.Printf("Default todo list set to %s for project %s\n", todoListID, resolvedProjectID)
 			return nil
 		},
 	}

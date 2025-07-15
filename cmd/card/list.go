@@ -1,18 +1,15 @@
 package card
 
 import (
-	"context"
 	"fmt"
 	"os"
 
-	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 	"github.com/spf13/cobra"
 )
 
-func newListCmd() *cobra.Command {
+func newListCmd(f *factory.Factory) *cobra.Command {
 	var formatJSON bool
 	var accountID string
 	var projectID string
@@ -22,54 +19,29 @@ func newListCmd() *cobra.Command {
 		Short: "List card tables in the current project",
 		Long:  `List all card tables in the current project with their card counts and status.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
 
-			// Load config
-			cfg, err := config.Load()
+			// Get API client from factory
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
+			cardOps := client.Cards()
+
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
 			if err != nil {
 				return err
 			}
 
-			// Check authentication
-			if cfg.DefaultAccount == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Get account ID
-			if accountID == "" {
-				accountID = cfg.DefaultAccount
-			}
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
-			// Get project ID
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-			}
-			if projectID == "" {
-				// Check for account-specific default project
-				if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
-					projectID = acc.DefaultProject
-				}
-			}
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-			token, err := authClient.GetToken(accountID)
-			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
-			}
-
-			// Create API client
-			client := api.NewModularClient(accountID, token.AccessToken)
-			cardOps := client.Cards()
-
 			// Get the card table for the project
-			cardTable, err := cardOps.GetProjectCardTable(ctx, projectID)
+			cardTable, err := cardOps.GetProjectCardTable(f.Context(), resolvedProjectID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch card table: %w", err)
 			}
@@ -82,10 +54,22 @@ func newListCmd() *cobra.Command {
 				return nil
 			}
 
+			// Get config for default card table lookup
+			cfg, err := f.Config()
+			if err != nil {
+				return err
+			}
+
+			// Get resolved account ID for default lookup
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
+			}
+
 			// Get default card table for marking
 			var defaultCardTable string
-			if acc, ok := cfg.Accounts[accountID]; ok {
-				if proj, ok := acc.ProjectDefaults[projectID]; ok {
+			if acc, ok := cfg.Accounts[resolvedAccountID]; ok {
+				if proj, ok := acc.ProjectDefaults[resolvedProjectID]; ok {
 					defaultCardTable = proj.DefaultCardTable
 				}
 			}
@@ -126,7 +110,7 @@ func newListCmd() *cobra.Command {
 			table.EndRow()
 
 			// Print summary
-			fmt.Printf("Showing card table in project %s\n\n", projectID)
+			fmt.Printf("Showing card table in project %s\n\n", resolvedProjectID)
 			table.Render()
 
 			return nil

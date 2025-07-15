@@ -1,11 +1,12 @@
 package card
 
 import (
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
 // NewCardCmd creates the card command
-func NewCardCmd() *cobra.Command {
+func NewCardCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "card",
 		Short: "Manage card tables and cards",
@@ -30,23 +31,23 @@ like software bugs, design requests, or other workflow-oriented tasks.`,
 	}
 
 	// Add subcommands
-	cmd.AddCommand(newListCmd())
-	cmd.AddCommand(newTableCmd())
-	cmd.AddCommand(newViewCmd())
-	cmd.AddCommand(newSetCmd())
-	cmd.AddCommand(newAddCmd())
-	cmd.AddCommand(newCreateCmd())
-	cmd.AddCommand(newEditCmd())
-	cmd.AddCommand(newMoveCmd())
-	cmd.AddCommand(newAssignCmd())
-	cmd.AddCommand(newUnassignCmd())
-	cmd.AddCommand(newArchiveCmd())
+	cmd.AddCommand(newListCmd(f))
+	cmd.AddCommand(newTableCmd(f))
+	cmd.AddCommand(newViewCmd(f))
+	cmd.AddCommand(newSetCmd(f))
+	cmd.AddCommand(newAddCmd(f))
+	cmd.AddCommand(newCreateCmd(f))
+	cmd.AddCommand(newEditCmd(f))
+	cmd.AddCommand(newMoveCmd(f))
+	cmd.AddCommand(newAssignCmd(f))
+	cmd.AddCommand(newUnassignCmd(f))
+	cmd.AddCommand(newArchiveCmd(f))
 
 	// Column management subcommands
-	cmd.AddCommand(newColumnCmd())
+	cmd.AddCommand(newColumnCmd(f))
 
 	// Step management subcommands
-	cmd.AddCommand(newStepCmd())
+	cmd.AddCommand(newStepCmd(f))
 
 	return cmd
 }

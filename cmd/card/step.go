@@ -1,11 +1,12 @@
 package card
 
 import (
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
 // newStepCmd creates the step management command
-func newStepCmd() *cobra.Command {
+func newStepCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "step",
 		Short: "Manage steps within cards",
@@ -13,14 +14,14 @@ func newStepCmd() *cobra.Command {
 	}
 
 	// Add subcommands
-	cmd.AddCommand(newStepAddCmd())
-	cmd.AddCommand(newStepListCmd())
-	cmd.AddCommand(newStepCheckCmd())
-	cmd.AddCommand(newStepUncheckCmd())
-	cmd.AddCommand(newStepEditCmd())
-	cmd.AddCommand(newStepMoveCmd())
-	cmd.AddCommand(newStepAssignCmd())
-	cmd.AddCommand(newStepDeleteCmd())
+	cmd.AddCommand(newStepAddCmd(f))
+	cmd.AddCommand(newStepListCmd(f))
+	cmd.AddCommand(newStepCheckCmd(f))
+	cmd.AddCommand(newStepUncheckCmd(f))
+	cmd.AddCommand(newStepEditCmd(f))
+	cmd.AddCommand(newStepMoveCmd(f))
+	cmd.AddCommand(newStepAssignCmd(f))
+	cmd.AddCommand(newStepDeleteCmd(f))
 
 	return cmd
 }

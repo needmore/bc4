@@ -1,19 +1,16 @@
 package card
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 
-	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
 )
 
 // newStepUncheckCmd creates the step uncheck command
-func newStepUncheckCmd() *cobra.Command {
+func newStepUncheckCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 	var projectID string
 	var reason string
@@ -33,8 +30,6 @@ Examples:
   bc4 card step uncheck https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345/steps/67890`,
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
-
 			var cardID, stepID int64
 			var parsedURL *parser.ParsedURL
 
@@ -75,60 +70,39 @@ Examples:
 				}
 			}
 
-			// Load config
-			cfg, err := config.Load()
-			if err != nil {
-				return err
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
 			}
-
-			// Check authentication
-			if cfg.DefaultAccount == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Get account ID
-			if accountID == "" {
-				accountID = cfg.DefaultAccount
-			}
-
-			// Get project ID
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-				if projectID == "" {
-					// Check for account-specific default project
-					if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
-						projectID = acc.DefaultProject
-					}
-				}
+			if projectID != "" {
+				f = f.WithProject(projectID)
 			}
 
 			// If a URL was parsed, override account and project IDs if provided
 			if parsedURL != nil {
 				if parsedURL.AccountID > 0 {
-					accountID = strconv.FormatInt(parsedURL.AccountID, 10)
+					f = f.WithAccount(strconv.FormatInt(parsedURL.AccountID, 10))
 				}
 				if parsedURL.ProjectID > 0 {
-					projectID = strconv.FormatInt(parsedURL.ProjectID, 10)
+					f = f.WithProject(strconv.FormatInt(parsedURL.ProjectID, 10))
 				}
 			}
 
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-			token, err := authClient.GetToken(accountID)
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
 
-			// Create API client
-			client := api.NewModularClient(accountID, token.AccessToken)
+			// Get API client from factory
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
 			stepOps := client.Steps()
 
 			// Mark step as incomplete
-			err = stepOps.SetStepCompletion(ctx, projectID, stepID, false)
+			err = stepOps.SetStepCompletion(f.Context(), resolvedProjectID, stepID, false)
 			if err != nil {
 				return fmt.Errorf("failed to mark step as incomplete: %w", err)
 			}

@@ -1,7 +1,6 @@
 package project
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -10,12 +9,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
-func newSearchCmd() *cobra.Command {
+func newSearchCmd(f *factory.Factory) *cobra.Command {
 	var jsonOutput bool
 	var accountID string
 
@@ -27,19 +25,11 @@ func newSearchCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			query := strings.ToLower(strings.Join(args, " "))
 
-			// Load config
-			cfg, err := config.Load()
+			// Get auth through factory
+			authClient, err := f.AuthClient()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
-
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
 
 			// Use specified account or default
 			if accountID == "" {
@@ -50,18 +40,19 @@ func newSearchCmd() *cobra.Command {
 				return fmt.Errorf("no account specified and no default account set")
 			}
 
-			// Get token
-			token, err := authClient.GetToken(accountID)
-			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+			// Create API client through factory
+			// If accountID was specified, use a new factory with that account
+			if accountID != "" {
+				f = f.WithAccount(accountID)
 			}
-
-			// Create API client
-			apiClient := api.NewModularClient(accountID, token.AccessToken)
+			apiClient, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
 			projectOps := apiClient.Projects()
 
 			// Fetch all projects
-			allProjects, err := projectOps.GetProjects(context.Background())
+			allProjects, err := projectOps.GetProjects(f.Context())
 			if err != nil {
 				return fmt.Errorf("failed to fetch projects: %w", err)
 			}

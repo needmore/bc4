@@ -15,6 +15,7 @@ import (
 	"github.com/needmore/bc4/cmd/project"
 	"github.com/needmore/bc4/cmd/todo"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/tui"
 )
 
@@ -78,14 +79,17 @@ func init() {
 	viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
 	viper.BindPFlag("no_color", rootCmd.PersistentFlags().Lookup("no-color"))
 
-	// Add commands
+	// Create factory
+	f := factory.New()
+
+	// Add commands with factory
 	rootCmd.AddCommand(auth.NewAuthCmd())
 	rootCmd.AddCommand(account.NewAccountCmd())
-	rootCmd.AddCommand(project.NewProjectCmd())
-	rootCmd.AddCommand(todo.NewTodoCmd())
+	rootCmd.AddCommand(project.NewProjectCmd(f))
+	rootCmd.AddCommand(todo.NewTodoCmd(f))
 	// rootCmd.AddCommand(message.NewMessageCmd())
-	rootCmd.AddCommand(campfire.NewCampfireCmd())
-	rootCmd.AddCommand(card.NewCardCmd())
+	rootCmd.AddCommand(campfire.NewCampfireCmd(f))
+	rootCmd.AddCommand(card.NewCardCmd(f))
 }
 
 func initConfig() {

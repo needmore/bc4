@@ -3,10 +3,11 @@ package card
 import (
 	"fmt"
 
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
-func newColumnCreateCmd() *cobra.Command {
+func newColumnCreateCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Create new column",

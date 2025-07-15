@@ -2,20 +2,18 @@ package campfire
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-func newViewCmd() *cobra.Command {
+func newViewCmd(f *factory.Factory) *cobra.Command {
 	var limit int
 	var noPager bool
 
@@ -30,42 +28,26 @@ You can specify the campfire using:
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/chats/12345")`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Get required dependencies
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use default account
-			accountID := authClient.GetDefaultAccount()
-			if accountID == "" {
-				return fmt.Errorf("no default account set. Use 'bc4 account select' to set one")
-			}
-
-			// Get project ID
-			projectID := cfg.DefaultProject
-			if cfg.Accounts != nil && cfg.Accounts[accountID].DefaultProject != "" {
-				projectID = cfg.Accounts[accountID].DefaultProject
-			}
-			if projectID == "" {
-				return fmt.Errorf("no default project set. Use 'bc4 project select' to set one")
-			}
-			// Get token
-			token, err := authClient.GetToken(accountID)
+			accountID, err := f.AccountID()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
 
-			// Create API client
-			client := api.NewModularClient(accountID, token.AccessToken)
+			projectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
 			campfireOps := client.Campfires()
 
 			// Determine which campfire to view
@@ -103,11 +85,11 @@ You can specify the campfire using:
 						projectID = strconv.FormatInt(parsedURL.ProjectID, 10)
 					}
 					// Need to recreate the client with the new account ID
-					token, err = authClient.GetToken(accountID)
+					f = f.WithAccount(accountID).WithProject(projectID)
+					client, err = f.ApiClient()
 					if err != nil {
-						return fmt.Errorf("failed to get auth token for account %s: %w", accountID, err)
+						return err
 					}
-					client = api.NewModularClient(accountID, token.AccessToken)
 					campfireOps = client.Campfires()
 				} else {
 					// Try to parse as ID
@@ -116,7 +98,7 @@ You can specify the campfire using:
 						campfireID = id
 					} else {
 						// It's a name, find by name
-						cf, err := campfireOps.GetCampfireByName(context.Background(), projectID, args[0])
+						cf, err := campfireOps.GetCampfireByName(f.Context(), projectID, args[0])
 						if err != nil {
 							return fmt.Errorf("campfire '%s' not found", args[0])
 						}
@@ -128,7 +110,7 @@ You can specify the campfire using:
 
 			// Get campfire details if we don't have them yet
 			if campfire == nil {
-				cf, err := campfireOps.GetCampfire(context.Background(), projectID, campfireID)
+				cf, err := campfireOps.GetCampfire(f.Context(), projectID, campfireID)
 				if err != nil {
 					return fmt.Errorf("failed to get campfire: %w", err)
 				}
@@ -136,7 +118,7 @@ You can specify the campfire using:
 			}
 
 			// Get campfire lines
-			lines, err := campfireOps.GetCampfireLines(context.Background(), projectID, campfireID, limit)
+			lines, err := campfireOps.GetCampfireLines(f.Context(), projectID, campfireID, limit)
 			if err != nil {
 				return fmt.Errorf("failed to get campfire lines: %w", err)
 			}

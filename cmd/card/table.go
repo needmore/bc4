@@ -1,20 +1,17 @@
 package card
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 	"github.com/spf13/cobra"
 )
 
-func newTableCmd() *cobra.Command {
+func newTableCmd(f *factory.Factory) *cobra.Command {
 	var formatJSON bool
 	var accountID string
 	var projectID string
@@ -29,51 +26,36 @@ func newTableCmd() *cobra.Command {
 If no table ID or name is provided, uses the default card table if set.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
 
-			// Load config
-			cfg, err := config.Load()
+			// Get API client from factory
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
+			cardOps := client.Cards()
+
+			// Get resolved IDs
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
+			}
+			resolvedProjectID, err := f.ProjectID()
 			if err != nil {
 				return err
 			}
 
-			// Check authentication
-			if cfg.DefaultAccount == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Get account ID
-			if accountID == "" {
-				accountID = cfg.DefaultAccount
-			}
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
-			// Get project ID
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-			}
-			if projectID == "" {
-				// Check for account-specific default project
-				if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
-					projectID = acc.DefaultProject
-				}
-			}
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-			token, err := authClient.GetToken(accountID)
+			// Get config for default lookups
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
-
-			// Create API client
-			client := api.NewModularClient(accountID, token.AccessToken)
-			cardOps := client.Cards()
 
 			// Get card table ID
 			var cardTableID int64
@@ -87,8 +69,8 @@ If no table ID or name is provided, uses the default card table if set.`,
 				}
 			} else {
 				// Use default card table
-				if acc, ok := cfg.Accounts[accountID]; ok {
-					if proj, ok := acc.ProjectDefaults[projectID]; ok && proj.DefaultCardTable != "" {
+				if acc, ok := cfg.Accounts[resolvedAccountID]; ok {
+					if proj, ok := acc.ProjectDefaults[resolvedProjectID]; ok && proj.DefaultCardTable != "" {
 						if id, err := strconv.ParseInt(proj.DefaultCardTable, 10, 64); err == nil {
 							cardTableID = id
 						}
@@ -100,7 +82,7 @@ If no table ID or name is provided, uses the default card table if set.`,
 			}
 
 			// Get the card table
-			cardTable, err := cardOps.GetCardTable(ctx, projectID, cardTableID)
+			cardTable, err := cardOps.GetCardTable(f.Context(), resolvedProjectID, cardTableID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch card table: %w", err)
 			}
@@ -131,7 +113,7 @@ If no table ID or name is provided, uses the default card table if set.`,
 				}
 
 				// Get cards in this column
-				cards, err := cardOps.GetCardsInColumn(ctx, projectID, column.ID)
+				cards, err := cardOps.GetCardsInColumn(f.Context(), resolvedProjectID, column.ID)
 				if err != nil {
 					return fmt.Errorf("failed to fetch cards from column %s: %w", column.Title, err)
 				}

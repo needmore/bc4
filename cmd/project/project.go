@@ -1,11 +1,12 @@
 package project
 
 import (
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
 // NewProjectCmd creates the project command
-func NewProjectCmd() *cobra.Command {
+func NewProjectCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "project",
 		Short:   "Manage Basecamp projects",
@@ -14,11 +15,11 @@ func NewProjectCmd() *cobra.Command {
 	}
 
 	// Add subcommands
-	cmd.AddCommand(newListCmd())
-	cmd.AddCommand(newSelectCmd())
-	cmd.AddCommand(newSetCmd())
-	cmd.AddCommand(newViewCmd())
-	cmd.AddCommand(newSearchCmd())
+	cmd.AddCommand(newListCmd(f))
+	cmd.AddCommand(newSelectCmd(f))
+	cmd.AddCommand(newSetCmd(f))
+	cmd.AddCommand(newViewCmd(f))
+	cmd.AddCommand(newSearchCmd(f))
 
 	return cmd
 }

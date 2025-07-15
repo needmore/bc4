@@ -3,10 +3,11 @@ package card
 import (
 	"fmt"
 
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
-func newColumnListCmd() *cobra.Command {
+func newColumnListCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List columns in current table",

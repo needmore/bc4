@@ -5,11 +5,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 )
 
-func newSetCmd() *cobra.Command {
+func newSetCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 
 	cmd := &cobra.Command{
@@ -20,27 +20,25 @@ func newSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			projectID := args[0]
 
-			// Load config
-			cfg, err := config.Load()
+			// Get config and auth through factory
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
+			}
+			authClient, err := f.AuthClient()
+			if err != nil {
+				return err
 			}
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use specified account or default
-			if accountID == "" {
+			// If accountID was specified, use a new factory with that account
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			} else {
+				// Use default account
 				accountID = authClient.GetDefaultAccount()
-			}
-
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
+				if accountID == "" {
+					return fmt.Errorf("no account specified and no default account set")
+				}
 			}
 
 			// Update config

@@ -1,11 +1,12 @@
 package campfire
 
 import (
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
 // NewCampfireCmd creates the campfire command
-func NewCampfireCmd() *cobra.Command {
+func NewCampfireCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "campfire",
 		Short: "Manage campfire chats",
@@ -16,10 +17,10 @@ func NewCampfireCmd() *cobra.Command {
 	}
 
 	// Add subcommands
-	cmd.AddCommand(newListCmd())
-	cmd.AddCommand(newSetCmd())
-	cmd.AddCommand(newViewCmd())
-	cmd.AddCommand(newPostCmd())
+	cmd.AddCommand(newListCmd(f))
+	cmd.AddCommand(newSetCmd(f))
+	cmd.AddCommand(newViewCmd(f))
+	cmd.AddCommand(newPostCmd(f))
 
 	return cmd
 }

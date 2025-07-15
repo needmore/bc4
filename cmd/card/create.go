@@ -3,10 +3,11 @@ package card
 import (
 	"fmt"
 
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
-func newCreateCmd() *cobra.Command {
+func newCreateCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Interactive card creation",
