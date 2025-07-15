@@ -79,10 +79,11 @@ func newListCmd() *cobra.Command {
 			}
 
 			// Create API client
-			apiClient := api.NewClient(accountID, token.AccessToken)
+			apiClient := api.NewModularClient(accountID, token.AccessToken)
+			todoOps := apiClient.Todos()
 
 			// Get todo set for the project
-			todoSet, err := apiClient.GetProjectTodoSet(context.Background(), projectID)
+			todoSet, err := todoOps.GetProjectTodoSet(context.Background(), projectID)
 			if err != nil {
 				return fmt.Errorf("failed to get project todo set: %w", err)
 			}
@@ -107,7 +108,7 @@ func newListCmd() *cobra.Command {
 					todoListID = id
 				} else {
 					// Try to find by name
-					todoLists, err := apiClient.GetTodoLists(context.Background(), projectID, todoSet.ID)
+					todoLists, err := todoOps.GetTodoLists(context.Background(), projectID, todoSet.ID)
 					if err != nil {
 						return fmt.Errorf("failed to fetch todo lists: %w", err)
 					}
@@ -131,7 +132,7 @@ func newListCmd() *cobra.Command {
 			}
 
 			// Get the todo list
-			todoList, err := apiClient.GetTodoList(context.Background(), projectID, todoListID)
+			todoList, err := todoOps.GetTodoList(context.Background(), projectID, todoListID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch todo list: %w", err)
 			}
@@ -148,9 +149,9 @@ func newListCmd() *cobra.Command {
 			// Get todos in the list
 			var todos []api.Todo
 			if showAll {
-				todos, err = apiClient.GetAllTodos(context.Background(), projectID, todoListID)
+				todos, err = todoOps.GetAllTodos(context.Background(), projectID, todoListID)
 			} else {
-				todos, err = apiClient.GetTodos(context.Background(), projectID, todoListID)
+				todos, err = todoOps.GetTodos(context.Background(), projectID, todoListID)
 			}
 			if err != nil {
 				return fmt.Errorf("failed to fetch todos: %w", err)
@@ -162,16 +163,16 @@ func newListCmd() *cobra.Command {
 
 			if len(todos) == 0 && todoList.GroupsURL != "" {
 				// Try fetching groups
-				groups, err = apiClient.GetTodoGroups(context.Background(), projectID, todoListID)
+				groups, err = todoOps.GetTodoGroups(context.Background(), projectID, todoListID)
 				if err == nil && len(groups) > 0 {
 					// Fetch todos for each group
 					groupedTodos = make(map[string][]api.Todo)
 					for _, group := range groups {
 						var groupTodos []api.Todo
 						if showAll {
-							groupTodos, err = apiClient.GetAllTodos(context.Background(), projectID, group.ID)
+							groupTodos, err = todoOps.GetAllTodos(context.Background(), projectID, group.ID)
 						} else {
-							groupTodos, err = apiClient.GetTodos(context.Background(), projectID, group.ID)
+							groupTodos, err = todoOps.GetTodos(context.Background(), projectID, group.ID)
 						}
 						if err == nil {
 							groupedTodos[fmt.Sprintf("%d", group.ID)] = groupTodos

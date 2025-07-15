@@ -5,6 +5,7 @@ package integration
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -64,11 +65,11 @@ func TestAPIConnection(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := api.NewClient(cfg.AccountID, cfg.AccessToken)
+	client := api.NewModularClient(cfg.AccountID, cfg.AccessToken)
 	ctx := context.Background()
 
 	// Try to get projects
-	projects, err := client.GetProjects(ctx)
+	projects, err := client.Projects().GetProjects(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get projects: %v", err)
 	}
@@ -88,11 +89,11 @@ func TestProjectOperations(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := api.NewClient(cfg.AccountID, cfg.AccessToken)
+	client := api.NewModularClient(cfg.AccountID, cfg.AccessToken)
 	ctx := context.Background()
 
 	// Get all projects
-	projects, err := client.GetProjects(ctx)
+	projects, err := client.Projects().GetProjects(ctx)
 	if err != nil {
 		t.Fatalf("Failed to get projects: %v", err)
 	}
@@ -103,7 +104,7 @@ func TestProjectOperations(t *testing.T) {
 
 	// Test getting a specific project
 	project := projects[0]
-	retrieved, err := client.GetProject(ctx, string(project.ID))
+	retrieved, err := client.Projects().GetProject(ctx, fmt.Sprintf("%d", project.ID))
 	if err != nil {
 		t.Fatalf("Failed to get project %d: %v", project.ID, err)
 	}
@@ -129,11 +130,11 @@ func TestTodoOperations(t *testing.T) {
 		t.Skip("BC4_TEST_PROJECT_ID not set, skipping todo tests")
 	}
 
-	client := api.NewClient(cfg.AccountID, cfg.AccessToken)
+	client := api.NewModularClient(cfg.AccountID, cfg.AccessToken)
 	ctx := context.Background()
 
 	// Get the todo set for the project
-	todoSet, err := client.GetProjectTodoSet(ctx, cfg.TestProject)
+	todoSet, err := client.Todos().GetProjectTodoSet(ctx, cfg.TestProject)
 	if err != nil {
 		t.Fatalf("Failed to get todo set: %v", err)
 	}
@@ -143,7 +144,7 @@ func TestTodoOperations(t *testing.T) {
 	}
 
 	// Get todo lists
-	lists, err := client.GetTodoLists(ctx, cfg.TestProject, todoSet.ID)
+	lists, err := client.Todos().GetTodoLists(ctx, cfg.TestProject, todoSet.ID)
 	if err != nil {
 		t.Fatalf("Failed to get todo lists: %v", err)
 	}
@@ -159,7 +160,7 @@ func TestTodoOperations(t *testing.T) {
 		Description: "This todo was created by integration tests",
 	}
 
-	created, err := client.CreateTodo(ctx, cfg.TestProject, testList.ID, req)
+	created, err := client.Todos().CreateTodo(ctx, cfg.TestProject, testList.ID, req)
 	if err != nil {
 		t.Fatalf("Failed to create todo: %v", err)
 	}
@@ -168,7 +169,7 @@ func TestTodoOperations(t *testing.T) {
 
 	// Clean up if not skipping
 	if !cfg.SkipCleanup {
-		err = client.CompleteTodo(ctx, cfg.TestProject, created.ID)
+		err = client.Todos().CompleteTodo(ctx, cfg.TestProject, created.ID)
 		if err != nil {
 			t.Errorf("Failed to complete todo %d: %v", created.ID, err)
 		} else {
@@ -189,11 +190,11 @@ func TestCampfireOperations(t *testing.T) {
 		t.Skip("BC4_TEST_PROJECT_ID not set, skipping campfire tests")
 	}
 
-	client := api.NewClient(cfg.AccountID, cfg.AccessToken)
+	client := api.NewModularClient(cfg.AccountID, cfg.AccessToken)
 	ctx := context.Background()
 
 	// List campfires
-	campfires, err := client.ListCampfires(ctx, cfg.TestProject)
+	campfires, err := client.Campfires().ListCampfires(ctx, cfg.TestProject)
 	if err != nil {
 		t.Fatalf("Failed to list campfires: %v", err)
 	}
@@ -204,7 +205,7 @@ func TestCampfireOperations(t *testing.T) {
 
 	// Get campfire lines
 	campfire := campfires[0]
-	lines, err := client.GetCampfireLines(ctx, cfg.TestProject, campfire.ID, 10)
+	lines, err := client.Campfires().GetCampfireLines(ctx, cfg.TestProject, campfire.ID, 10)
 	if err != nil {
 		t.Fatalf("Failed to get campfire lines: %v", err)
 	}
@@ -224,11 +225,11 @@ func TestCardTableOperations(t *testing.T) {
 		t.Skip("BC4_TEST_PROJECT_ID not set, skipping card table tests")
 	}
 
-	client := api.NewClient(cfg.AccountID, cfg.AccessToken)
+	client := api.NewModularClient(cfg.AccountID, cfg.AccessToken)
 	ctx := context.Background()
 
 	// Get the card table for the project
-	cardTable, err := client.GetProjectCardTable(ctx, cfg.TestProject)
+	cardTable, err := client.Cards().GetProjectCardTable(ctx, cfg.TestProject)
 	if err != nil {
 		t.Fatalf("Failed to get card table: %v", err)
 	}
@@ -237,13 +238,13 @@ func TestCardTableOperations(t *testing.T) {
 		t.Skip("Project has no card table")
 	}
 
-	if len(cardTable.Columns) == 0 {
+	if len(cardTable.Lists) == 0 {
 		t.Skip("Card table has no columns")
 	}
 
 	// Get cards in the first column
-	column := cardTable.Columns[0]
-	cards, err := client.GetCardsInColumn(ctx, cfg.TestProject, column.ID)
+	column := cardTable.Lists[0]
+	cards, err := client.Cards().GetCardsInColumn(ctx, cfg.TestProject, column.ID)
 	if err != nil {
 		t.Fatalf("Failed to get cards in column %s: %v", column.Title, err)
 	}
@@ -275,7 +276,7 @@ func TestConfigOperations(t *testing.T) {
 	cfg.DefaultAccount = "test-account"
 	cfg.Preferences.Editor = "vim"
 	
-	err = cfg.Save()
+	err = config.Save(cfg)
 	if err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}

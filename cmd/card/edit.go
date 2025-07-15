@@ -90,10 +90,11 @@ You can specify the card using either:
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			cardOps := client.Cards()
 
 			// Get the card first to display current values
-			card, err := client.GetCard(ctx, projectID, cardID)
+			card, err := cardOps.GetCard(ctx, projectID, cardID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch card: %w", err)
 			}

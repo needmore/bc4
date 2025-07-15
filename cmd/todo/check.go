@@ -91,10 +91,11 @@ func runCheck(ctx context.Context, todoIDStr string) error {
 	}
 
 	// Create API client
-	client := api.NewClient(accountID, token.AccessToken)
+	client := api.NewModularClient(accountID, token.AccessToken)
+	todoOps := client.Todos()
 
 	// Get the todo first to display its title
-	todo, err := client.GetTodo(ctx, projectID, todoID)
+	todo, err := todoOps.GetTodo(ctx, projectID, todoID)
 	if err != nil {
 		return fmt.Errorf("failed to fetch todo: %w", err)
 	}
@@ -106,7 +107,7 @@ func runCheck(ctx context.Context, todoIDStr string) error {
 	}
 
 	// Mark as complete
-	err = client.CompleteTodo(ctx, projectID, todoID)
+	err = todoOps.CompleteTodo(ctx, projectID, todoID)
 	if err != nil {
 		return fmt.Errorf("failed to complete todo: %w", err)
 	}

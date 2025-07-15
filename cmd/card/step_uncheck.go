@@ -124,10 +124,11 @@ Examples:
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			stepOps := client.Steps()
 
 			// Mark step as incomplete
-			err = client.SetStepCompletion(ctx, projectID, stepID, false)
+			err = stepOps.SetStepCompletion(ctx, projectID, stepID, false)
 			if err != nil {
 				return fmt.Errorf("failed to mark step as incomplete: %w", err)
 			}

@@ -65,10 +65,11 @@ func newListCmd() *cobra.Command {
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			cardOps := client.Cards()
 
 			// Get the card table for the project
-			cardTable, err := client.GetProjectCardTable(ctx, projectID)
+			cardTable, err := cardOps.GetProjectCardTable(ctx, projectID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch card table: %w", err)
 			}

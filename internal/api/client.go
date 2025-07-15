@@ -22,6 +22,8 @@ type Client struct {
 	baseURL     string
 }
 
+// NewClient creates a new API client
+// Deprecated: Use NewModularClient instead for better separation of concerns
 func NewClient(accountID, accessToken string) *Client {
 	return &Client{
 		accountID:   accountID,

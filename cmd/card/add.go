@@ -76,7 +76,9 @@ Use flags to specify table, column, assignees, and initial steps.`,
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			cardOps := client.Cards()
+			stepOps := client.Steps()
 
 			// Get card table ID
 			var cardTableID int64
@@ -111,7 +113,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 				}
 				if cardTableID == 0 {
 					// No default set, get the project's card table
-					cardTable, err := client.GetProjectCardTable(ctx, projectID)
+					cardTable, err := cardOps.GetProjectCardTable(ctx, projectID)
 					if err != nil {
 						return fmt.Errorf("failed to fetch card table: %w", err)
 					}
@@ -120,7 +122,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 			}
 
 			// Get the card table to find columns
-			cardTable, err := client.GetCardTable(ctx, projectID, cardTableID)
+			cardTable, err := cardOps.GetCardTable(ctx, projectID, cardTableID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch card table: %w", err)
 			}
@@ -165,7 +167,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 				req.DueOn = &dueOn
 			}
 
-			card, err := client.CreateCard(ctx, projectID, targetColumn.ID, req)
+			card, err := cardOps.CreateCard(ctx, projectID, targetColumn.ID, req)
 			if err != nil {
 				return fmt.Errorf("failed to create card: %w", err)
 			}
@@ -175,7 +177,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 			// Handle assignees - resolve user identifiers
 			if len(assignees) > 0 {
 				// Create user resolver
-				userResolver := utils.NewUserResolver(client, projectID)
+				userResolver := utils.NewUserResolver(client.Client, projectID)
 
 				// Resolve user identifiers to person IDs
 				assigneeIDs, err := userResolver.ResolveUsers(ctx, assignees)
@@ -185,7 +187,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 					updateReq := api.CardUpdateRequest{
 						AssigneeIDs: assigneeIDs,
 					}
-					_, err := client.UpdateCard(ctx, projectID, card.ID, updateReq)
+					_, err := cardOps.UpdateCard(ctx, projectID, card.ID, updateReq)
 					if err != nil {
 						fmt.Printf("Warning: failed to assign users: %v\n", err)
 					} else {
@@ -201,7 +203,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 					stepReq := api.StepCreateRequest{
 						Title: stepTitle,
 					}
-					_, err := client.CreateStep(ctx, projectID, card.ID, stepReq)
+					_, err := stepOps.CreateStep(ctx, projectID, card.ID, stepReq)
 					if err != nil {
 						fmt.Printf("Warning: failed to add step '%s': %v\n", stepTitle, err)
 					}

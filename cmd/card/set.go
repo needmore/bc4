@@ -65,7 +65,8 @@ func newSetCmd() *cobra.Command {
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			cardOps := client.Cards()
 
 			// Parse input as ID or search by name
 			var cardTableID int64
@@ -75,12 +76,12 @@ func newSetCmd() *cobra.Command {
 			if id, err := strconv.ParseInt(input, 10, 64); err == nil {
 				cardTableID = id
 				// Verify it exists
-				if _, err := client.GetCardTable(ctx, projectID, cardTableID); err != nil {
+				if _, err := cardOps.GetCardTable(ctx, projectID, cardTableID); err != nil {
 					return fmt.Errorf("card table %d not found", cardTableID)
 				}
 			} else {
 				// Search by name - for now just get the project's card table
-				cardTable, err := client.GetProjectCardTable(ctx, projectID)
+				cardTable, err := cardOps.GetProjectCardTable(ctx, projectID)
 				if err != nil {
 					return fmt.Errorf("failed to fetch card table: %w", err)
 				}

@@ -72,16 +72,17 @@ func newListsCmd() *cobra.Command {
 			}
 
 			// Create API client
-			apiClient := api.NewClient(accountID, token.AccessToken)
+			apiClient := api.NewModularClient(accountID, token.AccessToken)
+			todoOps := apiClient.Todos()
 
 			// Get the todo set for the project
-			todoSet, err := apiClient.GetProjectTodoSet(context.Background(), projectID)
+			todoSet, err := todoOps.GetProjectTodoSet(context.Background(), projectID)
 			if err != nil {
 				return fmt.Errorf("failed to get todo set: %w", err)
 			}
 
 			// Fetch todo lists
-			todoLists, err := apiClient.GetTodoLists(context.Background(), projectID, todoSet.ID)
+			todoLists, err := todoOps.GetTodoLists(context.Background(), projectID, todoSet.ID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch todo lists: %w", err)
 			}

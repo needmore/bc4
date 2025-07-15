@@ -96,10 +96,11 @@ Examples:
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			cardOps := client.Cards()
 
 			// First, get the card to find its current card table
-			_, err = client.GetCard(ctx, projectID, cardID)
+			_, err = cardOps.GetCard(ctx, projectID, cardID)
 			if err != nil {
 				return fmt.Errorf("failed to get card: %w", err)
 			}
@@ -107,7 +108,7 @@ Examples:
 			// Get the card table to find the target column
 			// We need to find the card table ID from the card's parent
 			// This is a simplified implementation - in reality we'd need to traverse the parent chain
-			cardTable, err := client.GetProjectCardTable(ctx, projectID)
+			cardTable, err := cardOps.GetProjectCardTable(ctx, projectID)
 			if err != nil {
 				return fmt.Errorf("failed to get card table: %w", err)
 			}
@@ -133,7 +134,7 @@ Examples:
 			}
 
 			// Move the card
-			err = client.MoveCard(ctx, projectID, cardID, targetColumnID)
+			err = cardOps.MoveCard(ctx, projectID, cardID, targetColumnID)
 			if err != nil {
 				return fmt.Errorf("failed to move card: %w", err)
 			}
