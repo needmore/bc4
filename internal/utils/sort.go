@@ -13,4 +13,3 @@ func SortProjectsByName(projects []api.Project) {
 		return strings.ToLower(projects[i].Name) < strings.ToLower(projects[j].Name)
 	})
 }
-

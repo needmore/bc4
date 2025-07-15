@@ -374,4 +374,3 @@ func (m *MockClient) GetPerson(ctx context.Context, personID int64) (*api.Person
 
 // Ensure MockClient implements APIClient interface
 var _ api.APIClient = (*MockClient)(nil)
-

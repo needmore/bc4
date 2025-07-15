@@ -204,7 +204,7 @@ bc4 todo list [ID|name] --grouped  # Show groups separately with headers instead
 bc4 todo view [ID|URL]      # View details of a specific todo (accepts ID or Basecamp URL)
 bc4 todo select             # Interactive todo list selection (not yet implemented)
 bc4 todo set [ID]           # Set default todo list
-bc4 todo add "Task"         # Create a new todo (supports --list, --description, --due flags)
+bc4 todo add "Task"         # Create a new todo (supports --list, --description, --due, --file flags)
 bc4 todo check [ID|URL]     # Mark todo as complete (accepts ID or Basecamp URL)
 bc4 todo uncheck [ID|URL]   # Mark todo as incomplete (accepts ID or Basecamp URL)
 bc4 todo create-list "Name" # Create a new todo list (supports --description flag)
@@ -231,9 +231,10 @@ bc4 todo create-list "Name" # Create a new todo list (supports --description fla
   - Accepts numeric ID or Basecamp URL (e.g., `https://3.basecamp.com/1234567/buckets/89012345/todos/12345`)
 - **`todo add "Task"`**: Creates a new todo in the default list
   - `--list, -l`: Specify todo list by ID, name, or URL
-  - `--description, -d`: Add a description to the todo
+  - `--description, -d`: Add a description to the todo (supports Markdown)
   - `--due`: Set due date (YYYY-MM-DD format)
   - `--assign`: Assign to team members (not yet implemented)
+  - `--file, -f`: Read todo content from a Markdown file
 - **`todo check [ID|URL]`**: Marks a todo as complete
   - Accepts #ID, ID, or Basecamp URL
 - **`todo uncheck [ID|URL]`**: Marks a todo as incomplete
@@ -382,6 +383,61 @@ bc4 card step delete [ID|URL] [STEP|URL]   # Delete a step (accepts IDs or step 
 - Commands use the default table when none is specified
 - The `--table` flag overrides the default for any command
 - Follows the same pattern as todo list and campfire defaults
+
+## Rich Text and Markdown Support
+
+### Overview
+
+bc4 supports automatic conversion between Markdown and Basecamp's rich text HTML format. Users can write in familiar Markdown syntax, and bc4 handles the conversion transparently.
+
+### Supported Resources
+
+According to the Basecamp API, the following resources support rich text content:
+
+**Currently Implemented:**
+- ✅ **Todo** - `content` (title) and `description` fields support Markdown input
+
+**Future Implementation:**
+- 🔄 **Card** - `title` and `content` fields will support Markdown
+- 🔄 **Message** - `content` field will support Markdown
+- 🔄 **Document** - `content` field will support Markdown
+- 🔄 **Comment** - `content` field will support Markdown
+- 🔄 **Schedule entry** - `description` field will support Markdown
+- 🔄 **Upload** - `description` field will support Markdown
+- 🔄 **To-do list** - `description` field will support Markdown
+
+**Not Supported (API Limitation):**
+- ❌ **Campfire line** - `content` field is plain text only per API specification
+
+### Markdown to Rich Text Conversion
+
+The `internal/markdown` package provides bidirectional conversion:
+
+1. **MarkdownToRichText**: Converts GitHub Flavored Markdown to Basecamp's HTML format
+   - Used when creating or updating content
+   - Supports all standard GFM elements
+   - Automatically wraps content in appropriate HTML tags
+
+2. **RichTextToMarkdown**: Converts Basecamp HTML back to Markdown (not yet implemented)
+   - Will be used for displaying content in the terminal
+   - Preserves formatting and structure
+
+### Supported Markdown Elements
+
+- **Text formatting**: Bold (`**`), italic (`*`), strikethrough (`~~`)
+- **Headings**: All levels (converted to `<h1>` per Basecamp limitations)
+- **Links**: Inline links and auto-links
+- **Code**: Inline code and fenced code blocks (converted to `<pre>`)
+- **Lists**: Ordered and unordered, with nesting support
+- **Blockquotes**: Standard markdown quotes
+- **Line breaks**: Hard breaks with two spaces
+
+### Input Methods
+
+1. **Command arguments**: Direct markdown in quotes
+2. **File input**: `--file` flag to read from .md files
+3. **Stdin**: Pipe markdown content into commands
+4. **Interactive**: Future TUI editor with markdown preview
 
 ## API Integration
 

@@ -3,11 +3,14 @@ package todo
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
@@ -18,6 +21,7 @@ type addOptions struct {
 	description string
 	due         string
 	assign      []string
+	file        string
 }
 
 func newAddCmd() *cobra.Command {
@@ -40,7 +44,10 @@ The todo will be created in the default todo list unless specified with --list.`
   bc4 todo add "Submit report" --due 2025-01-15
 
   # Add a todo to a specific list
-  bc4 todo add "Update documentation" --list "Documentation Tasks"`,
+  bc4 todo add "Update documentation" --list "Documentation Tasks"
+
+  # Add a todo from a markdown file
+  bc4 todo add --file todo-content.md`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runAdd(cmd.Context(), opts, args)
@@ -51,18 +58,55 @@ The todo will be created in the default todo list unless specified with --list.`
 	cmd.Flags().StringVarP(&opts.description, "description", "d", "", "Description for the todo")
 	cmd.Flags().StringVar(&opts.due, "due", "", "Due date (YYYY-MM-DD)")
 	cmd.Flags().StringSliceVar(&opts.assign, "assign", nil, "Assign to team members (by email)")
+	cmd.Flags().StringVarP(&opts.file, "file", "f", "", "Read todo content from a markdown file")
 
 	return cmd
 }
 
 func runAdd(ctx context.Context, opts *addOptions, args []string) error {
-	// Get title from args or prompt
-	var title string
-	if len(args) > 0 {
-		title = args[0]
+	// Get content from file, stdin, args, or prompt
+	var content string
+	var err error
+
+	if opts.file != "" {
+		// Read from file
+		data, err := os.ReadFile(opts.file)
+		if err != nil {
+			return fmt.Errorf("failed to read file: %w", err)
+		}
+		content = string(data)
+	} else if len(args) > 0 {
+		// Use argument as content
+		content = args[0]
 	} else {
-		// TODO: Add interactive prompt using Bubbletea
-		return fmt.Errorf("interactive mode not yet implemented. Please provide a title as an argument")
+		// Check if stdin has data
+		stat, _ := os.Stdin.Stat()
+		if (stat.Mode() & os.ModeCharDevice) == 0 {
+			// Data is being piped in
+			data, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				return fmt.Errorf("failed to read from stdin: %w", err)
+			}
+			content = string(data)
+		} else {
+			// TODO: Add interactive prompt using Bubbletea
+			return fmt.Errorf("interactive mode not yet implemented. Please provide content as an argument, via --file, or pipe it in")
+		}
+	}
+
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return fmt.Errorf("todo content cannot be empty")
+	}
+
+	// Split content into title and description if it's multi-line
+	var title, description string
+	lines := strings.SplitN(content, "\n", 2)
+	title = strings.TrimSpace(lines[0])
+	if len(lines) > 1 && opts.description == "" {
+		description = strings.TrimSpace(lines[1])
+	} else {
+		description = opts.description
 	}
 
 	// Load configuration
@@ -155,10 +199,28 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 		}
 	}
 
+	// Create markdown converter
+	converter := markdown.NewConverter()
+
+	// Convert title to rich text
+	richTitle, err := converter.MarkdownToRichText(title)
+	if err != nil {
+		return fmt.Errorf("failed to convert title: %w", err)
+	}
+
+	// Convert description to rich text if provided
+	var richDescription string
+	if description != "" {
+		richDescription, err = converter.MarkdownToRichText(description)
+		if err != nil {
+			return fmt.Errorf("failed to convert description: %w", err)
+		}
+	}
+
 	// Create the todo
 	req := api.TodoCreateRequest{
-		Content:     title,
-		Description: opts.description,
+		Content:     richTitle,
+		Description: richDescription,
 	}
 
 	if opts.due != "" {

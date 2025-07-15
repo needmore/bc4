@@ -7,13 +7,14 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), inspire
 - 🔐 **OAuth2 Authentication** - Secure authentication with token management
 - 👥 **Multi-Account Support** - Manage multiple Basecamp accounts with ease
 - 📁 **Project Management** - List, search, and select projects
-- ✅ **Todo Management** - Create, list, check/uncheck todos across projects
+- ✅ **Todo Management** - Create, list, check/uncheck todos across projects (supports Markdown → rich text)
 - 💬 **Message Posting** - Post messages to project message boards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
 - 🎯 **Card Management** - Manage cards with kanban board view
 - 🎨 **Beautiful TUI** - Interactive interface powered by Charm tools (maybe)
 - 🔍 **Smart Search** - Find projects by pattern matching
 - 🔗 **URL Parameter Support** - Use Basecamp URLs directly as command arguments
+- 📝 **Markdown Support** - Write in Markdown, automatically converted to Basecamp's rich text format
 
 ## Installation
 
@@ -148,11 +149,17 @@ bc4 todo list [list-id|name] --grouped
 bc4 todo view 12345
 bc4 todo view https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 
-# Create a new todo
-bc4 todo add "Review pull request"
+# Create a new todo (supports Markdown formatting)
+bc4 todo add "Review **critical** pull request"
 
-# Create a todo with description and due date
-bc4 todo add "Deploy to production" --description "After all tests pass" --due 2025-01-15
+# Create a todo with Markdown description and due date
+bc4 todo add "Deploy to production" --description "After all tests pass\n\n- Check staging\n- Run **final** tests" --due 2025-01-15
+
+# Create a todo from a Markdown file
+bc4 todo add --file todo-content.md
+
+# Create a todo from stdin
+echo "# Important Task\n\nThis needs **immediate** attention" | bc4 todo add
 
 # Create a todo in a specific list (by name, ID, or URL)
 bc4 todo add "Update documentation" --list "Documentation Tasks"
@@ -308,6 +315,36 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 MIT License - see LICENSE file for details.
+
+## Markdown Support
+
+bc4 supports Markdown input for creating content that gets automatically converted to Basecamp's rich text HTML format. This works for:
+
+### Supported Resources
+- ✅ **Todos** - Both title and description support Markdown
+- 🔄 **Messages** - Coming soon
+- 🔄 **Documents** - Coming soon
+- 🔄 **Comments** - Coming soon
+- ❌ **Campfire** - Plain text only (API limitation)
+
+### Supported Markdown Elements
+- **Bold** (`**text**`), *italic* (`*text*`), ~~strikethrough~~ (`~~text~~`)
+- Headings (all levels converted to `<h1>` per Basecamp spec)
+- [Links](url) and auto-links
+- `Inline code` and code blocks
+- Ordered and unordered lists with nesting
+- > Blockquotes
+- Line breaks and paragraphs
+
+### Examples
+```bash
+# Markdown in todo titles and descriptions
+bc4 todo add "Fix **critical** bug in `Parser.parse()` method"
+bc4 todo add "Refactor code" --description "## Goals\n\n- Improve **performance**\n- Add tests"
+
+# From a Markdown file
+bc4 todo add --file detailed-task.md
+```
 
 ## Acknowledgments
 
