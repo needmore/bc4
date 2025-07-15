@@ -15,6 +15,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/utils"
 )
@@ -25,10 +26,15 @@ func newViewCmd() *cobra.Command {
 	var noPager bool
 
 	cmd := &cobra.Command{
-		Use:   "view [project-id]",
+		Use:   "view [project-id or URL]",
 		Short: "View project details",
-		Long:  `View detailed information about a specific project.`,
-		Args:  cobra.MaximumNArgs(1),
+		Long: `View detailed information about a specific project.
+
+You can specify the project using either:
+- A numeric ID (e.g., "12345")
+- A project name (partial match supported)
+- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/projects/12345")`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
 			cfg, err := config.Load()
@@ -58,7 +64,23 @@ func newViewCmd() *cobra.Command {
 			var project *api.Project
 
 			if len(args) > 0 {
-				projectID = args[0]
+				// Check if it's a URL
+				if parser.IsBasecampURL(args[0]) {
+					parsedURL, err := parser.ParseBasecampURL(args[0])
+					if err != nil {
+						return fmt.Errorf("invalid Basecamp URL: %s", args[0])
+					}
+					if parsedURL.ResourceType != parser.ResourceTypeProject {
+						return fmt.Errorf("URL is not for a project: %s", args[0])
+					}
+					projectID = strconv.FormatInt(parsedURL.ResourceID, 10)
+					// Override account ID if provided in URL
+					if parsedURL.AccountID > 0 {
+						accountID = strconv.FormatInt(parsedURL.AccountID, 10)
+					}
+				} else {
+					projectID = args[0]
+				}
 			} else {
 				// Use default project
 				projectID = cfg.DefaultProject

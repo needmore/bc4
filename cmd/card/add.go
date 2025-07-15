@@ -9,6 +9,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -80,12 +81,24 @@ Use flags to specify table, column, assignees, and initial steps.`,
 			// Get card table ID
 			var cardTableID int64
 			if tableID != "" {
-				// Parse specified table ID
-				if id, err := strconv.ParseInt(tableID, 10, 64); err == nil {
-					cardTableID = id
+				// Check if it's a URL
+				if parser.IsBasecampURL(tableID) {
+					parsed, err := parser.ParseBasecampURL(tableID)
+					if err != nil {
+						return fmt.Errorf("invalid Basecamp URL: %w", err)
+					}
+					if parsed.ResourceType != parser.ResourceTypeCardTable {
+						return fmt.Errorf("URL is not a card table URL: %s", tableID)
+					}
+					cardTableID = parsed.ResourceID
 				} else {
-					// Search by name not implemented yet
-					return fmt.Errorf("searching card tables by name not yet implemented")
+					// Parse specified table ID
+					if id, err := strconv.ParseInt(tableID, 10, 64); err == nil {
+						cardTableID = id
+					} else {
+						// Search by name not implemented yet
+						return fmt.Errorf("searching card tables by name not yet implemented")
+					}
 				}
 			} else {
 				// Use default card table
@@ -201,7 +214,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
-	cmd.Flags().StringVar(&tableID, "table", "", "Specify card table ID")
+	cmd.Flags().StringVar(&tableID, "table", "", "Specify card table ID or URL")
 	cmd.Flags().StringVar(&columnName, "column", "", "Target column name")
 	cmd.Flags().StringSliceVar(&assignees, "assign", []string{}, "Add assignees by email or @mention (comma-separated)")
 	cmd.Flags().StringSliceVar(&steps, "step", []string{}, "Add steps (can be used multiple times)")

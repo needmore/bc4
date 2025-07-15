@@ -8,6 +8,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
 )
 
@@ -18,26 +19,60 @@ func newStepUncheckCmd() *cobra.Command {
 	var reason string
 
 	cmd := &cobra.Command{
-		Use:   "uncheck CARD_ID STEP_ID",
+		Use:   "uncheck [CARD_ID or URL] [STEP_ID or URL]",
 		Short: "Mark a step as incomplete",
 		Long: `Mark a completed step (subtask) as incomplete again.
 
+You can specify the card and step using either:
+- Numeric IDs (e.g., "123 456" for card 123, step 456)
+- A Basecamp step URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345/steps/67890")
+
 Examples:
   bc4 card step uncheck 123 456
-  bc4 card step uncheck 123 456 --reason "Needs rework"`,
-		Args: cobra.ExactArgs(2),
+  bc4 card step uncheck 123 456 --reason "Needs rework"
+  bc4 card step uncheck https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345/steps/67890`,
+		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 
-			// Parse card ID and step ID
-			cardID, err := strconv.ParseInt(args[0], 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid card ID: %s", args[0])
-			}
+			var cardID, stepID int64
+			var parsedURL *parser.ParsedURL
 
-			stepID, err := strconv.ParseInt(args[1], 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid step ID: %s", args[1])
+			// Parse arguments - could be card ID + step ID, or a single step URL
+			if len(args) == 1 {
+				// Single argument - must be a step URL
+				var err error
+				stepID, parsedURL, err = parser.ParseArgument(args[0])
+				if err != nil {
+					return fmt.Errorf("invalid step URL: %s", args[0])
+				}
+				if parsedURL == nil {
+					return fmt.Errorf("when providing a single argument, it must be a Basecamp step URL")
+				}
+				if parsedURL.ResourceType != parser.ResourceTypeStep {
+					return fmt.Errorf("URL is not for a step: %s", args[0])
+				}
+				cardID = parsedURL.ParentID
+			} else {
+				// Two arguments - card ID and step ID
+				var err error
+				cardID, _, err = parser.ParseArgument(args[0])
+				if err != nil {
+					return fmt.Errorf("invalid card ID or URL: %s", args[0])
+				}
+
+				stepID, parsedURL, err = parser.ParseArgument(args[1])
+				if err != nil {
+					return fmt.Errorf("invalid step ID or URL: %s", args[1])
+				}
+
+				// If step was provided as URL, validate and extract IDs
+				if parsedURL != nil {
+					if parsedURL.ResourceType != parser.ResourceTypeStep {
+						return fmt.Errorf("URL is not for a step: %s", args[1])
+					}
+					cardID = parsedURL.ParentID
+				}
 			}
 
 			// Load config
@@ -66,6 +101,17 @@ Examples:
 					}
 				}
 			}
+
+			// If a URL was parsed, override account and project IDs if provided
+			if parsedURL != nil {
+				if parsedURL.AccountID > 0 {
+					accountID = strconv.FormatInt(parsedURL.AccountID, 10)
+				}
+				if parsedURL.ProjectID > 0 {
+					projectID = strconv.FormatInt(parsedURL.ProjectID, 10)
+				}
+			}
+
 			if projectID == "" {
 				return fmt.Errorf("no project specified and no default project set")
 			}
