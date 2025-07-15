@@ -58,11 +58,12 @@ Use --all to show campfires across all projects you have access to.`,
 				return fmt.Errorf("failed to get auth token: %w", err)
 			}
 
-			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			// Create modular API client
+			client := api.NewModularClient(accountID, token.AccessToken)
+			campfireOps := client.Campfires()
 
 			// Get campfires
-			campfires, err := client.ListCampfires(context.Background(), projectID)
+			campfires, err := campfireOps.ListCampfires(context.Background(), projectID)
 			if err != nil {
 				return fmt.Errorf("failed to list campfires: %w", err)
 			}

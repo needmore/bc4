@@ -54,7 +54,8 @@ func newSetCmd() *cobra.Command {
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			campfireOps := client.Campfires()
 
 			// Parse campfire ID or name
 			campfireArg := args[0]
@@ -67,14 +68,14 @@ func newSetCmd() *cobra.Command {
 				// It's an ID
 				campfireID = id
 				// Verify it exists
-				campfire, err := client.GetCampfire(context.Background(), projectID, campfireID)
+				campfire, err := campfireOps.GetCampfire(context.Background(), projectID, campfireID)
 				if err != nil {
 					return fmt.Errorf("campfire with ID %d not found", campfireID)
 				}
 				campfireName = campfire.Name
 			} else {
 				// It's a name, find by name
-				campfire, err := client.GetCampfireByName(context.Background(), projectID, campfireArg)
+				campfire, err := campfireOps.GetCampfireByName(context.Background(), projectID, campfireArg)
 				if err != nil {
 					return fmt.Errorf("campfire '%s' not found", campfireArg)
 				}

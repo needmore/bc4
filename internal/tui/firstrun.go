@@ -642,11 +642,12 @@ func (m *FirstRunModel) loadProjects(accountID string) tea.Cmd {
 			return projectsLoadedMsg{err: err}
 		}
 
-		// Create API client
-		apiClient := api.NewClient(accountID, token.AccessToken)
+		// Create modular API client
+		apiClient := api.NewModularClient(accountID, token.AccessToken)
+		projectOps := apiClient.Projects()
 
 		// Fetch projects
-		projects, err := apiClient.GetProjects(context.Background())
+		projects, err := projectOps.GetProjects(context.Background())
 		if err != nil {
 			return projectsLoadedMsg{err: err}
 		}

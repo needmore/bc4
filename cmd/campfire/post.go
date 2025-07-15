@@ -57,8 +57,9 @@ func newPostCmd() *cobra.Command {
 				return fmt.Errorf("failed to get auth token: %w", err)
 			}
 
-			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			// Create modular API client
+			client := api.NewModularClient(accountID, token.AccessToken)
+			campfireOps := client.Campfires()
 
 			// Determine which campfire to post to
 			var campfireID int64
@@ -82,7 +83,7 @@ func newPostCmd() *cobra.Command {
 						campfireID = id
 					} else {
 						// It's a name, find by name
-						cf, err := client.GetCampfireByName(context.Background(), projectID, campfireFlag)
+						cf, err := campfireOps.GetCampfireByName(context.Background(), projectID, campfireFlag)
 						if err != nil {
 							return fmt.Errorf("campfire '%s' not found", campfireFlag)
 						}
@@ -106,7 +107,7 @@ func newPostCmd() *cobra.Command {
 
 			// Get campfire details if we don't have them yet
 			if campfire == nil {
-				cf, err := client.GetCampfire(context.Background(), projectID, campfireID)
+				cf, err := campfireOps.GetCampfire(context.Background(), projectID, campfireID)
 				if err != nil {
 					return fmt.Errorf("failed to get campfire: %w", err)
 				}
@@ -132,7 +133,7 @@ func newPostCmd() *cobra.Command {
 			// }
 
 			// Post the message
-			line, err := client.PostCampfireLine(context.Background(), projectID, campfireID, content)
+			line, err := campfireOps.PostCampfireLine(context.Background(), projectID, campfireID, content)
 			if err != nil {
 				return fmt.Errorf("failed to post message: %w", err)
 			}

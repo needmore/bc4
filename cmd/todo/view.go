@@ -102,19 +102,15 @@ You can specify the todo using either:
 			}
 
 			// Create API client
-			apiClient := api.NewClient(accountID, token.AccessToken)
+			apiClient := api.NewModularClient(accountID, token.AccessToken)
+			todoOps := apiClient.Todos()
 
 			// Get the todo details
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			// Fetch the todo details using the generic Get method
-			var todo api.Todo
-			todoPath := fmt.Sprintf("/buckets/%s/todos/%d.json", projectID, todoID)
-
-			// Note: The Get method doesn't take context, so we just ensure the timeout is set
-			_ = ctx // Mark as used
-			err = apiClient.Get(todoPath, &todo)
+			// Fetch the todo details
+			todo, err := todoOps.GetTodo(ctx, projectID, todoID)
 			if err != nil {
 				return fmt.Errorf("failed to get todo: %w", err)
 			}

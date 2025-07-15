@@ -101,15 +101,16 @@ You can specify the project using either:
 			}
 
 			// Create API client
-			apiClient := api.NewClient(accountID, token.AccessToken)
+			apiClient := api.NewModularClient(accountID, token.AccessToken)
+			projectOps := apiClient.Projects()
 
 			// Try to fetch as ID first
-			project, err = apiClient.GetProject(context.Background(), projectID)
+			project, err = projectOps.GetProject(context.Background(), projectID)
 			if err != nil {
 				// If that fails and the input doesn't look like a number, try searching by name
 				if _, parseErr := strconv.ParseInt(projectID, 10, 64); parseErr != nil {
 					// Search for projects matching the name
-					allProjects, fetchErr := apiClient.GetProjects(context.Background())
+					allProjects, fetchErr := projectOps.GetProjects(context.Background())
 					if fetchErr != nil {
 						return fmt.Errorf("failed to fetch projects: %w", fetchErr)
 					}

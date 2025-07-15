@@ -74,10 +74,11 @@ func runCreateList(ctx context.Context, opts *createListOptions, args []string) 
 	}
 
 	// Create API client
-	client := api.NewClient(cfg.DefaultAccount, token.AccessToken)
+	client := api.NewModularClient(cfg.DefaultAccount, token.AccessToken)
+	todoOps := client.Todos()
 
 	// Get the todo set for the project
-	todoSet, err := client.GetProjectTodoSet(ctx, projectID)
+	todoSet, err := todoOps.GetProjectTodoSet(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("failed to get todo set: %w", err)
 	}
@@ -88,7 +89,7 @@ func runCreateList(ctx context.Context, opts *createListOptions, args []string) 
 		Description: opts.description,
 	}
 
-	todoList, err := client.CreateTodoList(ctx, projectID, todoSet.ID, req)
+	todoList, err := todoOps.CreateTodoList(ctx, projectID, todoSet.ID, req)
 	if err != nil {
 		return fmt.Errorf("failed to create todo list: %w", err)
 	}

@@ -178,10 +178,11 @@ func (m *selectModel) loadProjects() tea.Cmd {
 		}
 
 		// Create API client
-		apiClient := api.NewClient(m.accountID, token.AccessToken)
+		apiClient := api.NewModularClient(m.accountID, token.AccessToken)
+		projectOps := apiClient.Projects()
 
 		// Fetch projects
-		projects, err := apiClient.GetProjects(context.Background())
+		projects, err := projectOps.GetProjects(context.Background())
 		if err != nil {
 			return projectsLoadedMsg{err: err}
 		}

@@ -65,7 +65,8 @@ You can specify the campfire using:
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			campfireOps := client.Campfires()
 
 			// Determine which campfire to view
 			var campfireID int64
@@ -106,7 +107,8 @@ You can specify the campfire using:
 					if err != nil {
 						return fmt.Errorf("failed to get auth token for account %s: %w", accountID, err)
 					}
-					client = api.NewClient(accountID, token.AccessToken)
+					client = api.NewModularClient(accountID, token.AccessToken)
+					campfireOps = client.Campfires()
 				} else {
 					// Try to parse as ID
 					id, err := strconv.ParseInt(args[0], 10, 64)
@@ -114,7 +116,7 @@ You can specify the campfire using:
 						campfireID = id
 					} else {
 						// It's a name, find by name
-						cf, err := client.GetCampfireByName(context.Background(), projectID, args[0])
+						cf, err := campfireOps.GetCampfireByName(context.Background(), projectID, args[0])
 						if err != nil {
 							return fmt.Errorf("campfire '%s' not found", args[0])
 						}
@@ -126,7 +128,7 @@ You can specify the campfire using:
 
 			// Get campfire details if we don't have them yet
 			if campfire == nil {
-				cf, err := client.GetCampfire(context.Background(), projectID, campfireID)
+				cf, err := campfireOps.GetCampfire(context.Background(), projectID, campfireID)
 				if err != nil {
 					return fmt.Errorf("failed to get campfire: %w", err)
 				}
@@ -134,7 +136,7 @@ You can specify the campfire using:
 			}
 
 			// Get campfire lines
-			lines, err := client.GetCampfireLines(context.Background(), projectID, campfireID, limit)
+			lines, err := campfireOps.GetCampfireLines(context.Background(), projectID, campfireID, limit)
 			if err != nil {
 				return fmt.Errorf("failed to get campfire lines: %w", err)
 			}

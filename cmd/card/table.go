@@ -72,7 +72,8 @@ If no table ID or name is provided, uses the default card table if set.`,
 			}
 
 			// Create API client
-			client := api.NewClient(accountID, token.AccessToken)
+			client := api.NewModularClient(accountID, token.AccessToken)
+			cardOps := client.Cards()
 
 			// Get card table ID
 			var cardTableID int64
@@ -99,7 +100,7 @@ If no table ID or name is provided, uses the default card table if set.`,
 			}
 
 			// Get the card table
-			cardTable, err := client.GetCardTable(ctx, projectID, cardTableID)
+			cardTable, err := cardOps.GetCardTable(ctx, projectID, cardTableID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch card table: %w", err)
 			}
@@ -130,7 +131,7 @@ If no table ID or name is provided, uses the default card table if set.`,
 				}
 
 				// Get cards in this column
-				cards, err := client.GetCardsInColumn(ctx, projectID, column.ID)
+				cards, err := cardOps.GetCardsInColumn(ctx, projectID, column.ID)
 				if err != nil {
 					return fmt.Errorf("failed to fetch cards from column %s: %w", column.Title, err)
 				}

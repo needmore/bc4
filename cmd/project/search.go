@@ -57,10 +57,11 @@ func newSearchCmd() *cobra.Command {
 			}
 
 			// Create API client
-			apiClient := api.NewClient(accountID, token.AccessToken)
+			apiClient := api.NewModularClient(accountID, token.AccessToken)
+			projectOps := apiClient.Projects()
 
 			// Fetch all projects
-			allProjects, err := apiClient.GetProjects(context.Background())
+			allProjects, err := projectOps.GetProjects(context.Background())
 			if err != nil {
 				return fmt.Errorf("failed to fetch projects: %w", err)
 			}
