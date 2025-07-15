@@ -177,7 +177,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 			// Handle assignees - resolve user identifiers
 			if len(assignees) > 0 {
 				// Create user resolver
-				userResolver := utils.NewUserResolver(client, projectID)
+				userResolver := utils.NewUserResolver(client.Client, projectID)
 
 				// Resolve user identifiers to person IDs
 				assigneeIDs, err := userResolver.ResolveUsers(ctx, assignees)
