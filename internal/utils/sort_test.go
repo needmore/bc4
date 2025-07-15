@@ -162,4 +162,3 @@ func BenchmarkSortProjectsByName(b *testing.B) {
 		SortProjectsByName(benchProjects)
 	}
 }
-

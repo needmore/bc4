@@ -53,4 +53,3 @@ type APIClient interface {
 
 // Ensure Client implements APIClient interface
 var _ APIClient = (*Client)(nil)
-

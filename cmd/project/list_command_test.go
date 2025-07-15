@@ -135,4 +135,3 @@ func TestListCommandWithConfig(t *testing.T) {
 		t.Errorf("Expected default account '123456', got %s", cfg.DefaultAccount)
 	}
 }
-

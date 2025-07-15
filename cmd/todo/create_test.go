@@ -155,4 +155,3 @@ func TestCompleteTodoCommand(t *testing.T) {
 		})
 	}
 }
-

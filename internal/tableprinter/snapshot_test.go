@@ -233,4 +233,3 @@ func TestTodoTableSnapshot(t *testing.T) {
 
 	assertSnapshot(t, buf.String())
 }
-

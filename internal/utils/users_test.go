@@ -316,4 +316,3 @@ func TestWriteToPager(t *testing.T) {
 		})
 	}
 }
-
