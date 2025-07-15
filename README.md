@@ -13,6 +13,7 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), inspire
 - 🎯 **Card Management** - Manage cards with kanban board view
 - 🎨 **Beautiful TUI** - Interactive interface powered by Charm tools (maybe)
 - 🔍 **Smart Search** - Find projects by pattern matching
+- 🔗 **URL Parameter Support** - Use Basecamp URLs directly as command arguments
 
 ## Installation
 
@@ -120,6 +121,10 @@ bc4 project list
 # Search for a project by name
 bc4 project "marketing"
 
+# View project details by ID or URL
+bc4 project view 12345
+bc4 project view https://3.basecamp.com/1234567/projects/12345
+
 # Interactively select a project
 bc4 project select
 ```
@@ -140,7 +145,8 @@ bc4 todo list [list-id|name] --all
 bc4 todo list [list-id|name] --grouped
 
 # View details of a specific todo
-bc4 todo view [todo-id]
+bc4 todo view 12345
+bc4 todo view https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 
 # Create a new todo
 bc4 todo add "Review pull request"
@@ -148,15 +154,19 @@ bc4 todo add "Review pull request"
 # Create a todo with description and due date
 bc4 todo add "Deploy to production" --description "After all tests pass" --due 2025-01-15
 
-# Create a todo in a specific list
+# Create a todo in a specific list (by name, ID, or URL)
 bc4 todo add "Update documentation" --list "Documentation Tasks"
+bc4 todo add "Fix bug" --list 12345
+bc4 todo add "New feature" --list https://3.basecamp.com/1234567/buckets/89012345/todosets/12345
 
-# Mark a todo as complete
+# Mark a todo as complete (by ID or URL)
 bc4 todo check 12345
 bc4 todo check #12345  # Also accepts # prefix
+bc4 todo check https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 
-# Mark a todo as incomplete
+# Mark a todo as incomplete (by ID or URL)
 bc4 todo uncheck 12345
+bc4 todo uncheck https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 
 # Create a new todo list
 bc4 todo create-list "Sprint 1 Tasks"
@@ -180,6 +190,16 @@ bc4 message post
 # Post to campfire chat
 bc4 campfire post "Quick update: deployment complete! 🚀"
 
+# Post to a specific campfire (by ID, name, or URL)
+bc4 campfire post "Status update" --campfire "Engineering"
+bc4 campfire post "Done!" --campfire 12345
+bc4 campfire post "Shipped!" --campfire https://3.basecamp.com/1234567/buckets/89012345/chats/12345
+
+# View campfire messages (by ID, name, or URL)
+bc4 campfire view 12345
+bc4 campfire view "Engineering"
+bc4 campfire view https://3.basecamp.com/1234567/buckets/89012345/chats/12345
+
 # Post a formatted update to campfire
 bc4 campfire update
 ```
@@ -193,11 +213,29 @@ bc4 card list
 # View cards in a specific table
 bc4 card table [ID]
 
-# Create a new card interactively
-bc4 card create
+# View a specific card (by ID or URL)
+bc4 card view 12345
+bc4 card view https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
 
-# Move card between columns
-bc4 card move [ID]
+# Create a new card in a specific table (by ID or URL)
+bc4 card add "New feature" --table 12345
+bc4 card add "Bug fix" --table https://3.basecamp.com/1234567/buckets/89012345/card_tables/12345
+
+# Edit a card (by ID or URL)
+bc4 card edit 12345
+bc4 card edit https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
+
+# Move card between columns (by ID or URL)
+bc4 card move 12345 --column "In Progress"
+bc4 card move https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345 --column "Done"
+
+# Assign users to a card (by ID or URL)
+bc4 card assign 12345
+bc4 card assign https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
+
+# Work with card steps
+bc4 card step check 12345 456  # Card ID and Step ID
+bc4 card step check https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345/steps/456
 ```
 
 ## Examples
@@ -247,6 +285,7 @@ Configuration is stored in:
 1. **Set defaults**: Use `bc4 account select` and `bc4 project select` to set defaults and avoid constant selection
 2. **Project patterns**: Use partial project names with `bc4 project <pattern>` for quick access
 3. **Multiple accounts**: The tool handles multiple Basecamp accounts seamlessly
+4. **URL shortcuts**: Copy Basecamp URLs from your browser and use them directly in commands - no need to extract IDs manually
 
 ## Troubleshooting
 

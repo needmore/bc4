@@ -16,6 +16,7 @@ Instead of talking to GitHub, we're talking to Basecamp 3 (aka 4) whose API is d
 3. **Efficient**: Respect API rate limits with intelligent retry logic
 4. **Cross-Platform**: Single binary distribution, works on macOS/Linux/Windows
 5. **Idiomatic Go**: Clean, well-documented, testable code
+6. **URL-Aware**: Accept Basecamp URLs directly as command parameters
 
 ## Architecture
 
@@ -47,6 +48,7 @@ bc4/
 │   ├── api/               # API client and models
 │   ├── auth/              # OAuth2 implementation
 │   ├── config/            # Configuration management
+│   ├── parser/            # URL parsing utilities
 │   ├── tableprinter/      # Core GitHub CLI-style table rendering
 │   ├── tui/               # Bubbletea components
 │   ├── ui/                # UI utilities and table wrapper
@@ -187,7 +189,7 @@ bc4 account current         # Show current account
 bc4 project list            # List projects in account
 bc4 project select          # Interactive project selection (implemented with table UI)
 bc4 project set [ID]        # Set default project (non-interactive)
-bc4 project view [ID]       # View project details
+bc4 project view [ID|URL]   # View project details (accepts ID or Basecamp URL)
 bc4 project search [query]  # Search projects by name
 ```
 
@@ -199,12 +201,12 @@ bc4 todo lists              # List all todo lists in project (GitHub CLI-style t
 bc4 todo list [ID|name]     # View todos in a specific list (GitHub CLI-style table)
 bc4 todo list [ID|name] --all      # Include completed todos
 bc4 todo list [ID|name] --grouped  # Show groups separately with headers instead of columns
-bc4 todo view [ID]          # View details of a specific todo
+bc4 todo view [ID|URL]      # View details of a specific todo (accepts ID or Basecamp URL)
 bc4 todo select             # Interactive todo list selection (not yet implemented)
 bc4 todo set [ID]           # Set default todo list
 bc4 todo add "Task"         # Create a new todo (supports --list, --description, --due flags)
-bc4 todo check [ID]         # Mark todo as complete
-bc4 todo uncheck [ID]       # Mark todo as incomplete
+bc4 todo check [ID|URL]     # Mark todo as complete (accepts ID or Basecamp URL)
+bc4 todo uncheck [ID|URL]   # Mark todo as incomplete (accepts ID or Basecamp URL)
 bc4 todo create-list "Name" # Create a new todo list (supports --description flag)
 ```
 
@@ -225,14 +227,17 @@ bc4 todo create-list "Name" # Create a new todo list (supports --description fla
 
 - **`todo lists`**: Shows all todo lists in the project
 - **`todo list [ID|name]`**: Shows todos within a specific list
-- **`todo view [ID]`**: Shows detailed information about a single todo
+- **`todo view [ID|URL]`**: Shows detailed information about a single todo
+  - Accepts numeric ID or Basecamp URL (e.g., `https://3.basecamp.com/1234567/buckets/89012345/todos/12345`)
 - **`todo add "Task"`**: Creates a new todo in the default list
-  - `--list, -l`: Specify todo list by ID or name
+  - `--list, -l`: Specify todo list by ID, name, or URL
   - `--description, -d`: Add a description to the todo
   - `--due`: Set due date (YYYY-MM-DD format)
   - `--assign`: Assign to team members (not yet implemented)
-- **`todo check [ID]`**: Marks a todo as complete (accepts #ID or ID)
-- **`todo uncheck [ID]`**: Marks a todo as incomplete (accepts #ID or ID)
+- **`todo check [ID|URL]`**: Marks a todo as complete
+  - Accepts #ID, ID, or Basecamp URL
+- **`todo uncheck [ID|URL]`**: Marks a todo as incomplete
+  - Accepts #ID, ID, or Basecamp URL
 - **`todo create-list "Name"`**: Creates a new todo list
   - `--description, -d`: Add a description to the list
 
@@ -246,12 +251,12 @@ bc4 message view [ID]       # View message thread
 
 #### campfire
 ```bash
-bc4 campfire list              # List all campfires in project (GitHub CLI-style table)
-bc4 campfire select            # Interactive campfire selection to set default
-bc4 campfire set [ID|name]     # Set default campfire (non-interactive)  
-bc4 campfire view [ID|name]    # View recent messages in a campfire
-bc4 campfire post              # Interactive message composition
-bc4 campfire post "Message"    # Quick message to default campfire
+bc4 campfire list                 # List all campfires in project (GitHub CLI-style table)
+bc4 campfire select               # Interactive campfire selection to set default
+bc4 campfire set [ID|name]        # Set default campfire (non-interactive)  
+bc4 campfire view [ID|name|URL]   # View recent messages in a campfire (accepts ID, name, or URL)
+bc4 campfire post                 # Interactive message composition
+bc4 campfire post "Message"       # Quick message to default campfire
 ```
 
 **Campfire Command Details:**
@@ -268,7 +273,8 @@ bc4 campfire post "Message"    # Quick message to default campfire
   - Saves to per-project configuration
   - Accepts campfire ID or partial name match
 
-- **`campfire view [ID|name]`**: View recent messages from a campfire
+- **`campfire view [ID|name|URL]`**: View recent messages from a campfire
+  - Accepts numeric ID, name, or Basecamp URL (e.g., `https://3.basecamp.com/1234567/buckets/89012345/chats/12345`)
   - Shows last 50 messages by default
   - `--limit, -n`: Specify number of messages to show
   - `--since`: Show messages since timestamp
@@ -278,7 +284,7 @@ bc4 campfire post "Message"    # Quick message to default campfire
 - **`campfire post`**: Post messages to campfire
   - Interactive mode: Multi-line message composition with Bubbletea
   - Quick mode: Single argument for simple messages
-  - `--campfire, -c`: Specify campfire (overrides default)
+  - `--campfire, -c`: Specify campfire by ID, name, or URL (overrides default)
   - Posts to default campfire if none specified
 
 **Default Campfire Behavior:**
@@ -289,18 +295,18 @@ bc4 campfire post "Message"    # Quick message to default campfire
 
 #### card
 ```bash
-bc4 card list               # List card tables in project
-bc4 card table [ID|name]    # View cards in a specific table
-bc4 card select             # Interactive card table selection (not yet implemented)
-bc4 card set [ID|name]      # Set default card table
-bc4 card view [ID]          # View card details including steps
-bc4 card create             # Interactive card creation
-bc4 card add "Title"        # Quick card creation
-bc4 card edit [ID]          # Edit card title/content
-bc4 card move [ID]          # Move card between columns
-bc4 card assign [ID]        # Assign people to card
-bc4 card unassign [ID]      # Remove assignees from card
-bc4 card archive [ID]       # Archive a card
+bc4 card list                  # List card tables in project
+bc4 card table [ID|name]       # View cards in a specific table
+bc4 card select                # Interactive card table selection (not yet implemented)
+bc4 card set [ID|name]         # Set default card table
+bc4 card view [ID|URL]         # View card details including steps (accepts ID or URL)
+bc4 card create                # Interactive card creation
+bc4 card add "Title"           # Quick card creation
+bc4 card edit [ID|URL]         # Edit card title/content (accepts ID or URL)
+bc4 card move [ID|URL]         # Move card between columns (accepts ID or URL)
+bc4 card assign [ID|URL]       # Assign people to card (accepts ID or URL)
+bc4 card unassign [ID|URL]     # Remove assignees from card (accepts ID or URL)
+bc4 card archive [ID|URL]      # Archive a card (accepts ID or URL)
 
 # Column management
 bc4 card column list        # List columns in current table
@@ -310,14 +316,14 @@ bc4 card column move [ID]   # Reorder columns
 bc4 card column color [ID]  # Set column color
 
 # Step management (subtasks within cards)
-bc4 card step add [ID] "Title"      # Add step to card
-bc4 card step list [ID]             # List all steps in card
-bc4 card step check [ID]:[step]     # Mark step as complete
-bc4 card step uncheck [ID]:[step]   # Mark step as incomplete
-bc4 card step edit [ID]:[step]      # Edit step details
-bc4 card step move [ID]:[step]      # Reorder steps
-bc4 card step assign [ID]:[step]    # Assign step to someone
-bc4 card step delete [ID]:[step]    # Delete a step
+bc4 card step add [ID|URL] "Title"         # Add step to card (accepts card ID or URL)
+bc4 card step list [ID|URL]                # List all steps in card (accepts card ID or URL)
+bc4 card step check [ID|URL] [STEP|URL]    # Mark step as complete (accepts IDs or step URL)
+bc4 card step uncheck [ID|URL] [STEP|URL]  # Mark step as incomplete (accepts IDs or step URL)
+bc4 card step edit [ID|URL] [STEP|URL]     # Edit step details (accepts IDs or step URL)
+bc4 card step move [ID|URL] [STEP|URL]     # Reorder steps (accepts IDs or step URL)
+bc4 card step assign [ID|URL] [STEP|URL]   # Assign step to someone (accepts IDs or step URL)
+bc4 card step delete [ID|URL] [STEP|URL]   # Delete a step (accepts IDs or step URL)
 ```
 
 **Card Command Details:**
@@ -333,7 +339,8 @@ bc4 card step delete [ID]:[step]    # Delete a step
   - `--column`: Filter to show only specific column
   - `--format`: Output format (table, json, tsv)
   
-- **`card view [ID]`**: Shows detailed card information
+- **`card view [ID|URL]`**: Shows detailed card information
+  - Accepts numeric ID or Basecamp URL (e.g., `https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345`)
   - Card title, description, assignees, due date
   - Complete list of steps with completion status
   - Step assignees and due dates
@@ -346,12 +353,13 @@ bc4 card step delete [ID]:[step]    # Delete a step
   
 - **`card add "Title"`**: Quick card creation
   - Creates in default table's first column
-  - `--table`: Specify card table
+  - `--table`: Specify card table by ID or URL
   - `--column`: Specify target column
   - `--assign`: Add assignees
   - `--step`: Add steps (can be used multiple times)
   
-- **`card move [ID]`**: Move card to different column
+- **`card move [ID|URL]`**: Move card to different column
+  - Accepts numeric ID or Basecamp URL
   - Interactive column selection if not specified
   - `--column`: Target column name or ID
   
@@ -362,7 +370,9 @@ bc4 card step delete [ID]:[step]    # Delete a step
   
 - **Step Management:**
   - Steps are mini-todos within cards
-  - Reference format: `[card]:[step]` (e.g., `123:1` for step 1 in card 123)
+  - Can be referenced by:
+    - Card and step IDs: `bc4 card step check 123 456`
+    - Step URL: `bc4 card step check https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/123/steps/456`
   - Steps can be individually assigned and have due dates
   - Step completion is independent of card status
   - Steps maintain order and can be reordered
@@ -586,6 +596,7 @@ release:        # Create GitHub release
 - [x] **Todo list management** - List, view, and set default todo lists
 - [x] **Todo viewing** - Display todos in lists with status indicators and grouping support
 - [x] **Todo creation and completion commands** - add, check, uncheck, create-list implemented
+- [x] **URL parameter support** - Accept Basecamp URLs directly as command arguments
 - [ ] Message posting
 - [ ] **Campfire messaging** (in progress - spec defined, implementation started)
 - [x] **Card table management specification** - Complete command structure with step support

@@ -10,6 +10,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
@@ -24,23 +25,27 @@ func newViewCmd() *cobra.Command {
 	var noPager bool
 
 	cmd := &cobra.Command{
-		Use:   "view [ID]",
+		Use:   "view [ID or URL]",
 		Short: "View card details including steps",
-		Long:  `View detailed information about a specific card, including its description, assignees, and steps.`,
-		Args:  cobra.ExactArgs(1),
+		Long: `View detailed information about a specific card, including its description, assignees, and steps.
+
+You can specify the card using either:
+- A numeric ID (e.g., "12345")
+- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345")`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
-
-			// Parse card ID
-			cardID, err := strconv.ParseInt(args[0], 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid card ID: %s", args[0])
-			}
 
 			// Load config
 			cfg, err := config.Load()
 			if err != nil {
 				return err
+			}
+
+			// Parse card ID (could be numeric ID or URL)
+			cardID, parsedURL, err := parser.ParseArgument(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid card ID or URL: %s", args[0])
 			}
 
 			// Check authentication
@@ -52,19 +57,34 @@ func newViewCmd() *cobra.Command {
 			if accountID == "" {
 				accountID = cfg.DefaultAccount
 			}
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
 
 			// Get project ID
 			if projectID == "" {
 				projectID = cfg.DefaultProject
-			}
-			if projectID == "" {
-				// Check for account-specific default project
-				if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
-					projectID = acc.DefaultProject
+				if projectID == "" {
+					// Check for account-specific default project
+					if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
+						projectID = acc.DefaultProject
+					}
 				}
+			}
+
+			// If a URL was parsed, override account and project IDs if provided
+			if parsedURL != nil {
+				if parsedURL.ResourceType != parser.ResourceTypeCard {
+					return fmt.Errorf("URL is not for a card: %s", args[0])
+				}
+				if parsedURL.AccountID > 0 {
+					accountID = strconv.FormatInt(parsedURL.AccountID, 10)
+				}
+				if parsedURL.ProjectID > 0 {
+					projectID = strconv.FormatInt(parsedURL.ProjectID, 10)
+				}
+			}
+
+			// Validate we have required IDs
+			if accountID == "" {
+				return fmt.Errorf("no account specified and no default account set")
 			}
 			if projectID == "" {
 				return fmt.Errorf("no project specified and no default project set")

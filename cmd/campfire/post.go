@@ -10,6 +10,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
 )
 
@@ -64,18 +65,30 @@ func newPostCmd() *cobra.Command {
 			var campfire *api.Campfire
 
 			if campfireFlag != "" {
-				// Flag overrides default
-				id, err := strconv.ParseInt(campfireFlag, 10, 64)
-				if err == nil {
-					campfireID = id
-				} else {
-					// It's a name, find by name
-					cf, err := client.GetCampfireByName(context.Background(), projectID, campfireFlag)
+				// Check if it's a URL
+				if parser.IsBasecampURL(campfireFlag) {
+					parsed, err := parser.ParseBasecampURL(campfireFlag)
 					if err != nil {
-						return fmt.Errorf("campfire '%s' not found", campfireFlag)
+						return fmt.Errorf("invalid Basecamp URL: %w", err)
 					}
-					campfireID = cf.ID
-					campfire = cf
+					if parsed.ResourceType != parser.ResourceTypeCampfire {
+						return fmt.Errorf("URL is not a campfire URL: %s", campfireFlag)
+					}
+					campfireID = parsed.ResourceID
+				} else {
+					// Flag overrides default
+					id, err := strconv.ParseInt(campfireFlag, 10, 64)
+					if err == nil {
+						campfireID = id
+					} else {
+						// It's a name, find by name
+						cf, err := client.GetCampfireByName(context.Background(), projectID, campfireFlag)
+						if err != nil {
+							return fmt.Errorf("campfire '%s' not found", campfireFlag)
+						}
+						campfireID = cf.ID
+						campfire = cf
+					}
 				}
 			} else {
 				// Use default campfire
@@ -128,7 +141,7 @@ func newPostCmd() *cobra.Command {
 	}
 
 	// Add flags
-	cmd.Flags().StringVarP(&campfireFlag, "campfire", "c", "", "Campfire to post to (ID or name)")
+	cmd.Flags().StringVarP(&campfireFlag, "campfire", "c", "", "Campfire to post to (ID, name, or URL)")
 
 	return cmd
 }

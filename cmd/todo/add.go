@@ -8,6 +8,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +47,7 @@ The todo will be created in the default todo list unless specified with --list.`
 		},
 	}
 
-	cmd.Flags().StringVarP(&opts.list, "list", "l", "", "Todo list ID or name (defaults to selected list)")
+	cmd.Flags().StringVarP(&opts.list, "list", "l", "", "Todo list ID, name, or URL (defaults to selected list)")
 	cmd.Flags().StringVarP(&opts.description, "description", "d", "", "Description for the todo")
 	cmd.Flags().StringVar(&opts.due, "due", "", "Due date (YYYY-MM-DD)")
 	cmd.Flags().StringSliceVar(&opts.assign, "assign", nil, "Assign to team members (by email)")
@@ -100,24 +101,36 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 	// Determine which todo list to use
 	var todoListID int64
 	if opts.list != "" {
-		// User specified a list - try to find it
-		todoLists, err := client.GetTodoLists(ctx, projectID, todoSet.ID)
-		if err != nil {
-			return fmt.Errorf("failed to fetch todo lists: %w", err)
-		}
-
-		// Try to match by ID or name
-		for _, list := range todoLists {
-			if fmt.Sprintf("%d", list.ID) == opts.list ||
-				strings.EqualFold(list.Title, opts.list) ||
-				strings.EqualFold(list.Name, opts.list) {
-				todoListID = list.ID
-				break
+		// Check if it's a URL
+		if parser.IsBasecampURL(opts.list) {
+			parsed, err := parser.ParseBasecampURL(opts.list)
+			if err != nil {
+				return fmt.Errorf("invalid Basecamp URL: %w", err)
 			}
-		}
+			if parsed.ResourceType != parser.ResourceTypeTodoList {
+				return fmt.Errorf("URL is not a todo list URL: %s", opts.list)
+			}
+			todoListID = parsed.ResourceID
+		} else {
+			// User specified a list - try to find it
+			todoLists, err := client.GetTodoLists(ctx, projectID, todoSet.ID)
+			if err != nil {
+				return fmt.Errorf("failed to fetch todo lists: %w", err)
+			}
 
-		if todoListID == 0 {
-			return fmt.Errorf("todo list not found: %s", opts.list)
+			// Try to match by ID or name
+			for _, list := range todoLists {
+				if fmt.Sprintf("%d", list.ID) == opts.list ||
+					strings.EqualFold(list.Title, opts.list) ||
+					strings.EqualFold(list.Name, opts.list) {
+					todoListID = list.ID
+					break
+				}
+			}
+
+			if todoListID == 0 {
+				return fmt.Errorf("todo list not found: %s", opts.list)
+			}
 		}
 	} else {
 		// Use default todo list from config

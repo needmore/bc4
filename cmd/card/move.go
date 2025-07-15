@@ -9,6 +9,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
 )
 
@@ -18,21 +19,26 @@ func newMoveCmd() *cobra.Command {
 	var projectID string
 
 	cmd := &cobra.Command{
-		Use:   "move [ID]",
+		Use:   "move [ID or URL]",
 		Short: "Move card between columns",
 		Long: `Move a card to a different column in the card table.
 
+You can specify the card using either:
+- A numeric ID (e.g., "12345")
+- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345")
+
 Examples:
   bc4 card move 123 --column "In Progress"
-  bc4 card move 123 --column 456`,
+  bc4 card move 123 --column 456
+  bc4 card move https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345 --column "Done"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 
-			// Parse card ID
-			cardID, err := strconv.ParseInt(args[0], 10, 64)
+			// Parse card ID (could be numeric ID or URL)
+			cardID, parsedURL, err := parser.ParseArgument(args[0])
 			if err != nil {
-				return fmt.Errorf("invalid card ID: %s", args[0])
+				return fmt.Errorf("invalid card ID or URL: %s", args[0])
 			}
 
 			if columnName == "" {
@@ -63,6 +69,19 @@ Examples:
 					if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
 						projectID = acc.DefaultProject
 					}
+				}
+			}
+
+			// If a URL was parsed, override account and project IDs if provided
+			if parsedURL != nil {
+				if parsedURL.ResourceType != parser.ResourceTypeCard {
+					return fmt.Errorf("URL is not for a card: %s", args[0])
+				}
+				if parsedURL.AccountID > 0 {
+					accountID = strconv.FormatInt(parsedURL.AccountID, 10)
+				}
+				if parsedURL.ProjectID > 0 {
+					projectID = strconv.FormatInt(parsedURL.ProjectID, 10)
 				}
 			}
 			if projectID == "" {

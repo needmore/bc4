@@ -9,21 +9,27 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
 )
 
 func newCheckCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "check <todo-id>",
+		Use:   "check <todo-id or URL>",
 		Short: "Mark a todo as complete",
 		Long: `Mark a todo as complete.
 
-Provide the todo ID (with or without the # prefix) to mark it as done.`,
+You can specify the todo using either:
+- A numeric ID (e.g., "12345" or "#12345")
+- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/todos/12345")`,
 		Example: `  # Mark todo #12345 as complete
   bc4 todo check 12345
 
   # Also works with # prefix
-  bc4 todo check #12345`,
+  bc4 todo check #12345
+
+  # Using a Basecamp URL
+  bc4 todo check "https://3.basecamp.com/1234567/buckets/89012345/todos/12345"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCheck(cmd.Context(), args[0])
@@ -34,39 +40,58 @@ Provide the todo ID (with or without the # prefix) to mark it as done.`,
 }
 
 func runCheck(ctx context.Context, todoIDStr string) error {
-	// Parse todo ID (handle #123 format)
-	todoIDStr = strings.TrimPrefix(todoIDStr, "#")
-	todoID, err := strconv.ParseInt(todoIDStr, 10, 64)
-	if err != nil {
-		return fmt.Errorf("invalid todo ID: %s", todoIDStr)
-	}
-
-	// Load configuration
+	// Load configuration first
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
 
+	// Parse todo ID (handle #123 format and URLs)
+	todoIDStr = strings.TrimPrefix(todoIDStr, "#")
+	todoID, parsedURL, err := parser.ParseArgument(todoIDStr)
+	if err != nil {
+		return fmt.Errorf("invalid todo ID or URL: %s", todoIDStr)
+	}
+
+	// Initialize account and project IDs from config
+	accountID := cfg.DefaultAccount
+	projectID := cfg.DefaultProject
+	if cfg.Accounts != nil {
+		if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
+			projectID = acc.DefaultProject
+		}
+	}
+
+	// If a URL was parsed, override account and project IDs if provided
+	if parsedURL != nil {
+		if parsedURL.ResourceType != parser.ResourceTypeTodo {
+			return fmt.Errorf("URL is not for a todo: %s", todoIDStr)
+		}
+		if parsedURL.AccountID > 0 {
+			accountID = strconv.FormatInt(parsedURL.AccountID, 10)
+		}
+		if parsedURL.ProjectID > 0 {
+			projectID = strconv.FormatInt(parsedURL.ProjectID, 10)
+		}
+	}
+
+	// Validate we have required IDs
+	if accountID == "" {
+		return fmt.Errorf("no account specified. Run 'bc4 account select' first")
+	}
+	if projectID == "" {
+		return fmt.Errorf("no project specified. Run 'bc4 project select' first")
+	}
+
 	// Get authentication token
 	authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-	token, err := authClient.GetToken(cfg.DefaultAccount)
+	token, err := authClient.GetToken(accountID)
 	if err != nil {
 		return fmt.Errorf("not authenticated. Run 'bc4 auth login' first")
 	}
 
-	// Get current project
-	projectID := cfg.DefaultProject
-	if projectID == "" && cfg.Accounts != nil {
-		if acc, ok := cfg.Accounts[cfg.DefaultAccount]; ok {
-			projectID = acc.DefaultProject
-		}
-	}
-	if projectID == "" {
-		return fmt.Errorf("no project selected. Run 'bc4 project select' first")
-	}
-
 	// Create API client
-	client := api.NewClient(cfg.DefaultAccount, token.AccessToken)
+	client := api.NewClient(accountID, token.AccessToken)
 
 	// Get the todo first to display its title
 	todo, err := client.GetTodo(ctx, projectID, todoID)

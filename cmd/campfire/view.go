@@ -10,6 +10,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -19,10 +20,15 @@ func newViewCmd() *cobra.Command {
 	var noPager bool
 
 	cmd := &cobra.Command{
-		Use:   "view [ID|name]",
+		Use:   "view [ID|name|URL]",
 		Short: "View recent messages in a campfire",
-		Long:  `Display recent messages from a campfire. If no campfire is specified, uses the default campfire.`,
-		Args:  cobra.MaximumNArgs(1),
+		Long: `Display recent messages from a campfire. If no campfire is specified, uses the default campfire.
+
+You can specify the campfire using:
+- A numeric ID (e.g., "12345")
+- A campfire name (e.g., "General")
+- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/chats/12345")`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
 			cfg, err := config.Load()
@@ -78,18 +84,43 @@ func newViewCmd() *cobra.Command {
 				}
 				campfireID, _ = strconv.ParseInt(defaultCampfireID, 10, 64)
 			} else {
-				// Try to parse as ID first
-				id, err := strconv.ParseInt(args[0], 10, 64)
-				if err == nil {
-					campfireID = id
-				} else {
-					// It's a name, find by name
-					cf, err := client.GetCampfireByName(context.Background(), projectID, args[0])
+				// Try to parse as URL first
+				if parser.IsBasecampURL(args[0]) {
+					parsedURL, err := parser.ParseBasecampURL(args[0])
 					if err != nil {
-						return fmt.Errorf("campfire '%s' not found", args[0])
+						return fmt.Errorf("invalid Basecamp URL: %s", args[0])
 					}
-					campfireID = cf.ID
-					campfire = cf
+					if parsedURL.ResourceType != parser.ResourceTypeCampfire {
+						return fmt.Errorf("URL is not for a campfire: %s", args[0])
+					}
+					campfireID = parsedURL.ResourceID
+					// Override account and project IDs if provided in URL
+					if parsedURL.AccountID > 0 {
+						accountID = strconv.FormatInt(parsedURL.AccountID, 10)
+					}
+					if parsedURL.ProjectID > 0 {
+						projectID = strconv.FormatInt(parsedURL.ProjectID, 10)
+					}
+					// Need to recreate the client with the new account ID
+					token, err = authClient.GetToken(accountID)
+					if err != nil {
+						return fmt.Errorf("failed to get auth token for account %s: %w", accountID, err)
+					}
+					client = api.NewClient(accountID, token.AccessToken)
+				} else {
+					// Try to parse as ID
+					id, err := strconv.ParseInt(args[0], 10, 64)
+					if err == nil {
+						campfireID = id
+					} else {
+						// It's a name, find by name
+						cf, err := client.GetCampfireByName(context.Background(), projectID, args[0])
+						if err != nil {
+							return fmt.Errorf("campfire '%s' not found", args[0])
+						}
+						campfireID = cf.ID
+						campfire = cf
+					}
 				}
 			}
 
