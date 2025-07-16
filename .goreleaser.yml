@@ -52,6 +52,7 @@ archives:
   - id: bc4-archive
     builds:
       - bc4
+      - bc4-universal
     
     # Archive name template
     name_template: >-
