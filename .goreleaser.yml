@@ -70,7 +70,6 @@ archives:
     files:
       - LICENSE*
       - README.md
-      - CHANGELOG.md
 
 checksum:
   name_template: 'checksums.txt'
