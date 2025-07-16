@@ -19,6 +19,7 @@ go.work
 
 # Build output
 bc4
+build/
 dist/
 
 # IDE specific files
