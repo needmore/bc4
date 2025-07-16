@@ -1,5 +1,5 @@
-# This is a template for the Homebrew formula
-# It should be placed in the homebrew-bc4 repository at Formula/bc4.rb
+# Homebrew formula for bc4
+# This file is automatically updated by the release process
 
 class Bc4 < Formula
   desc "A CLI tool for interacting with Basecamp 4"

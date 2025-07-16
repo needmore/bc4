@@ -41,65 +41,33 @@ git push origin v1.0.0
 2. Watch the "Release" workflow
 3. Once completed, check the [Releases page](https://github.com/needmore/bc4/releases)
 
-### 4. Update Homebrew Formula
+### 4. Verify Homebrew Formula Update
 
-After the GitHub release is created:
+GoReleaser will automatically update the Homebrew formula in the `Formula` directory of this repository. After the release workflow completes:
 
-1. Clone the homebrew tap repository (to be created):
+1. Check that the formula was updated:
    ```bash
-   git clone https://github.com/needmore/homebrew-bc4.git
-   cd homebrew-bc4
+   git pull origin main
+   cat Formula/bc4.rb
    ```
 
-2. Update the formula with the new version and SHA256 checksums:
-   ```ruby
-   class Bc4 < Formula
-     desc "A CLI tool for interacting with Basecamp 4"
-     homepage "https://github.com/needmore/bc4"
-     version "1.0.0"
-     
-     on_macos do
-       if Hardware::CPU.arm?
-         url "https://github.com/needmore/bc4/releases/download/v1.0.0/bc4_1.0.0_Darwin_arm64.tar.gz"
-         sha256 "CHECKSUM_HERE"
-       else
-         url "https://github.com/needmore/bc4/releases/download/v1.0.0/bc4_1.0.0_Darwin_x86_64.tar.gz"
-         sha256 "CHECKSUM_HERE"
-       end
-     end
-     
-     def install
-       bin.install "bc4"
-     end
-     
-     test do
-       assert_match "bc4 version", shell_output("#{bin}/bc4 --version")
-     end
-   end
-   ```
+2. The formula should have been automatically updated with the new version and SHA256 checksums.
 
-3. Get checksums from the `checksums.txt` file in the release
-
-4. Test the formula locally:
-   ```bash
-   brew install --build-from-source ./Formula/bc4.rb
-   brew test bc4
-   ```
-
-5. Commit and push the changes:
-   ```bash
-   git add Formula/bc4.rb
-   git commit -m "Update bc4 to v1.0.0"
-   git push origin main
-   ```
+3. If you need to make manual adjustments, you can edit `Formula/bc4.rb` and commit the changes.
 
 ### 5. Test Installation
 
 Test that users can install the new version:
 
 ```bash
+# For first-time installation
+brew install needmore/bc4/bc4
+
+# For updates
 brew update
 brew upgrade bc4
+
+# Verify
 bc4 --version
 ```
 
