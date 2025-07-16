@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
@@ -62,15 +63,60 @@ Examples:
 				}
 			}
 
-			// Get API client from factory (for auth check)
-			_, err = f.ApiClient()
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
 				return err
 			}
 
-			// TODO: Implement step delete functionality
-			fmt.Printf("Would delete step ID %d from card ID %d\n", stepID, cardID)
-			return fmt.Errorf("step delete not yet implemented")
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			// Check if force flag is set
+			force, _ := cmd.Flags().GetBool("force")
+
+			// If not forcing, confirm deletion
+			if !force {
+				// Get the card to show step details
+				card, err := client.Cards().GetCard(f.Context(), resolvedProjectID, cardID)
+				if err != nil {
+					return fmt.Errorf("failed to get card: %w", err)
+				}
+
+				// Find the step to confirm deletion
+				var stepToDelete *api.Step
+				for _, step := range card.Steps {
+					if step.ID == stepID {
+						stepToDelete = &step
+						break
+					}
+				}
+
+				if stepToDelete == nil {
+					return fmt.Errorf("step with ID %d not found in card", stepID)
+				}
+
+				// Ask for confirmation
+				fmt.Printf("Delete step #%d: \"%s\"? (y/N) ", stepID, stepToDelete.Title)
+				var response string
+				fmt.Scanln(&response)
+				if response != "y" && response != "Y" {
+					fmt.Println("Deletion cancelled")
+					return nil
+				}
+			}
+
+			// Delete the step
+			err = client.Steps().DeleteStep(f.Context(), resolvedProjectID, stepID)
+			if err != nil {
+				return fmt.Errorf("failed to delete step: %w", err)
+			}
+
+			fmt.Printf("Step #%d deleted\n", stepID)
+			return nil
 		},
 	}
 

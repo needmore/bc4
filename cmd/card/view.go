@@ -3,6 +3,8 @@ package card
 import (
 	"bytes"
 	"fmt"
+	"html"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -14,6 +16,53 @@ import (
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
+
+// htmlToText converts Basecamp's rich text HTML to plain text
+func htmlToText(htmlContent string) string {
+	// Decode HTML entities
+	text := html.UnescapeString(htmlContent)
+
+	// Replace common HTML tags with appropriate formatting
+	replacements := []struct {
+		pattern string
+		replace string
+	}{
+		// Paragraphs and divs to newlines
+		{`<\/?(p|div)>`, "\n"},
+		// Headers to uppercase with newlines
+		{`<h1[^>]*>([^<]+)<\/h1>`, "\n$1\n"},
+		// Line breaks
+		{`<br\s*/?>`, "\n"},
+		// Lists
+		{`<li[^>]*>`, "• "},
+		{`<\/li>`, "\n"},
+		{`<\/?[uo]l[^>]*>`, "\n"},
+		// Strong/bold
+		{`<(strong|b)>([^<]+)<\/(strong|b)>`, "$2"},
+		// Emphasis/italic
+		{`<(em|i)>([^<]+)<\/(em|i)>`, "$2"},
+		// Links - extract text and URL
+		{`<a[^>]*href="([^"]+)"[^>]*>([^<]+)<\/a>`, "$2 ($1)"},
+		// Strike through
+		{`<strike>([^<]+)<\/strike>`, "$1"},
+		// Pre/code blocks
+		{`<pre[^>]*>`, "\n```\n"},
+		{`<\/pre>`, "\n```\n"},
+		// Remove all other HTML tags
+		{`<[^>]+>`, ""},
+	}
+
+	for _, r := range replacements {
+		re := regexp.MustCompile(r.pattern)
+		text = re.ReplaceAllString(text, r.replace)
+	}
+
+	// Clean up excessive newlines
+	text = regexp.MustCompile(`\n{3,}`).ReplaceAllString(text, "\n\n")
+	text = strings.TrimSpace(text)
+
+	return text
+}
 
 func newViewCmd(f *factory.Factory) *cobra.Command {
 	var formatJSON bool
@@ -111,7 +160,9 @@ You can specify the card using either:
 
 			// Show card details
 			if card.Content != "" {
-				fmt.Fprintf(&buf, "Description: %s\n", card.Content)
+				// Convert HTML to plain text
+				plainContent := htmlToText(card.Content)
+				fmt.Fprintf(&buf, "\nDescription:\n%s\n", plainContent)
 			}
 
 			// Column

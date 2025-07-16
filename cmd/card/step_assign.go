@@ -3,9 +3,12 @@ package card
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
+	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -91,18 +94,76 @@ Examples:
 				}
 			}
 
-			// Get API client from factory (for auth check)
-			_, err := f.ApiClient()
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
 				return err
 			}
 
-			// TODO: Implement step assign functionality
-			// 4. Resolve user (by handle, name, or email)
-			// 5. Call API to assign step
-			// 6. Display success message
-			fmt.Printf("Would assign step %d in card #%d to user: %s\n", stepID, cardID, userIdentifier)
-			return fmt.Errorf("step assign not yet implemented")
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			// Check if we're unassigning
+			unassign, _ := cmd.Flags().GetBool("unassign")
+
+			// Get current step to preserve existing data
+			card, err := client.Cards().GetCard(f.Context(), resolvedProjectID, cardID)
+			if err != nil {
+				return fmt.Errorf("failed to get card: %w", err)
+			}
+
+			var currentStep *api.Step
+			for _, step := range card.Steps {
+				if step.ID == stepID {
+					currentStep = &step
+					break
+				}
+			}
+
+			if currentStep == nil {
+				return fmt.Errorf("step with ID %d not found in card", stepID)
+			}
+
+			var assignees string
+			if unassign {
+				// Clear assignees
+				assignees = ""
+			} else {
+				// Resolve user
+				userResolver := utils.NewUserResolver(client.Client, resolvedProjectID)
+				personIDs, err := userResolver.ResolveUsers(f.Context(), []string{userIdentifier})
+				if err != nil {
+					return fmt.Errorf("failed to resolve user: %w", err)
+				}
+
+				// Convert person IDs to comma-separated string
+				var idStrings []string
+				for _, id := range personIDs {
+					idStrings = append(idStrings, strconv.FormatInt(id, 10))
+				}
+				assignees = strings.Join(idStrings, ",")
+			}
+
+			// Update the step
+			req := api.StepUpdateRequest{
+				Title:     currentStep.Title, // Preserve title
+				Assignees: assignees,
+			}
+
+			_, err = client.Steps().UpdateStep(f.Context(), resolvedProjectID, stepID, req)
+			if err != nil {
+				return fmt.Errorf("failed to update step: %w", err)
+			}
+
+			if unassign {
+				fmt.Printf("Step #%d unassigned\n", stepID)
+			} else {
+				fmt.Printf("Step #%d assigned to %s\n", stepID, userIdentifier)
+			}
+			return nil
 		},
 	}
 

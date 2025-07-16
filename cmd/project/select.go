@@ -245,7 +245,7 @@ func newSelectCmd(f *factory.Factory) *cobra.Command {
 			if accountID != "" {
 				f = f.WithAccount(accountID)
 			}
-			
+
 			// Create model
 			m := selectModel{
 				spinner:   s,

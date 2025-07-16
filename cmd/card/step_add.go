@@ -3,9 +3,12 @@ package card
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
+	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -56,17 +59,58 @@ Examples:
 				}
 			}
 
-			// Get API client from factory (for auth check)
-			_, err = f.ApiClient()
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
 				return err
 			}
 
-			// TODO: Implement step add functionality
-			// Get step content from args[1]
-			stepContent := args[1]
-			fmt.Printf("Would add step \"%s\" to card ID %d\n", stepContent, cardID)
-			return fmt.Errorf("step add not yet implemented")
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			// Create the step request
+			req := api.StepCreateRequest{
+				Title: args[1],
+			}
+
+			// Handle assignees if specified
+			assignFlag, _ := cmd.Flags().GetString("assign")
+			if assignFlag != "" {
+				// Create user resolver
+				userResolver := utils.NewUserResolver(client.Client, resolvedProjectID)
+
+				// Parse comma-separated assignees
+				assignees := strings.Split(assignFlag, ",")
+				for i := range assignees {
+					assignees[i] = strings.TrimSpace(assignees[i])
+				}
+
+				// Resolve user identifiers to person IDs
+				personIDs, err := userResolver.ResolveUsers(f.Context(), assignees)
+				if err != nil {
+					return fmt.Errorf("failed to resolve assignees: %w", err)
+				}
+
+				// Convert person IDs to comma-separated string
+				var idStrings []string
+				for _, id := range personIDs {
+					idStrings = append(idStrings, strconv.FormatInt(id, 10))
+				}
+				req.Assignees = strings.Join(idStrings, ",")
+			}
+
+			// Create the step
+			step, err := client.Steps().CreateStep(f.Context(), resolvedProjectID, cardID, req)
+			if err != nil {
+				return fmt.Errorf("failed to create step: %w", err)
+			}
+
+			// Output the step ID
+			fmt.Printf("#%d\n", step.ID)
+			return nil
 		},
 	}
 

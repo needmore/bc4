@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
@@ -87,18 +88,66 @@ Examples:
 				}
 			}
 
-			// Get API client from factory (for auth check)
-			_, err := f.ApiClient()
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
 				return err
 			}
 
-			// TODO: Implement step edit functionality
-			// 3. Get new content from flags or interactive editor
-			// 4. Call API to update step
-			// 5. Display success message
-			fmt.Printf("Would edit step %d in card #%d\n", stepID, cardID)
-			return fmt.Errorf("step edit not yet implemented")
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			// Get content from flag or interactive editor
+			content, _ := cmd.Flags().GetString("content")
+			interactive, _ := cmd.Flags().GetBool("interactive")
+
+			if content == "" && !interactive {
+				// Fetch current step content
+				card, err := client.Cards().GetCard(f.Context(), resolvedProjectID, cardID)
+				if err != nil {
+					return fmt.Errorf("failed to get card: %w", err)
+				}
+
+				var currentStep *api.Step
+				for _, step := range card.Steps {
+					if step.ID == stepID {
+						currentStep = &step
+						break
+					}
+				}
+
+				if currentStep == nil {
+					return fmt.Errorf("step with ID %d not found in card", stepID)
+				}
+
+				// For now, just use the current content
+				// TODO: Implement editor integration
+				return fmt.Errorf("interactive editing not yet implemented - use --content flag")
+			} else if interactive {
+				// For now, just error
+				// TODO: Implement editor integration
+				return fmt.Errorf("interactive editing not yet implemented - use --content flag")
+			}
+
+			if content == "" {
+				return fmt.Errorf("no content provided")
+			}
+
+			// Update the step
+			req := api.StepUpdateRequest{
+				Title: content,
+			}
+
+			_, err = client.Steps().UpdateStep(f.Context(), resolvedProjectID, stepID, req)
+			if err != nil {
+				return fmt.Errorf("failed to update step: %w", err)
+			}
+
+			fmt.Printf("Step #%d updated\n", stepID)
+			return nil
 		},
 	}
 
