@@ -117,11 +117,11 @@ func (c *converter) postProcessHTML(html string) string {
 	html = regexp.MustCompile(`<!-- [^>]* -->`).ReplaceAllString(html, "")
 
 	// Clean up blockquote formatting
-	html = strings.ReplaceAll(html, "<blockquote>\n", "<blockquote>")
-	html = strings.ReplaceAll(html, "\n</blockquote>", "</blockquote>")
+    html = strings.ReplaceAll(html, "<blockquote>\n", "<blockquote>")
+    html = strings.ReplaceAll(html, "\n</blockquote>", "</blockquote>")
 
-	// Clean up excessive newlines
-	re = regexp.MustCompile(`\n{3,}`)
+    // Clean up excessive newlines
+    re = regexp.MustCompile(`\n{3,}`)
 	html = re.ReplaceAllString(html, "\n\n")
 
 	// Final cleanup - remove newlines within line breaks
