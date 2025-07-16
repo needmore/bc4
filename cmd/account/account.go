@@ -1,11 +1,12 @@
 package account
 
 import (
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
 // NewAccountCmd creates the account command
-func NewAccountCmd() *cobra.Command {
+func NewAccountCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "account",
 		Short:   "Manage Basecamp accounts",
@@ -14,10 +15,10 @@ func NewAccountCmd() *cobra.Command {
 	}
 
 	// Add subcommands
-	cmd.AddCommand(newListCmd())
-	cmd.AddCommand(newSelectCmd())
-	cmd.AddCommand(newSetCmd())
-	cmd.AddCommand(newCurrentCmd())
+	cmd.AddCommand(newListCmd(f))
+	cmd.AddCommand(newSelectCmd(f))
+	cmd.AddCommand(newSetCmd(f))
+	cmd.AddCommand(newCurrentCmd(f))
 
 	return cmd
 }

@@ -83,8 +83,8 @@ func init() {
 	f := factory.New()
 
 	// Add commands with factory
-	rootCmd.AddCommand(auth.NewAuthCmd())
-	rootCmd.AddCommand(account.NewAccountCmd())
+	rootCmd.AddCommand(auth.NewAuthCmd(f))
+	rootCmd.AddCommand(account.NewAccountCmd(f))
 	rootCmd.AddCommand(project.NewProjectCmd(f))
 	rootCmd.AddCommand(todo.NewTodoCmd(f))
 	// rootCmd.AddCommand(message.NewMessageCmd())
