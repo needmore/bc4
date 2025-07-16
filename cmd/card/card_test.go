@@ -87,13 +87,13 @@ func TestCardCmd_ParseFlags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := factory.New()
 			cmd := NewCardCmd(f)
-			
+
 			// Set args
 			cmd.SetArgs(tt.args)
-			
+
 			// Parse flags only (don't execute)
 			err := cmd.ParseFlags(tt.args)
-			
+
 			if tt.expectedError {
 				assert.Error(t, err)
 				if tt.errorContains != "" {
@@ -115,10 +115,10 @@ func TestCardCmd_SubcommandsHaveFactory(t *testing.T) {
 		t.Run(subcmd.Name(), func(t *testing.T) {
 			// Ensure subcommand is not nil
 			assert.NotNil(t, subcmd)
-			
+
 			// Ensure subcommand has a Use field
 			assert.NotEmpty(t, subcmd.Use)
-			
+
 			// Ensure subcommand has a Short description
 			assert.NotEmpty(t, subcmd.Short)
 		})
@@ -146,7 +146,7 @@ func TestCardCmd_Hierarchy(t *testing.T) {
 // Benchmark command creation
 func BenchmarkNewCardCmd(b *testing.B) {
 	f := factory.New()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = NewCardCmd(f)
@@ -165,18 +165,18 @@ func TestCardCmd_CreateSubcommand(t *testing.T) {
 
 	// Test create command flags
 	assert.True(t, createCmd.Flags().HasFlags())
-	
+
 	// Check specific flags exist
 	tableFlag := createCmd.Flags().Lookup("table")
 	assert.NotNil(t, tableFlag)
-	
+
 	columnFlag := createCmd.Flags().Lookup("column")
 	assert.NotNil(t, columnFlag)
-	
+
 	accountFlag := createCmd.Flags().Lookup("account")
 	assert.NotNil(t, accountFlag)
 	assert.Equal(t, "a", accountFlag.Shorthand)
-	
+
 	projectFlag := createCmd.Flags().Lookup("project")
 	assert.NotNil(t, projectFlag)
 	assert.Equal(t, "p", projectFlag.Shorthand)
@@ -189,7 +189,7 @@ func TestCardCmd_Examples(t *testing.T) {
 
 	// Ensure examples are provided
 	assert.NotEmpty(t, cmd.Example)
-	
+
 	// Check that examples contain common operations
 	examples := []string{
 		"bc4 card list",
@@ -198,7 +198,7 @@ func TestCardCmd_Examples(t *testing.T) {
 		"bc4 card view",
 		"bc4 card move",
 	}
-	
+
 	for _, example := range examples {
 		assert.Contains(t, cmd.Example, example)
 	}
@@ -248,9 +248,9 @@ func TestCardCmd_SubcommandValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := factory.New()
 			cmd := NewCardCmd(f)
-			
+
 			foundCmd, _, err := cmd.Find([]string{tt.subcmd})
-			
+
 			if tt.shouldFind {
 				assert.NoError(t, err)
 				assert.NotNil(t, foundCmd)

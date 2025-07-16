@@ -202,30 +202,30 @@ func TestCreateModel_Markdown_Conversion(t *testing.T) {
 // Table-driven tests for command flag parsing
 func TestCreateCmd_FlagParsing(t *testing.T) {
 	tests := []struct {
-		name           string
-		args           []string
-		expectedTable  string
-		expectedColumn string
+		name            string
+		args            []string
+		expectedTable   string
+		expectedColumn  string
 		expectedAccount string
 		expectedProject string
 	}{
 		{
-			name: "all flags",
-			args: []string{"--table", "123", "--column", "456", "--account", "789", "--project", "101112"},
-			expectedTable: "123",
-			expectedColumn: "456", 
+			name:            "all flags",
+			args:            []string{"--table", "123", "--column", "456", "--account", "789", "--project", "101112"},
+			expectedTable:   "123",
+			expectedColumn:  "456",
 			expectedAccount: "789",
 			expectedProject: "101112",
 		},
 		{
-			name: "short flags",
-			args: []string{"-a", "789", "-p", "101112"},
+			name:            "short flags",
+			args:            []string{"-a", "789", "-p", "101112"},
 			expectedAccount: "789",
 			expectedProject: "101112",
 		},
 		{
-			name: "partial flags",
-			args: []string{"--table", "999"},
+			name:          "partial flags",
+			args:          []string{"--table", "999"},
 			expectedTable: "999",
 		},
 		{
@@ -238,7 +238,7 @@ func TestCreateCmd_FlagParsing(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			f := &factory.Factory{}
 			cmd := newCreateCmd(f)
-			
+
 			err := cmd.ParseFlags(tt.args)
 			assert.NoError(t, err)
 

@@ -39,10 +39,10 @@ func TestCreateModel_Update(t *testing.T) {
 	t.Run("window resize", func(t *testing.T) {
 		model := createTestModel()
 		msg := tea.WindowSizeMsg{Width: 100, Height: 30}
-		
+
 		newModel, _ := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, 100, m.width)
 		assert.Equal(t, 30, m.height)
 	})
@@ -50,9 +50,9 @@ func TestCreateModel_Update(t *testing.T) {
 	t.Run("escape key quits", func(t *testing.T) {
 		model := createTestModel()
 		msg := tea.KeyMsg{Type: tea.KeyEsc}
-		
+
 		_, cmd := model.Update(msg)
-		
+
 		// Check if quit command was returned
 		if cmd != nil {
 			// Execute the command to check if it's a quit command
@@ -69,10 +69,10 @@ func TestCreateModel_Update(t *testing.T) {
 			{ID: 2, Title: "In Progress", CardsCount: 3},
 		}
 		msg := columnsLoadedMsg{columns: columns, err: nil}
-		
+
 		newModel, _ := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, columns, m.columns)
 		assert.Equal(t, 2, len(m.columnList.Items()))
 	})
@@ -81,10 +81,10 @@ func TestCreateModel_Update(t *testing.T) {
 		model := createTestModel()
 		testErr := assert.AnError
 		msg := columnsLoadedMsg{columns: nil, err: testErr}
-		
+
 		newModel, cmd := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, testErr, m.err)
 		// Should return quit command on error
 		assert.NotNil(t, cmd)
@@ -97,10 +97,10 @@ func TestCreateModel_Update(t *testing.T) {
 			{ID: 2, Name: "Jane Smith", EmailAddress: "jane@example.com"},
 		}
 		msg := peopleLoadedMsg{people: people, err: nil}
-		
+
 		newModel, _ := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, people, m.people)
 	})
 
@@ -108,10 +108,10 @@ func TestCreateModel_Update(t *testing.T) {
 		model := createTestModel()
 		card := &api.Card{ID: 123, Title: "Test Card"}
 		msg := cardCreatedMsg{card: card, err: nil}
-		
+
 		newModel, cmd := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, card, m.createdCard)
 		assert.Equal(t, stepDone, m.step)
 		// Should quit after successful creation
@@ -122,9 +122,9 @@ func TestCreateModel_Update(t *testing.T) {
 		model := createTestModel()
 		model.step = stepCreating
 		msg := spinner.TickMsg{Time: time.Now()}
-		
+
 		_, cmd := model.Update(msg)
-		
+
 		// Should return a command for next tick
 		assert.NotNil(t, cmd)
 	})
@@ -138,19 +138,19 @@ func TestCreateModel_StepUpdates(t *testing.T) {
 			columnList: list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0),
 			titleInput: textinput.New(),
 		}
-		
+
 		// Add columns to the list
 		columns := []list.Item{
 			columnItem{column: api.Column{ID: 1, Title: "To Do"}},
 			columnItem{column: api.Column{ID: 2, Title: "Done"}},
 		}
 		model.columnList.SetItems(columns)
-		
+
 		// Simulate pressing enter
 		msg := tea.KeyMsg{Type: tea.KeyEnter}
 		newModel, _ := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, stepEnterTitle, m.step)
 		assert.NotNil(t, m.selectedColumn)
 		assert.Equal(t, "To Do", m.selectedColumn.Title)
@@ -163,11 +163,11 @@ func TestCreateModel_StepUpdates(t *testing.T) {
 			contentInput: textinput.New(),
 		}
 		model.titleInput.SetValue("Test Card Title")
-		
+
 		msg := tea.KeyMsg{Type: tea.KeyEnter}
 		newModel, _ := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, stepEnterContent, m.step)
 		assert.Equal(t, "Test Card Title", m.cardTitle)
 	})
@@ -180,11 +180,11 @@ func TestCreateModel_StepUpdates(t *testing.T) {
 			people:       []api.Person{{ID: 1, Name: "John"}}, // Has people
 		}
 		model.contentInput.SetValue("Test content")
-		
+
 		msg := tea.KeyMsg{Type: tea.KeyCtrlD}
 		newModel, _ := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, stepSelectAssignees, m.step)
 		assert.Equal(t, "Test content", m.cardContent)
 	})
@@ -199,19 +199,19 @@ func TestCreateModel_StepUpdates(t *testing.T) {
 			},
 			selectedAssignees: []int64{},
 		}
-		
+
 		// Set up people list
 		items := []list.Item{
 			personItem{person: api.Person{ID: 1, Name: "John Doe"}, selected: false},
 			personItem{person: api.Person{ID: 2, Name: "Jane Smith"}, selected: false},
 		}
 		model.peopleList.SetItems(items)
-		
+
 		// Simulate pressing space to select
 		msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}}
 		newModel, _ := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		// The first person (ID: 1) should be selected
 		if len(m.selectedAssignees) > 0 {
 			assert.Contains(t, m.selectedAssignees, int64(1))
@@ -220,12 +220,12 @@ func TestCreateModel_StepUpdates(t *testing.T) {
 			// as the actual implementation may need more setup
 			t.Skip("Selection mechanism needs more setup in test")
 		}
-		
+
 		// Press enter to proceed
 		msg = tea.KeyMsg{Type: tea.KeyEnter}
 		newModel, _ = m.Update(msg)
 		m = newModel.(createModel)
-		
+
 		assert.Equal(t, stepConfirm, m.step)
 	})
 
@@ -236,11 +236,11 @@ func TestCreateModel_StepUpdates(t *testing.T) {
 			cardTitle:      "Test Card",
 			cardContent:    "Test content",
 		}
-		
+
 		msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'Y'}}
 		newModel, cmd := model.Update(msg)
 		m := newModel.(createModel)
-		
+
 		assert.Equal(t, stepCreating, m.step)
 		assert.NotNil(t, cmd) // Should return createCard command
 	})
@@ -249,10 +249,10 @@ func TestCreateModel_StepUpdates(t *testing.T) {
 		model := createModel{
 			step: stepConfirm,
 		}
-		
+
 		msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}}
 		_, cmd := model.Update(msg)
-		
+
 		// Should quit
 		if cmd != nil {
 			cmdMsg := cmd()
@@ -268,7 +268,7 @@ func TestCreateModel_View(t *testing.T) {
 		model := createModel{
 			err: assert.AnError,
 		}
-		
+
 		view := model.View()
 		assert.Contains(t, view, "Error:")
 	})
@@ -278,7 +278,7 @@ func TestCreateModel_View(t *testing.T) {
 			step:        stepDone,
 			createdCard: &api.Card{ID: 123},
 		}
-		
+
 		view := model.View()
 		assert.Contains(t, view, "Card created: #123")
 	})
@@ -289,7 +289,7 @@ func TestCreateModel_View(t *testing.T) {
 			columns:    []api.Column{{ID: 1, Title: "To Do"}},
 			columnList: list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0),
 		}
-		
+
 		view := model.View()
 		assert.Contains(t, view, "Select Column")
 	})
@@ -299,7 +299,7 @@ func TestCreateModel_View(t *testing.T) {
 			step:       stepEnterTitle,
 			titleInput: textinput.New(),
 		}
-		
+
 		view := model.View()
 		assert.Contains(t, view, "Enter Card Title")
 		assert.Contains(t, view, "Press Enter to continue")
@@ -310,7 +310,7 @@ func TestCreateModel_View(t *testing.T) {
 			step:         stepEnterContent,
 			contentInput: textinput.New(),
 		}
-		
+
 		view := model.View()
 		assert.Contains(t, view, "Enter Card Content")
 		assert.Contains(t, view, "Markdown supported")
@@ -326,7 +326,7 @@ func TestCreateModel_View(t *testing.T) {
 				{ID: 1, Name: "John Doe"},
 			},
 		}
-		
+
 		view := model.View()
 		assert.Contains(t, view, "Select Assignees")
 		assert.Contains(t, view, "Press Space to toggle selection")
@@ -340,7 +340,7 @@ func TestCreateModel_View(t *testing.T) {
 			cardTitle:      "Test Card",
 			cardContent:    "Test content",
 		}
-		
+
 		view := model.View()
 		assert.Contains(t, view, "Confirm Card Creation")
 		assert.Contains(t, view, "Column: To Do")
@@ -354,7 +354,7 @@ func TestCreateModel_View(t *testing.T) {
 			step:    stepCreating,
 			spinner: spinner.New(),
 		}
-		
+
 		view := model.View()
 		assert.Contains(t, view, "Creating card...")
 	})
@@ -369,7 +369,7 @@ func TestCreateModel_Commands(t *testing.T) {
 			projectID:   "test-project",
 			cardTableID: 123,
 		}
-		
+
 		cmd := model.loadColumns()
 		assert.NotNil(t, cmd)
 		// Don't execute the command as it requires a real API client
@@ -381,7 +381,7 @@ func TestCreateModel_Commands(t *testing.T) {
 			client:    &api.Client{},
 			projectID: "test-project",
 		}
-		
+
 		cmd := model.loadPeople()
 		assert.NotNil(t, cmd)
 		// Don't execute the command as it requires a real API client
@@ -396,7 +396,7 @@ func TestCreateModel_Commands(t *testing.T) {
 			cardTitle:      "Test",
 			cardContent:    "Content",
 		}
-		
+
 		cmd := model.createCard()
 		assert.NotNil(t, cmd)
 		// Don't execute the command as it requires a real API client
