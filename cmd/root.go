@@ -17,13 +17,15 @@ import (
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/tui"
+	"github.com/needmore/bc4/internal/version"
 )
 
 var cfgFile string
 
 var rootCmd = &cobra.Command{
-	Use:   "bc4",
-	Short: "A CLI tool for interacting with Basecamp 4",
+	Use:     "bc4",
+	Short:   "A CLI tool for interacting with Basecamp 4",
+	Version: version.Get().Version,
 	Long: `bc4 is a command-line interface for Basecamp 4 that allows you to:
 • List and manage projects
 • Create and manage todos
@@ -90,6 +92,9 @@ func init() {
 	// rootCmd.AddCommand(message.NewMessageCmd())
 	rootCmd.AddCommand(campfire.NewCampfireCmd(f))
 	rootCmd.AddCommand(card.NewCardCmd(f))
+
+	// Add version command (doesn't need factory)
+	rootCmd.AddCommand(versionCmd)
 }
 
 func initConfig() {
