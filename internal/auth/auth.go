@@ -93,7 +93,12 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	codeChan := make(chan string, 1)
 	errorChan := make(chan error, 1)
 	server := c.startCallbackServer(state, codeChan, errorChan)
-	defer server.Shutdown(ctx)
+	defer func() {
+		if err := server.Shutdown(ctx); err != nil {
+			// Log shutdown error but don't fail the operation
+			// since we're already in a defer
+		}
+	}()
 
 	// Open browser to authorization URL
 	// Basecamp requires a 'type' parameter
@@ -102,7 +107,7 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	authURL = authURL + "&type=web_server"
 
 	// Silently open browser
-	browser.OpenURL(authURL)
+	_ = browser.OpenURL(authURL)
 
 	// Wait for callback
 	select {
@@ -186,7 +191,7 @@ func (c *Client) GetToken(accountID string) (*AccountToken, error) {
 		}
 		token = *refreshed
 		c.authStore.Accounts[accountID] = token
-		c.saveAuthStore()
+		_ = c.saveAuthStore()
 	}
 
 	return &token, nil
@@ -228,7 +233,7 @@ func (c *Client) SetDefaultAccount(accountID string) error {
 
 func (c *Client) generateState() string {
 	b := make([]byte, 16)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
 
@@ -420,7 +425,7 @@ func (c *Client) loadAuthStore() {
 	defer file.Close()
 
 	c.authStore = &AuthStore{}
-	json.NewDecoder(file).Decode(c.authStore)
+	_ = json.NewDecoder(file).Decode(c.authStore)
 }
 
 func (c *Client) saveAuthStore() error {

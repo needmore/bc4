@@ -176,7 +176,7 @@ If no table ID or name is provided, uses the default card table if set.`,
 
 			// Print summary
 			fmt.Printf("Showing %d cards in %s\n\n", totalCards, cardTable.Title)
-			table.Render()
+			_ = table.Render()
 
 			return nil
 		},

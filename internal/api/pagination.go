@@ -106,14 +106,3 @@ func (pr *PaginatedRequest) GetPage(path string, page int, result interface{}) e
 	return pr.client.Get(paginatedPath, result)
 }
 
-// parseLinkHeader extracts pagination info from Link header
-// Example: <https://3.basecampapi.com/1/chats.json?page=2>; rel="next"
-func parseLinkHeader(header string) (hasNext bool, nextPage int) {
-	if header == "" {
-		return false, 0
-	}
-
-	// Simple check for next link
-	hasNext = strings.Contains(header, `rel="next"`)
-	return hasNext, 0
-}

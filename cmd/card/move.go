@@ -132,7 +132,7 @@ Examples:
 	cmd.Flags().StringVar(&columnName, "column", "", "Target column name or ID (required)")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
-	cmd.MarkFlagRequired("column")
+	_ = cmd.MarkFlagRequired("column")
 
 	return cmd
 }

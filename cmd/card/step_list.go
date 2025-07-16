@@ -190,7 +190,7 @@ Examples:
 					table.EndRow()
 				}
 
-				table.Render()
+				_ = table.Render()
 			}
 
 			return nil

@@ -206,7 +206,7 @@ func (m *selectModel) saveDefaultProject(project api.Project) tea.Cmd {
 		}
 		cfg.Accounts[m.accountID] = accountCfg
 
-		config.Save(cfg)
+		_ = config.Save(cfg)
 
 		fmt.Printf("\nDefault project set to: %s (ID: %d)\n", project.Name, project.ID)
 		return nil

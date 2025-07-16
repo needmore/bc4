@@ -111,7 +111,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 
 			// Print summary
 			fmt.Printf("Showing card table in project %s\n\n", resolvedProjectID)
-			table.Render()
+			_ = table.Render()
 
 			return nil
 		},

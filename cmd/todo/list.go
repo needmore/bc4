@@ -344,7 +344,7 @@ func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputF
 		table.EndRow()
 	}
 
-	table.Render()
+	_ = table.Render()
 	return nil
 }
 
@@ -587,7 +587,7 @@ func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, g
 				table.EndRow()
 			}
 
-			table.Render()
+			_ = table.Render()
 		} else {
 			fmt.Println(metaStyle.Render("  No todos in this group"))
 		}

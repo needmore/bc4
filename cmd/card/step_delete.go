@@ -102,7 +102,7 @@ Examples:
 				// Ask for confirmation
 				fmt.Printf("Delete step #%d: \"%s\"? (y/N) ", stepID, stepToDelete.Title)
 				var response string
-				fmt.Scanln(&response)
+				_, _ = fmt.Scanln(&response)
 				if response != "y" && response != "Y" {
 					fmt.Println("Deletion cancelled")
 					return nil

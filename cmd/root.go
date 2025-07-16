@@ -76,10 +76,10 @@ func init() {
 	rootCmd.PersistentFlags().Bool("no-color", false, "Disable color output")
 
 	// Bind flags to viper
-	viper.BindPFlag("account", rootCmd.PersistentFlags().Lookup("account"))
-	viper.BindPFlag("project", rootCmd.PersistentFlags().Lookup("project"))
-	viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
-	viper.BindPFlag("no_color", rootCmd.PersistentFlags().Lookup("no-color"))
+	_ = viper.BindPFlag("account", rootCmd.PersistentFlags().Lookup("account"))
+	_ = viper.BindPFlag("project", rootCmd.PersistentFlags().Lookup("project"))
+	_ = viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
+	_ = viper.BindPFlag("no_color", rootCmd.PersistentFlags().Lookup("no-color"))
 
 	// Create factory
 	f := factory.New()
@@ -116,5 +116,5 @@ func initConfig() {
 	viper.AutomaticEnv()
 
 	// Read config
-	viper.ReadInConfig()
+	_ = viper.ReadInConfig()
 }

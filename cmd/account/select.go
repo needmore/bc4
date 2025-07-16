@@ -226,7 +226,7 @@ func (m *selectModel) setDefaultAccount(accountID, accountName string) tea.Cmd {
 		}
 
 		// Save config
-		config.Save(cfg)
+		_ = config.Save(cfg)
 
 		fmt.Printf("\nDefault account set to: %s (ID: %s)\n", accountName, accountID)
 		if changingAccounts {

@@ -252,7 +252,7 @@ You can specify the card using either:
 					table.EndRow()
 				}
 
-				table.Render()
+				_ = table.Render()
 				buf.Write(stepsBuf.Bytes())
 			}
 
@@ -331,7 +331,7 @@ func showStepsTable(card *api.Card, cfg *config.Config, noPager bool) error {
 		table.EndRow()
 	}
 
-	table.Render()
+	_ = table.Render()
 
 	// Display using pager
 	pagerOpts := &utils.PagerOptions{

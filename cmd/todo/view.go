@@ -108,7 +108,7 @@ You can specify the todo using either:
 					// Convert todo to map for field selection
 					todoJSON, _ := json.Marshal(todo)
 					var todoMap map[string]interface{}
-					json.Unmarshal(todoJSON, &todoMap)
+					_ = json.Unmarshal(todoJSON, &todoMap)
 
 					for _, field := range fields {
 						field = strings.TrimSpace(field)

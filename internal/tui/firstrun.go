@@ -43,11 +43,6 @@ var (
 	helpStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241"))
 
-	listStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("240")).
-			Padding(1, 2)
-
 	selectedItemStyle = lipgloss.NewStyle().
 				Foreground(lipgloss.Color("170")).
 				Bold(true)
@@ -165,7 +160,7 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				cfg.DefaultAccount = m.selectedAccount
-				config.Save(cfg)
+				_ = config.Save(cfg)
 				m.currentStep = stepComplete
 				return m, nil
 			}
@@ -211,7 +206,7 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// If only one account, skip to project selection
 		if len(m.accounts) == 1 {
 			for accountID := range m.accounts {
-				m.authClient.SetDefaultAccount(accountID)
+				_ = m.authClient.SetDefaultAccount(accountID)
 				m.selectedAccount = accountID
 				// Load projects for this account
 				m.currentStep = stepSelectProject
@@ -569,7 +564,7 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 	case stepSelectAccount:
 		if selected, ok := m.accountList.SelectedItem().(accountItem); ok {
 			// Set default account
-			m.authClient.SetDefaultAccount(selected.id)
+			_ = m.authClient.SetDefaultAccount(selected.id)
 			m.selectedAccount = selected.id
 			// Load projects for selected account
 			m.currentStep = stepSelectProject
@@ -602,7 +597,7 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 			}
 		}
 
-		config.Save(cfg)
+		_ = config.Save(cfg)
 		m.currentStep = stepComplete
 		return m, nil
 
@@ -612,7 +607,7 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 			ClientID:     m.clientID.Value(),
 			ClientSecret: m.clientSecret.Value(),
 		}
-		config.Save(cfg)
+		_ = config.Save(cfg)
 		return m, tea.Quit
 	}
 
