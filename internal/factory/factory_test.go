@@ -59,10 +59,10 @@ func TestConfig_SingleLoad(t *testing.T) {
 
 	// First call
 	cfg1, _ := f.Config()
-	
+
 	// Second call should return same instance
 	cfg2, _ := f.Config()
-	
+
 	// If config loading works, both should be the same instance
 	if cfg1 != nil && cfg2 != nil && cfg1 != cfg2 {
 		t.Error("Config() should return the same instance on multiple calls")
@@ -76,7 +76,7 @@ func TestAuthClient_ConfigError(t *testing.T) {
 	f := New()
 
 	client, err := f.AuthClient()
-	
+
 	// The method should return either a valid client or an error, never both nil
 	if client == nil && err == nil {
 		t.Error("AuthClient should not return both nil client and nil error")

@@ -89,18 +89,122 @@ Examples:
 				}
 			}
 
-			// Get API client from factory (for auth check)
-			_, err := f.ApiClient()
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
 				return err
 			}
 
-			// TODO: Implement step move functionality
-			// 3. Get position from flags
-			// 4. Call API to reorder step
-			// 5. Display success message
-			fmt.Printf("Would move step %d in card #%d\n", stepID, cardID)
-			return fmt.Errorf("step move not yet implemented")
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			// Get position flags
+			after, _ := cmd.Flags().GetString("after")
+			before, _ := cmd.Flags().GetString("before")
+			toTop, _ := cmd.Flags().GetBool("to-top")
+			toBottom, _ := cmd.Flags().GetBool("to-bottom")
+
+			// Validate that only one position flag is set
+			positionCount := 0
+			if after != "" {
+				positionCount++
+			}
+			if before != "" {
+				positionCount++
+			}
+			if toTop {
+				positionCount++
+			}
+			if toBottom {
+				positionCount++
+			}
+
+			if positionCount != 1 {
+				return fmt.Errorf("exactly one position flag must be specified (--after, --before, --to-top, or --to-bottom)")
+			}
+
+			// Get the card with its steps to determine positions
+			card, err := client.Cards().GetCard(f.Context(), resolvedProjectID, cardID)
+			if err != nil {
+				return fmt.Errorf("failed to get card: %w", err)
+			}
+
+			// Find the current step index
+			var currentIndex int = -1
+			for i, step := range card.Steps {
+				if step.ID == stepID {
+					currentIndex = i
+					break
+				}
+			}
+
+			if currentIndex == -1 {
+				return fmt.Errorf("step with ID %d not found in card", stepID)
+			}
+
+			// Calculate the new position
+			var newPosition int
+			if toTop {
+				newPosition = 0
+			} else if toBottom {
+				newPosition = len(card.Steps) - 1
+			} else if after != "" {
+				// Find the target step
+				targetID, err := strconv.ParseInt(after, 10, 64)
+				if err != nil {
+					return fmt.Errorf("invalid step ID in --after: %s", after)
+				}
+				targetIndex := -1
+				for i, step := range card.Steps {
+					if step.ID == targetID {
+						targetIndex = i
+						break
+					}
+				}
+				if targetIndex == -1 {
+					return fmt.Errorf("step with ID %d not found in card", targetID)
+				}
+				// Position after the target step
+				if currentIndex < targetIndex {
+					newPosition = targetIndex
+				} else {
+					newPosition = targetIndex + 1
+				}
+			} else if before != "" {
+				// Find the target step
+				targetID, err := strconv.ParseInt(before, 10, 64)
+				if err != nil {
+					return fmt.Errorf("invalid step ID in --before: %s", before)
+				}
+				targetIndex := -1
+				for i, step := range card.Steps {
+					if step.ID == targetID {
+						targetIndex = i
+						break
+					}
+				}
+				if targetIndex == -1 {
+					return fmt.Errorf("step with ID %d not found in card", targetID)
+				}
+				// Position before the target step
+				if currentIndex < targetIndex {
+					newPosition = targetIndex - 1
+				} else {
+					newPosition = targetIndex
+				}
+			}
+
+			// Move the step
+			err = client.Steps().MoveStep(f.Context(), resolvedProjectID, cardID, stepID, newPosition)
+			if err != nil {
+				return fmt.Errorf("failed to move step: %w", err)
+			}
+
+			fmt.Printf("Step #%d moved\n", stepID)
+			return nil
 		},
 	}
 

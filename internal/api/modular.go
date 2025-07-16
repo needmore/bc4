@@ -56,6 +56,14 @@ type StepOperations interface {
 	DeleteStep(ctx context.Context, projectID string, stepID int64) error
 }
 
+// ColumnOperations defines column-specific operations
+type ColumnOperations interface {
+	CreateColumn(ctx context.Context, projectID string, cardTableID int64, req ColumnCreateRequest) (*Column, error)
+	UpdateColumn(ctx context.Context, projectID string, columnID int64, req ColumnUpdateRequest) (*Column, error)
+	SetColumnColor(ctx context.Context, projectID string, columnID int64, color string) error
+	MoveColumn(ctx context.Context, projectID string, cardTableID int64, sourceID, targetID int64, position string) error
+}
+
 // PeopleOperations defines people-specific operations
 type PeopleOperations interface {
 	GetProjectPeople(ctx context.Context, projectID string) ([]Person, error)
@@ -99,13 +107,18 @@ func (c *ModularClient) Steps() StepOperations {
 	return c.Client
 }
 
+// Columns returns the column operations interface
+func (c *ModularClient) Columns() ColumnOperations {
+	return c.Client
+}
+
 // People returns the people operations interface
 func (c *ModularClient) People() PeopleOperations {
 	return c.Client
 }
 
 // Example of how to extend with new operations without modifying existing code:
-// 
+//
 // type MessageOperations interface {
 //     GetMessages(ctx context.Context, projectID string) ([]Message, error)
 //     PostMessage(ctx context.Context, projectID string, content string) (*Message, error)

@@ -33,7 +33,6 @@ func NewConverter() Converter {
 			parser.WithAutoHeadingID(),
 		),
 		goldmark.WithRendererOptions(
-			html.WithHardWraps(),
 			html.WithXHTML(),
 		),
 	)
@@ -97,9 +96,9 @@ func (c *converter) postProcessHTML(html string) string {
 	html = strings.ReplaceAll(html, "</pre></pre>", "</pre>")
 
 	// Remove <hr /> (horizontal rules) and replace with <br>
-	html = strings.ReplaceAll(html, "<hr />", "<br>")
-	html = strings.ReplaceAll(html, "<hr/>", "<br>")
-	html = strings.ReplaceAll(html, "<hr>", "<br>")
+	html = strings.ReplaceAll(html, "<hr />", "<br>\n")
+	html = strings.ReplaceAll(html, "<hr/>", "<br>\n")
+	html = strings.ReplaceAll(html, "<hr>", "<br>\n")
 
 	// Convert XHTML style breaks to HTML style
 	html = strings.ReplaceAll(html, "<br />", "<br>")
@@ -117,11 +116,11 @@ func (c *converter) postProcessHTML(html string) string {
 	html = regexp.MustCompile(`<!-- [^>]* -->`).ReplaceAllString(html, "")
 
 	// Clean up blockquote formatting
-	html = strings.ReplaceAll(html, "<blockquote>\n", "<blockquote>")
-	html = strings.ReplaceAll(html, "\n</blockquote>", "</blockquote>")
+    html = strings.ReplaceAll(html, "<blockquote>\n", "<blockquote>")
+    html = strings.ReplaceAll(html, "\n</blockquote>", "</blockquote>")
 
-	// Clean up excessive newlines
-	re = regexp.MustCompile(`\n{3,}`)
+    // Clean up excessive newlines
+    re = regexp.MustCompile(`\n{3,}`)
 	html = re.ReplaceAllString(html, "\n\n")
 
 	// Final cleanup - remove newlines within line breaks

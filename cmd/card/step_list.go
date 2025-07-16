@@ -1,11 +1,16 @@
 package card
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 
+	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/ui/tableprinter"
 	"github.com/spf13/cobra"
 )
 
@@ -57,15 +62,138 @@ Examples:
 				}
 			}
 
-			// Get API client from factory (for auth check)
-			_, err = f.ApiClient()
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
 				return err
 			}
 
-			// TODO: Implement step list functionality
-			fmt.Printf("Would list steps for card ID %d\n", cardID)
-			return fmt.Errorf("step list not yet implemented")
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			// Get the card with its steps
+			card, err := client.Cards().GetCard(f.Context(), resolvedProjectID, cardID)
+			if err != nil {
+				return fmt.Errorf("failed to get card: %w", err)
+			}
+
+			// Apply filters
+			showCompleted, _ := cmd.Flags().GetBool("completed")
+			showPending, _ := cmd.Flags().GetBool("pending")
+			assigneeFilter, _ := cmd.Flags().GetString("assignee")
+
+			// Filter steps based on flags
+			filteredSteps := card.Steps
+			if showCompleted || showPending {
+				var filtered []api.Step
+				for _, step := range card.Steps {
+					if (showCompleted && step.Status == "completed") ||
+						(showPending && step.Status != "completed") {
+						filtered = append(filtered, step)
+					}
+				}
+				filteredSteps = filtered
+			}
+
+			// Filter by assignee if specified
+			if assigneeFilter != "" {
+				var filtered []api.Step
+				for _, step := range filteredSteps {
+					for _, assignee := range step.Assignees {
+						if strings.Contains(strings.ToLower(assignee.Name), strings.ToLower(assigneeFilter)) ||
+							strings.Contains(strings.ToLower(assignee.EmailAddress), strings.ToLower(assigneeFilter)) {
+							filtered = append(filtered, step)
+							break
+						}
+					}
+				}
+				filteredSteps = filtered
+			}
+
+			// Handle different output formats
+			format, _ := cmd.Flags().GetString("format")
+			switch format {
+			case "json":
+				output, err := json.MarshalIndent(filteredSteps, "", "  ")
+				if err != nil {
+					return fmt.Errorf("failed to format JSON: %w", err)
+				}
+				fmt.Println(string(output))
+
+			case "tsv":
+				// Output tab-separated values
+				fmt.Println("ID\tTITLE\tSTATUS\tASSIGNEES\tDUE_ON")
+				for _, step := range filteredSteps {
+					assigneeNames := []string{}
+					for _, a := range step.Assignees {
+						assigneeNames = append(assigneeNames, a.Name)
+					}
+					dueOn := ""
+					if step.DueOn != nil {
+						dueOn = *step.DueOn
+					}
+					fmt.Printf("%d\t%s\t%s\t%s\t%s\n",
+						step.ID,
+						step.Title,
+						step.Status,
+						strings.Join(assigneeNames, ", "),
+						dueOn)
+				}
+
+			default: // table format
+				table := tableprinter.New(os.Stdout)
+
+				// Add headers
+				if table.IsTTY() {
+					table.AddHeader("", "ID", "TITLE", "ASSIGNEES", "DUE")
+				} else {
+					table.AddHeader("ID", "TITLE", "STATUS", "ASSIGNEES", "DUE_ON")
+				}
+
+				// Add rows
+				for _, step := range filteredSteps {
+					if table.IsTTY() {
+						// Visual status indicator
+						status := "○"
+						if step.Status == "completed" {
+							status = "✓"
+						}
+						table.AddField(status)
+						table.AddIDField(fmt.Sprintf("%d", step.ID), step.Status)
+					} else {
+						table.AddField(fmt.Sprintf("#%d", step.ID))
+					}
+
+					table.AddField(step.Title)
+
+					if !table.IsTTY() {
+						table.AddField(step.Status)
+					}
+
+					// Assignees
+					assigneeNames := []string{}
+					for _, a := range step.Assignees {
+						assigneeNames = append(assigneeNames, a.Name)
+					}
+					table.AddField(strings.Join(assigneeNames, ", "))
+
+					// Due date
+					if step.DueOn != nil && *step.DueOn != "" {
+						table.AddField(*step.DueOn)
+					} else {
+						table.AddField("")
+					}
+
+					table.EndRow()
+				}
+
+				table.Render()
+			}
+
+			return nil
 		},
 	}
 

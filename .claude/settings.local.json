@@ -35,7 +35,8 @@
       "Bash(bc4 campfire:*)",
       "Bash(curl:*)",
       "Bash(git stash:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(go run:*)"
     ],
     "deny": []
   }
