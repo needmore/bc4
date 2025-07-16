@@ -33,7 +33,6 @@ func NewConverter() Converter {
 			parser.WithAutoHeadingID(),
 		),
 		goldmark.WithRendererOptions(
-			html.WithHardWraps(),
 			html.WithXHTML(),
 		),
 	)
@@ -97,9 +96,9 @@ func (c *converter) postProcessHTML(html string) string {
 	html = strings.ReplaceAll(html, "</pre></pre>", "</pre>")
 
 	// Remove <hr /> (horizontal rules) and replace with <br>
-	html = strings.ReplaceAll(html, "<hr />", "<br>")
-	html = strings.ReplaceAll(html, "<hr/>", "<br>")
-	html = strings.ReplaceAll(html, "<hr>", "<br>")
+	html = strings.ReplaceAll(html, "<hr />", "<br>\n")
+	html = strings.ReplaceAll(html, "<hr/>", "<br>\n")
+	html = strings.ReplaceAll(html, "<hr>", "<br>\n")
 
 	// Convert XHTML style breaks to HTML style
 	html = strings.ReplaceAll(html, "<br />", "<br>")
