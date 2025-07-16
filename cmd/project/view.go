@@ -2,7 +2,6 @@ package project
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,14 +12,13 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/utils"
 )
 
-func newViewCmd() *cobra.Command {
+func newViewCmd(f *factory.Factory) *cobra.Command {
 	var jsonOutput bool
 	var accountID string
 	var noPager bool
@@ -36,19 +34,15 @@ You can specify the project using either:
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/projects/12345")`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Get config and auth through factory
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
-
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
+			authClient, err := f.AuthClient()
+			if err != nil {
+				return err
 			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
 
 			// Use specified account or default
 			if accountID == "" {
@@ -94,23 +88,24 @@ You can specify the project using either:
 				}
 			}
 
-			// Get token
-			token, err := authClient.GetToken(accountID)
-			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+			// Create API client through factory
+			// If accountID was specified, use a new factory with that account
+			if accountID != "" {
+				f = f.WithAccount(accountID)
 			}
-
-			// Create API client
-			apiClient := api.NewModularClient(accountID, token.AccessToken)
+			apiClient, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
 			projectOps := apiClient.Projects()
 
 			// Try to fetch as ID first
-			project, err = projectOps.GetProject(context.Background(), projectID)
+			project, err = projectOps.GetProject(f.Context(), projectID)
 			if err != nil {
 				// If that fails and the input doesn't look like a number, try searching by name
 				if _, parseErr := strconv.ParseInt(projectID, 10, 64); parseErr != nil {
 					// Search for projects matching the name
-					allProjects, fetchErr := projectOps.GetProjects(context.Background())
+					allProjects, fetchErr := projectOps.GetProjects(f.Context())
 					if fetchErr != nil {
 						return fmt.Errorf("failed to fetch projects: %w", fetchErr)
 					}

@@ -1,7 +1,6 @@
 package project
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,13 +10,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
-func newListCmd() *cobra.Command {
+func newListCmd(f *factory.Factory) *cobra.Command {
 	var jsonOutput bool
 	var accountID string
 	var formatStr string
@@ -28,41 +26,32 @@ func newListCmd() *cobra.Command {
 		Long:    `List all projects in your Basecamp account. Use 'project select' for interactive selection.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Apply account override if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
-
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use specified account or default
-			if accountID == "" {
-				accountID = authClient.GetDefaultAccount()
-			}
-
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
-			// Get token
-			token, err := authClient.GetToken(accountID)
-			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
-			}
-
-			// Create modular API client
-			client := api.NewModularClient(accountID, token.AccessToken)
 			projectOps := client.Projects()
 
+			// Get config for default project lookup
+			cfg, err := f.Config()
+			if err != nil {
+				return err
+			}
+
+			// Get account ID for default project lookup
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
+			}
+
 			// Fetch projects using the focused interface
-			projects, err := projectOps.GetProjects(context.Background())
+			projects, err := projectOps.GetProjects(f.Context())
 			if err != nil {
 				return fmt.Errorf("failed to fetch projects: %w", err)
 			}
@@ -73,7 +62,7 @@ func newListCmd() *cobra.Command {
 			// Get default project ID
 			defaultProjectID := cfg.DefaultProject
 			if defaultProjectID == "" && cfg.Accounts != nil {
-				if acc, ok := cfg.Accounts[accountID]; ok {
+				if acc, ok := cfg.Accounts[resolvedAccountID]; ok {
 					defaultProjectID = acc.DefaultProject
 				}
 			}

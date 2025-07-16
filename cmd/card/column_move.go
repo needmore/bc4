@@ -3,10 +3,11 @@ package card
 import (
 	"fmt"
 
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
-func newColumnMoveCmd() *cobra.Command {
+func newColumnMoveCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "move [ID]",
 		Short: "Reorder columns",

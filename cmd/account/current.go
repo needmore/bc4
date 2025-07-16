@@ -7,12 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
 )
 
-func newCurrentCmd() *cobra.Command {
+func newCurrentCmd(f *factory.Factory) *cobra.Command {
 	var jsonOutput bool
 
 	cmd := &cobra.Command{
@@ -21,19 +20,17 @@ func newCurrentCmd() *cobra.Command {
 		Long:    `Display information about the current default account.`,
 		Aliases: []string{"whoami"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Get config from factory
+			cfg, err := f.Config()
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
+			// Get auth client from factory
+			authClient, err := f.AuthClient()
+			if err != nil {
+				return err
 			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
 
 			// Get default account
 			defaultAccountID := authClient.GetDefaultAccount()

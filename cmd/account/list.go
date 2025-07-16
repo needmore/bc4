@@ -8,8 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
@@ -20,7 +19,7 @@ type accountInfo struct {
 	Default bool
 }
 
-func newListCmd() *cobra.Command {
+func newListCmd(f *factory.Factory) *cobra.Command {
 	var jsonOutput bool
 	var formatStr string
 
@@ -30,19 +29,11 @@ func newListCmd() *cobra.Command {
 		Long:    `List all authenticated Basecamp accounts. Use 'account select' for interactive selection.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Get auth client from factory
+			authClient, err := f.AuthClient()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
-
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
 
 			// Get all accounts
 			accounts := authClient.GetAccounts()

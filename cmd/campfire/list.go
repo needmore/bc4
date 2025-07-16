@@ -1,20 +1,18 @@
 package campfire
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 	"github.com/spf13/cobra"
 )
 
-func newListCmd() *cobra.Command {
+func newListCmd(f *factory.Factory) *cobra.Command {
 	var showAll bool
 
 	cmd := &cobra.Command{
@@ -24,46 +22,30 @@ func newListCmd() *cobra.Command {
 		
 Use --all to show campfires across all projects you have access to.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Get required dependencies
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use default account
-			accountID := authClient.GetDefaultAccount()
-			if accountID == "" {
-				return fmt.Errorf("no default account set. Use 'bc4 account select' to set one")
-			}
-
-			// Get project ID
-			projectID := cfg.DefaultProject
-			if cfg.Accounts != nil && cfg.Accounts[accountID].DefaultProject != "" {
-				projectID = cfg.Accounts[accountID].DefaultProject
-			}
-			if projectID == "" {
-				return fmt.Errorf("no default project set. Use 'bc4 project select' to set one")
-			}
-			// Get token
-			token, err := authClient.GetToken(accountID)
+			accountID, err := f.AccountID()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
 
-			// Create modular API client
-			client := api.NewModularClient(accountID, token.AccessToken)
+			projectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
+
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
 			campfireOps := client.Campfires()
 
 			// Get campfires
-			campfires, err := campfireOps.ListCampfires(context.Background(), projectID)
+			campfires, err := campfireOps.ListCampfires(f.Context(), projectID)
 			if err != nil {
 				return fmt.Errorf("failed to list campfires: %w", err)
 			}

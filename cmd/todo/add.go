@@ -1,15 +1,13 @@
 package todo
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
@@ -24,7 +22,7 @@ type addOptions struct {
 	file        string
 }
 
-func newAddCmd() *cobra.Command {
+func newAddCmd(f *factory.Factory) *cobra.Command {
 	opts := &addOptions{}
 
 	cmd := &cobra.Command{
@@ -50,7 +48,7 @@ The todo will be created in the default todo list unless specified with --list.`
   bc4 todo add --file todo-content.md`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runAdd(cmd.Context(), opts, args)
+			return runAdd(f, opts, args)
 		},
 	}
 
@@ -63,7 +61,7 @@ The todo will be created in the default todo list unless specified with --list.`
 	return cmd
 }
 
-func runAdd(ctx context.Context, opts *addOptions, args []string) error {
+func runAdd(f *factory.Factory, opts *addOptions, args []string) error {
 	// Get content from file, stdin, args, or prompt
 	var content string
 	var err error
@@ -109,36 +107,33 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 		description = opts.description
 	}
 
-	// Load configuration
-	cfg, err := config.Load()
+	// Get API client from factory
+	client, err := f.ApiClient()
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		return err
 	}
-
-	// Get authentication token
-	authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-	token, err := authClient.GetToken(cfg.DefaultAccount)
-	if err != nil {
-		return fmt.Errorf("not authenticated. Run 'bc4 auth login' first")
-	}
-
-	// Get current project
-	projectID := cfg.DefaultProject
-	if projectID == "" && cfg.Accounts != nil {
-		if acc, ok := cfg.Accounts[cfg.DefaultAccount]; ok {
-			projectID = acc.DefaultProject
-		}
-	}
-	if projectID == "" {
-		return fmt.Errorf("no project selected. Run 'bc4 project select' first")
-	}
-
-	// Create modular API client
-	client := api.NewModularClient(cfg.DefaultAccount, token.AccessToken)
 	todoOps := client.Todos()
 
+	// Get config for default lookups
+	cfg, err := f.Config()
+	if err != nil {
+		return err
+	}
+
+	// Get resolved account ID
+	resolvedAccountID, err := f.AccountID()
+	if err != nil {
+		return err
+	}
+
+	// Get resolved project ID
+	resolvedProjectID, err := f.ProjectID()
+	if err != nil {
+		return err
+	}
+
 	// Get the todo set for the project
-	todoSet, err := todoOps.GetProjectTodoSet(ctx, projectID)
+	todoSet, err := todoOps.GetProjectTodoSet(f.Context(), resolvedProjectID)
 	if err != nil {
 		return fmt.Errorf("failed to get todo set: %w", err)
 	}
@@ -158,7 +153,7 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 			todoListID = parsed.ResourceID
 		} else {
 			// User specified a list - try to find it
-			todoLists, err := todoOps.GetTodoLists(ctx, projectID, todoSet.ID)
+			todoLists, err := todoOps.GetTodoLists(f.Context(), resolvedProjectID, todoSet.ID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch todo lists: %w", err)
 			}
@@ -181,9 +176,9 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 		// Use default todo list from config
 		defaultTodoListID := ""
 		if cfg.Accounts != nil {
-			if acc, ok := cfg.Accounts[cfg.DefaultAccount]; ok {
+			if acc, ok := cfg.Accounts[resolvedAccountID]; ok {
 				if acc.ProjectDefaults != nil {
-					if projDefaults, ok := acc.ProjectDefaults[projectID]; ok {
+					if projDefaults, ok := acc.ProjectDefaults[resolvedProjectID]; ok {
 						defaultTodoListID = projDefaults.DefaultTodoList
 					}
 				}
@@ -231,10 +226,10 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 	// Handle assignee lookup
 	if len(opts.assign) > 0 {
 		// Create user resolver
-		userResolver := utils.NewUserResolver(client.Client, projectID)
+		userResolver := utils.NewUserResolver(client.Client, resolvedProjectID)
 
 		// Resolve user identifiers to person IDs
-		personIDs, err := userResolver.ResolveUsers(ctx, opts.assign)
+		personIDs, err := userResolver.ResolveUsers(f.Context(), opts.assign)
 		if err != nil {
 			return fmt.Errorf("failed to resolve assignees: %w", err)
 		}
@@ -242,7 +237,7 @@ func runAdd(ctx context.Context, opts *addOptions, args []string) error {
 		req.AssigneeIDs = personIDs
 	}
 
-	todo, err := todoOps.CreateTodo(ctx, projectID, todoListID, req)
+	todo, err := todoOps.CreateTodo(f.Context(), resolvedProjectID, todoListID, req)
 	if err != nil {
 		return fmt.Errorf("failed to create todo: %w", err)
 	}

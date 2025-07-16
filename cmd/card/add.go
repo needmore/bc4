@@ -1,20 +1,18 @@
 package card
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
-func newAddCmd() *cobra.Command {
+func newAddCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 	var projectID string
 	var tableID string
@@ -32,53 +30,41 @@ func newAddCmd() *cobra.Command {
 Use flags to specify table, column, assignees, and initial steps.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
 			title := args[0]
 
-			// Load config
-			cfg, err := config.Load()
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
+			// Get API client from factory
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
+			cardOps := client.Cards()
+			stepOps := client.Steps()
+
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
 			if err != nil {
 				return err
 			}
 
-			// Check authentication
-			if cfg.DefaultAccount == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Get account ID
-			if accountID == "" {
-				accountID = cfg.DefaultAccount
-			}
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
-			// Get project ID
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-			}
-			if projectID == "" {
-				// Check for account-specific default project
-				if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
-					projectID = acc.DefaultProject
-				}
-			}
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-			token, err := authClient.GetToken(accountID)
+			// Get config for default lookups
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
 
-			// Create API client
-			client := api.NewModularClient(accountID, token.AccessToken)
-			cardOps := client.Cards()
-			stepOps := client.Steps()
+			// Get resolved account ID for defaults
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
+			}
 
 			// Get card table ID
 			var cardTableID int64
@@ -104,8 +90,8 @@ Use flags to specify table, column, assignees, and initial steps.`,
 				}
 			} else {
 				// Use default card table
-				if acc, ok := cfg.Accounts[accountID]; ok {
-					if proj, ok := acc.ProjectDefaults[projectID]; ok && proj.DefaultCardTable != "" {
+				if acc, ok := cfg.Accounts[resolvedAccountID]; ok {
+					if proj, ok := acc.ProjectDefaults[resolvedProjectID]; ok && proj.DefaultCardTable != "" {
 						if id, err := strconv.ParseInt(proj.DefaultCardTable, 10, 64); err == nil {
 							cardTableID = id
 						}
@@ -113,7 +99,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 				}
 				if cardTableID == 0 {
 					// No default set, get the project's card table
-					cardTable, err := cardOps.GetProjectCardTable(ctx, projectID)
+					cardTable, err := cardOps.GetProjectCardTable(f.Context(), resolvedProjectID)
 					if err != nil {
 						return fmt.Errorf("failed to fetch card table: %w", err)
 					}
@@ -122,7 +108,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 			}
 
 			// Get the card table to find columns
-			cardTable, err := cardOps.GetCardTable(ctx, projectID, cardTableID)
+			cardTable, err := cardOps.GetCardTable(f.Context(), resolvedProjectID, cardTableID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch card table: %w", err)
 			}
@@ -167,7 +153,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 				req.DueOn = &dueOn
 			}
 
-			card, err := cardOps.CreateCard(ctx, projectID, targetColumn.ID, req)
+			card, err := cardOps.CreateCard(f.Context(), resolvedProjectID, targetColumn.ID, req)
 			if err != nil {
 				return fmt.Errorf("failed to create card: %w", err)
 			}
@@ -177,17 +163,17 @@ Use flags to specify table, column, assignees, and initial steps.`,
 			// Handle assignees - resolve user identifiers
 			if len(assignees) > 0 {
 				// Create user resolver
-				userResolver := utils.NewUserResolver(client.Client, projectID)
+				userResolver := utils.NewUserResolver(client.Client, resolvedProjectID)
 
 				// Resolve user identifiers to person IDs
-				assigneeIDs, err := userResolver.ResolveUsers(ctx, assignees)
+				assigneeIDs, err := userResolver.ResolveUsers(f.Context(), assignees)
 				if err != nil {
 					fmt.Printf("Warning: failed to resolve assignees: %v\n", err)
 				} else if len(assigneeIDs) > 0 {
 					updateReq := api.CardUpdateRequest{
 						AssigneeIDs: assigneeIDs,
 					}
-					_, err := cardOps.UpdateCard(ctx, projectID, card.ID, updateReq)
+					_, err := cardOps.UpdateCard(f.Context(), resolvedProjectID, card.ID, updateReq)
 					if err != nil {
 						fmt.Printf("Warning: failed to assign users: %v\n", err)
 					} else {
@@ -203,7 +189,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 					stepReq := api.StepCreateRequest{
 						Title: stepTitle,
 					}
-					_, err := stepOps.CreateStep(ctx, projectID, card.ID, stepReq)
+					_, err := stepOps.CreateStep(f.Context(), resolvedProjectID, card.ID, stepReq)
 					if err != nil {
 						fmt.Printf("Warning: failed to add step '%s': %v\n", stepTitle, err)
 					}

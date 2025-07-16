@@ -1,7 +1,6 @@
 package todo
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,13 +9,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
-func newListsCmd() *cobra.Command {
+func newListsCmd(f *factory.Factory) *cobra.Command {
 	var jsonOutput bool
 	var accountID string
 	var projectID string
@@ -28,61 +26,49 @@ func newListsCmd() *cobra.Command {
 		Long:    `List all todo lists in the current or specified project.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Apply account override if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+
+			// Apply project override if specified
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
+			todoOps := client.Todos()
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use specified account or default
-			if accountID == "" {
-				accountID = authClient.GetDefaultAccount()
-			}
-
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
-			// Use specified project or default
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-				if projectID == "" && cfg.Accounts != nil {
-					if acc, ok := cfg.Accounts[accountID]; ok {
-						projectID = acc.DefaultProject
-					}
-				}
-			}
-
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set. Use 'bc4 project select' to set a default project")
-			}
-
-			// Get token
-			token, err := authClient.GetToken(accountID)
+			// Get config for default lookups
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
 
-			// Create API client
-			apiClient := api.NewModularClient(accountID, token.AccessToken)
-			todoOps := apiClient.Todos()
+			// Get resolved account ID
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
+			}
+
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
 
 			// Get the todo set for the project
-			todoSet, err := todoOps.GetProjectTodoSet(context.Background(), projectID)
+			todoSet, err := todoOps.GetProjectTodoSet(f.Context(), resolvedProjectID)
 			if err != nil {
 				return fmt.Errorf("failed to get todo set: %w", err)
 			}
 
 			// Fetch todo lists
-			todoLists, err := todoOps.GetTodoLists(context.Background(), projectID, todoSet.ID)
+			todoLists, err := todoOps.GetTodoLists(f.Context(), resolvedProjectID, todoSet.ID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch todo lists: %w", err)
 			}
@@ -92,8 +78,8 @@ func newListsCmd() *cobra.Command {
 
 			// Get default todo list ID from config
 			defaultTodoListID := ""
-			if cfg.Accounts != nil && cfg.Accounts[accountID].ProjectDefaults != nil {
-				if projDefaults, ok := cfg.Accounts[accountID].ProjectDefaults[projectID]; ok {
+			if cfg.Accounts != nil && cfg.Accounts[resolvedAccountID].ProjectDefaults != nil {
+				if projDefaults, ok := cfg.Accounts[resolvedAccountID].ProjectDefaults[resolvedProjectID]; ok {
 					defaultTodoListID = projDefaults.DefaultTodoList
 				}
 			}

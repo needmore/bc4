@@ -1,7 +1,6 @@
 package todo
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,13 +13,12 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
-func newListCmd() *cobra.Command {
+func newListCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 	var projectID string
 	var formatStr string
@@ -35,55 +33,43 @@ func newListCmd() *cobra.Command {
 		Long:  `View all todos in a specific todo list. Can specify by ID or partial name match.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
+			// Apply account override if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+
+			// Apply project override if specified
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
+			// Get API client from factory
+			client, err := f.ApiClient()
 			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+				return err
 			}
+			todoOps := client.Todos()
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use specified account or default
-			if accountID == "" {
-				accountID = authClient.GetDefaultAccount()
-			}
-
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
-			// Use specified project or default
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-				if projectID == "" && cfg.Accounts != nil {
-					if acc, ok := cfg.Accounts[accountID]; ok {
-						projectID = acc.DefaultProject
-					}
-				}
-			}
-
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set")
-			}
-
-			// Get token
-			token, err := authClient.GetToken(accountID)
+			// Get config for default lookups
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
 
-			// Create API client
-			apiClient := api.NewModularClient(accountID, token.AccessToken)
-			todoOps := apiClient.Todos()
+			// Get resolved account ID
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
+			}
+
+			// Get resolved project ID
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
 
 			// Get todo set for the project
-			todoSet, err := todoOps.GetProjectTodoSet(context.Background(), projectID)
+			todoSet, err := todoOps.GetProjectTodoSet(f.Context(), resolvedProjectID)
 			if err != nil {
 				return fmt.Errorf("failed to get project todo set: %w", err)
 			}
@@ -93,8 +79,8 @@ func newListCmd() *cobra.Command {
 			if len(args) == 0 {
 				// No argument - use default todo list if set
 				defaultTodoListID := ""
-				if cfg.Accounts != nil && cfg.Accounts[accountID].ProjectDefaults != nil {
-					if projDefaults, ok := cfg.Accounts[accountID].ProjectDefaults[projectID]; ok {
+				if cfg.Accounts != nil && cfg.Accounts[resolvedAccountID].ProjectDefaults != nil {
+					if projDefaults, ok := cfg.Accounts[resolvedAccountID].ProjectDefaults[resolvedProjectID]; ok {
 						defaultTodoListID = projDefaults.DefaultTodoList
 					}
 				}
@@ -108,7 +94,7 @@ func newListCmd() *cobra.Command {
 					todoListID = id
 				} else {
 					// Try to find by name
-					todoLists, err := todoOps.GetTodoLists(context.Background(), projectID, todoSet.ID)
+					todoLists, err := todoOps.GetTodoLists(f.Context(), resolvedProjectID, todoSet.ID)
 					if err != nil {
 						return fmt.Errorf("failed to fetch todo lists: %w", err)
 					}
@@ -132,7 +118,7 @@ func newListCmd() *cobra.Command {
 			}
 
 			// Get the todo list
-			todoList, err := todoOps.GetTodoList(context.Background(), projectID, todoListID)
+			todoList, err := todoOps.GetTodoList(f.Context(), resolvedProjectID, todoListID)
 			if err != nil {
 				return fmt.Errorf("failed to fetch todo list: %w", err)
 			}
@@ -140,7 +126,7 @@ func newListCmd() *cobra.Command {
 			// Handle web view
 			if webView {
 				// Open in browser
-				url := fmt.Sprintf("https://3.basecamp.com/%s/buckets/%s/todolists/%d", accountID, projectID, todoListID)
+				url := fmt.Sprintf("https://3.basecamp.com/%s/buckets/%s/todolists/%d", resolvedAccountID, resolvedProjectID, todoListID)
 				fmt.Printf("Opening %s in your browser...\n", url)
 				// Note: In a real implementation, we'd use a cross-platform way to open URLs
 				return nil
@@ -149,9 +135,9 @@ func newListCmd() *cobra.Command {
 			// Get todos in the list
 			var todos []api.Todo
 			if showAll {
-				todos, err = todoOps.GetAllTodos(context.Background(), projectID, todoListID)
+				todos, err = todoOps.GetAllTodos(f.Context(), resolvedProjectID, todoListID)
 			} else {
-				todos, err = todoOps.GetTodos(context.Background(), projectID, todoListID)
+				todos, err = todoOps.GetTodos(f.Context(), resolvedProjectID, todoListID)
 			}
 			if err != nil {
 				return fmt.Errorf("failed to fetch todos: %w", err)
@@ -163,16 +149,16 @@ func newListCmd() *cobra.Command {
 
 			if len(todos) == 0 && todoList.GroupsURL != "" {
 				// Try fetching groups
-				groups, err = todoOps.GetTodoGroups(context.Background(), projectID, todoListID)
+				groups, err = todoOps.GetTodoGroups(f.Context(), resolvedProjectID, todoListID)
 				if err == nil && len(groups) > 0 {
 					// Fetch todos for each group
 					groupedTodos = make(map[string][]api.Todo)
 					for _, group := range groups {
 						var groupTodos []api.Todo
 						if showAll {
-							groupTodos, err = todoOps.GetAllTodos(context.Background(), projectID, group.ID)
+							groupTodos, err = todoOps.GetAllTodos(f.Context(), resolvedProjectID, group.ID)
 						} else {
-							groupTodos, err = todoOps.GetTodos(context.Background(), projectID, group.ID)
+							groupTodos, err = todoOps.GetTodos(f.Context(), resolvedProjectID, group.ID)
 						}
 						if err == nil {
 							groupedTodos[fmt.Sprintf("%d", group.ID)] = groupTodos

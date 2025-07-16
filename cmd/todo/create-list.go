@@ -1,12 +1,10 @@
 package todo
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +12,7 @@ type createListOptions struct {
 	description string
 }
 
-func newCreateListCmd() *cobra.Command {
+func newCreateListCmd(f *factory.Factory) *cobra.Command {
 	opts := &createListOptions{}
 
 	cmd := &cobra.Command{
@@ -30,7 +28,7 @@ If no name is provided, you'll be prompted to enter one interactively.`,
   bc4 todo create-list "Bug Fixes" --description "Critical bugs to fix before release"`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runCreateList(cmd.Context(), opts, args)
+			return runCreateList(f, opts, args)
 		},
 	}
 
@@ -39,7 +37,7 @@ If no name is provided, you'll be prompted to enter one interactively.`,
 	return cmd
 }
 
-func runCreateList(ctx context.Context, opts *createListOptions, args []string) error {
+func runCreateList(f *factory.Factory, opts *createListOptions, args []string) error {
 	// Get name from args or prompt
 	var name string
 	if len(args) > 0 {
@@ -49,36 +47,21 @@ func runCreateList(ctx context.Context, opts *createListOptions, args []string) 
 		return fmt.Errorf("interactive mode not yet implemented. Please provide a name as an argument")
 	}
 
-	// Load configuration
-	cfg, err := config.Load()
+	// Get API client from factory
+	client, err := f.ApiClient()
 	if err != nil {
-		return fmt.Errorf("failed to load config: %w", err)
+		return err
 	}
-
-	// Get authentication token
-	authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-	token, err := authClient.GetToken(cfg.DefaultAccount)
-	if err != nil {
-		return fmt.Errorf("not authenticated. Run 'bc4 auth login' first")
-	}
-
-	// Get current project
-	projectID := cfg.DefaultProject
-	if projectID == "" && cfg.Accounts != nil {
-		if acc, ok := cfg.Accounts[cfg.DefaultAccount]; ok {
-			projectID = acc.DefaultProject
-		}
-	}
-	if projectID == "" {
-		return fmt.Errorf("no project selected. Run 'bc4 project select' first")
-	}
-
-	// Create API client
-	client := api.NewModularClient(cfg.DefaultAccount, token.AccessToken)
 	todoOps := client.Todos()
 
+	// Get resolved project ID
+	projectID, err := f.ProjectID()
+	if err != nil {
+		return err
+	}
+
 	// Get the todo set for the project
-	todoSet, err := todoOps.GetProjectTodoSet(ctx, projectID)
+	todoSet, err := todoOps.GetProjectTodoSet(f.Context(), projectID)
 	if err != nil {
 		return fmt.Errorf("failed to get todo set: %w", err)
 	}
@@ -89,7 +72,7 @@ func runCreateList(ctx context.Context, opts *createListOptions, args []string) 
 		Description: opts.description,
 	}
 
-	todoList, err := todoOps.CreateTodoList(ctx, projectID, todoSet.ID, req)
+	todoList, err := todoOps.CreateTodoList(f.Context(), projectID, todoSet.ID, req)
 	if err != nil {
 		return fmt.Errorf("failed to create todo list: %w", err)
 	}

@@ -1,18 +1,16 @@
 package card
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
-func newSetCmd() *cobra.Command {
+func newSetCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 	var projectID string
 
@@ -22,51 +20,36 @@ func newSetCmd() *cobra.Command {
 		Long:  `Set the default card table for the current project. This default will be used when no table is specified in other commands.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
 
-			// Load config
-			cfg, err := config.Load()
+			// Get API client from factory
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
+			cardOps := client.Cards()
+
+			// Get resolved IDs
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
+			}
+			resolvedProjectID, err := f.ProjectID()
 			if err != nil {
 				return err
 			}
 
-			// Check authentication
-			if cfg.DefaultAccount == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Get account ID
-			if accountID == "" {
-				accountID = cfg.DefaultAccount
-			}
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set")
-			}
-
-			// Get project ID
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-			}
-			if projectID == "" {
-				// Check for account-specific default project
-				if acc, ok := cfg.Accounts[accountID]; ok && acc.DefaultProject != "" {
-					projectID = acc.DefaultProject
-				}
-			}
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-			token, err := authClient.GetToken(accountID)
+			// Get config for updating
+			cfg, err := f.Config()
 			if err != nil {
-				return fmt.Errorf("failed to get auth token: %w", err)
+				return err
 			}
-
-			// Create API client
-			client := api.NewModularClient(accountID, token.AccessToken)
-			cardOps := client.Cards()
 
 			// Parse input as ID or search by name
 			var cardTableID int64
@@ -76,12 +59,12 @@ func newSetCmd() *cobra.Command {
 			if id, err := strconv.ParseInt(input, 10, 64); err == nil {
 				cardTableID = id
 				// Verify it exists
-				if _, err := cardOps.GetCardTable(ctx, projectID, cardTableID); err != nil {
+				if _, err := cardOps.GetCardTable(f.Context(), resolvedProjectID, cardTableID); err != nil {
 					return fmt.Errorf("card table %d not found", cardTableID)
 				}
 			} else {
 				// Search by name - for now just get the project's card table
-				cardTable, err := cardOps.GetProjectCardTable(ctx, projectID)
+				cardTable, err := cardOps.GetProjectCardTable(f.Context(), resolvedProjectID)
 				if err != nil {
 					return fmt.Errorf("failed to fetch card table: %w", err)
 				}
@@ -98,23 +81,23 @@ func newSetCmd() *cobra.Command {
 			if cfg.Accounts == nil {
 				cfg.Accounts = make(map[string]config.AccountConfig)
 			}
-			if _, ok := cfg.Accounts[accountID]; !ok {
-				cfg.Accounts[accountID] = config.AccountConfig{
+			if _, ok := cfg.Accounts[resolvedAccountID]; !ok {
+				cfg.Accounts[resolvedAccountID] = config.AccountConfig{
 					ProjectDefaults: make(map[string]config.ProjectDefaults),
 				}
 			}
-			if cfg.Accounts[accountID].ProjectDefaults == nil {
-				acc := cfg.Accounts[accountID]
+			if cfg.Accounts[resolvedAccountID].ProjectDefaults == nil {
+				acc := cfg.Accounts[resolvedAccountID]
 				acc.ProjectDefaults = make(map[string]config.ProjectDefaults)
-				cfg.Accounts[accountID] = acc
+				cfg.Accounts[resolvedAccountID] = acc
 			}
 
 			// Set the default card table
-			acc := cfg.Accounts[accountID]
-			proj := acc.ProjectDefaults[projectID]
+			acc := cfg.Accounts[resolvedAccountID]
+			proj := acc.ProjectDefaults[resolvedProjectID]
 			proj.DefaultCardTable = fmt.Sprintf("%d", cardTableID)
-			acc.ProjectDefaults[projectID] = proj
-			cfg.Accounts[accountID] = acc
+			acc.ProjectDefaults[resolvedProjectID] = proj
+			cfg.Accounts[resolvedAccountID] = acc
 
 			// Save config
 			if err := config.Save(cfg); err != nil {

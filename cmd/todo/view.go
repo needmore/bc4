@@ -2,7 +2,6 @@ package todo
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -14,14 +13,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
-	"github.com/needmore/bc4/internal/api"
-	"github.com/needmore/bc4/internal/auth"
-	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 )
 
-func newViewCmd() *cobra.Command {
+func newViewCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 	var projectID string
 	var formatStr string
@@ -39,47 +36,14 @@ You can specify the todo using either:
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/todos/12345")`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
-			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
+			// Apply account override if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
 			}
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
-
-			// Use specified account or default
-			if accountID == "" {
-				accountID = authClient.GetDefaultAccount()
-			}
-
-			if accountID == "" {
-				return fmt.Errorf("no account specified and no default account set. Use --account or run 'bc4 account select'")
-			}
-
-			// Use specified project or default
-			if projectID == "" {
-				projectID = cfg.DefaultProject
-				if projectID == "" && cfg.Accounts != nil {
-					if acc, ok := cfg.Accounts[accountID]; ok {
-						projectID = acc.DefaultProject
-					}
-				}
-			}
-
-			if projectID == "" {
-				return fmt.Errorf("no project specified and no default project set. Use --project or run 'bc4 project select'")
-			}
-
-			// Get token
-			token, err := authClient.GetToken(accountID)
-			if err != nil {
-				return fmt.Errorf("failed to get authentication token: %w", err)
+			// Apply project override if specified
+			if projectID != "" {
+				f = f.WithProject(projectID)
 			}
 
 			// Parse todo ID (could be numeric ID or URL)
@@ -94,23 +58,33 @@ You can specify the todo using either:
 					return fmt.Errorf("URL is not for a todo: %s", args[0])
 				}
 				if parsedURL.AccountID > 0 {
-					accountID = strconv.FormatInt(parsedURL.AccountID, 10)
+					f = f.WithAccount(strconv.FormatInt(parsedURL.AccountID, 10))
 				}
 				if parsedURL.ProjectID > 0 {
-					projectID = strconv.FormatInt(parsedURL.ProjectID, 10)
+					f = f.WithProject(strconv.FormatInt(parsedURL.ProjectID, 10))
 				}
 			}
 
-			// Create API client
-			apiClient := api.NewModularClient(accountID, token.AccessToken)
-			todoOps := apiClient.Todos()
+			// Get API client from factory
+			client, err := f.ApiClient()
+			if err != nil {
+				return err
+			}
+			todoOps := client.Todos()
 
-			// Get the todo details
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
+			// Get resolved IDs
+			resolvedAccountID, err := f.AccountID()
+			if err != nil {
+				return err
+			}
+
+			resolvedProjectID, err := f.ProjectID()
+			if err != nil {
+				return err
+			}
 
 			// Fetch the todo details
-			todo, err := todoOps.GetTodo(ctx, projectID, todoID)
+			todo, err := todoOps.GetTodo(f.Context(), resolvedProjectID, todoID)
 			if err != nil {
 				return fmt.Errorf("failed to get todo: %w", err)
 			}
@@ -118,7 +92,7 @@ You can specify the todo using either:
 			// Open in browser if requested
 			if webView {
 				// For now, just print the URL since OpenInBrowser is not implemented
-				fmt.Printf("Todo URL: https://3.basecamp.com/%s/buckets/%s/todos/%d\n", accountID, projectID, todoID)
+				fmt.Printf("Todo URL: https://3.basecamp.com/%s/buckets/%s/todos/%d\n", resolvedAccountID, resolvedProjectID, todoID)
 				return nil
 			}
 
@@ -251,6 +225,7 @@ You can specify the todo using either:
 			fmt.Fprintln(&buf)
 
 			// Display using pager
+			cfg, _ := f.Config()
 			pagerOpts := &utils.PagerOptions{
 				Pager:   cfg.Preferences.Pager,
 				NoPager: noPager,

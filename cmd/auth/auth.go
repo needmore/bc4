@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
@@ -17,29 +18,29 @@ var (
 )
 
 // NewAuthCmd creates the auth command
-func NewAuthCmd() *cobra.Command {
+func NewAuthCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "auth",
 		Short: "Manage authentication",
 		Long:  `Authenticate with Basecamp using OAuth2`,
 	}
 
-	cmd.AddCommand(newLoginCmd())
-	cmd.AddCommand(newLogoutCmd())
-	cmd.AddCommand(newStatusCmd())
-	cmd.AddCommand(newRefreshCmd())
+	cmd.AddCommand(newLoginCmd(f))
+	cmd.AddCommand(newLogoutCmd(f))
+	cmd.AddCommand(newStatusCmd(f))
+	cmd.AddCommand(newRefreshCmd(f))
 
 	return cmd
 }
 
-func newLoginCmd() *cobra.Command {
+func newLoginCmd(f *factory.Factory) *cobra.Command {
 	return &cobra.Command{
 		Use:   "login",
 		Short: "Log in to Basecamp",
 		Long:  `Authenticate with Basecamp using OAuth2`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
-			cfg, err := config.Load()
+			cfg, err := f.Config()
 			if err != nil {
 				return err
 			}
@@ -65,7 +66,7 @@ func newLoginCmd() *cobra.Command {
 	}
 }
 
-func newLogoutCmd() *cobra.Command {
+func newLogoutCmd(f *factory.Factory) *cobra.Command {
 	var all bool
 
 	cmd := &cobra.Command{
@@ -75,7 +76,7 @@ func newLogoutCmd() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
-			cfg, err := config.Load()
+			cfg, err := f.Config()
 			if err != nil {
 				return err
 			}
@@ -110,7 +111,7 @@ func newLogoutCmd() *cobra.Command {
 	return cmd
 }
 
-func newStatusCmd() *cobra.Command {
+func newStatusCmd(f *factory.Factory) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show authentication status",
@@ -164,7 +165,7 @@ func newStatusCmd() *cobra.Command {
 	}
 }
 
-func newRefreshCmd() *cobra.Command {
+func newRefreshCmd(f *factory.Factory) *cobra.Command {
 	return &cobra.Command{
 		Use:   "refresh [account-id]",
 		Short: "Refresh authentication token",
@@ -172,7 +173,7 @@ func newRefreshCmd() *cobra.Command {
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Load config
-			cfg, err := config.Load()
+			cfg, err := f.Config()
 			if err != nil {
 				return err
 			}

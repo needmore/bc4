@@ -12,6 +12,7 @@ import (
 
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
 )
 
@@ -33,6 +34,7 @@ type selectModel struct {
 	err      error
 	width    int
 	height   int
+	factory  *factory.Factory
 }
 
 func (m selectModel) Init() tea.Cmd {
@@ -234,23 +236,12 @@ func (m *selectModel) setDefaultAccount(accountID, accountName string) tea.Cmd {
 	}
 }
 
-func newSelectCmd() *cobra.Command {
+func newSelectCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "select",
 		Short: "Select default account",
 		Long:  `Interactively select a default account for bc4 commands.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Load config
-			cfg, err := config.Load()
-			if err != nil {
-				return fmt.Errorf("failed to load config: %w", err)
-			}
-
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
-			}
-
 			// Create spinner
 			s := spinner.New()
 			s.Spinner = spinner.Dot
@@ -260,6 +251,7 @@ func newSelectCmd() *cobra.Command {
 			m := selectModel{
 				spinner: s,
 				loading: true,
+				factory: f,
 			}
 
 			// Run the interactive selector

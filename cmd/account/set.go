@@ -5,11 +5,11 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 )
 
-func newSetCmd() *cobra.Command {
+func newSetCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set [account-id]",
 		Short: "Set default account",
@@ -18,19 +18,17 @@ func newSetCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			accountID := args[0]
 
-			// Load config
-			cfg, err := config.Load()
+			// Get config from factory
+			cfg, err := f.Config()
 			if err != nil {
 				return fmt.Errorf("failed to load config: %w", err)
 			}
 
-			// Check if we have auth
-			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
+			// Get auth client from factory
+			authClient, err := f.AuthClient()
+			if err != nil {
+				return err
 			}
-
-			// Create auth client
-			authClient := auth.NewClient(cfg.ClientID, cfg.ClientSecret)
 
 			// Verify the account exists
 			accounts := authClient.GetAccounts()

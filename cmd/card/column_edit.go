@@ -3,10 +3,11 @@ package card
 import (
 	"fmt"
 
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
 
-func newColumnEditCmd() *cobra.Command {
+func newColumnEditCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit [ID]",
 		Short: "Edit column name/description",
