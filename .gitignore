@@ -39,4 +39,12 @@ Thumbs.db
 
 # User-specific configuration
 ~/.config/bc4/auth.json
-EOF < /dev/null
+
+# AI Assistant files (should not be in repo)
+.claude/
+CLAUDE.md
+GEMINI.md
+*copilot*
+.github/copilot*
+*.ai.md
+.ai/

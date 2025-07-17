@@ -8,6 +8,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/errors"
 )
 
 // Factory provides centralized dependency management for commands
@@ -67,7 +68,7 @@ func (f *Factory) AuthClient() (*auth.Client, error) {
 	}
 
 	if cfg.ClientID == "" || cfg.ClientSecret == "" {
-		return nil, fmt.Errorf("not authenticated. Run 'bc4' to set up authentication")
+		return nil, errors.NewAuthenticationError(fmt.Errorf("not authenticated"))
 	}
 
 	f.authClientOnce.Do(func() {
@@ -90,7 +91,7 @@ func (f *Factory) AccountID() (string, error) {
 
 	accountID := authClient.GetDefaultAccount()
 	if accountID == "" {
-		return "", fmt.Errorf("no account specified and no default account set")
+		return "", errors.NewConfigurationError("no account specified and no default account set", nil)
 	}
 
 	return accountID, nil
@@ -120,7 +121,7 @@ func (f *Factory) ProjectID() (string, error) {
 	}
 
 	if projectID == "" {
-		return "", fmt.Errorf("no project specified and no default project set")
+		return "", errors.NewConfigurationError("no project specified and no default project set", nil)
 	}
 
 	return projectID, nil
