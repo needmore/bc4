@@ -97,13 +97,13 @@ func TestCurrentCommand(t *testing.T) {
 				accounts:       tt.accounts,
 				defaultAccount: tt.defaultAccount,
 			}
-			fact := &mockFactory{
+			fact := &factory.Factory{
 				authClient: mockAuth,
 				config:     tt.config,
 			}
 
 			// Create command
-			cmd := NewCmdCurrent(fact)
+			cmd := newCurrentCmd(fact)
 			
 			// Set JSON flag if specified
 			if tt.jsonOutput {
@@ -142,11 +142,11 @@ func TestCurrentCommand(t *testing.T) {
 
 func TestCurrentCommand_Aliases(t *testing.T) {
 	// Test that the command has the correct aliases
-	fact := &mockFactory{
+	fact := &factory.Factory{
 		authClient: &mockAuthClient{},
 	}
 	
-	cmd := NewCmdCurrent(fact)
+	cmd := newCurrentCmd(fact)
 	assert.Contains(t, cmd.Aliases, "whoami")
 }
 
@@ -158,14 +158,14 @@ func TestCurrentCommand_JSONStructure(t *testing.T) {
 		},
 		defaultAccount: "123",
 	}
-	fact := &mockFactory{
+	fact := &factory.Factory{
 		authClient: mockAuth,
 		config: &config.Config{
 			DefaultProject: "456",
 		},
 	}
 
-	cmd := NewCmdCurrent(fact)
+	cmd := newCurrentCmd(fact)
 	cmd.Flags().Set("json", "true")
 	
 	var buf bytes.Buffer

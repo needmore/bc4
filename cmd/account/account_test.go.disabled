@@ -3,17 +3,37 @@ package account
 import (
 	"testing"
 
+	"github.com/needmore/bc4/internal/auth"
+	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/factory"
 	"github.com/stretchr/testify/assert"
 )
 
+// Mock factory for testing
+type mockFactory struct {
+	authClient   auth.Client
+	config       *config.Config
+	isOutputToTTY bool
+}
+
+func (m *mockFactory) Auth() auth.Client {
+	return m.authClient
+}
+
+func (m *mockFactory) Config() *config.Config {
+	return m.config
+}
+
+func (m *mockFactory) IsOutputToTTY() bool {
+	return m.isOutputToTTY
+}
+
 func TestNewCmdAccount(t *testing.T) {
 	// Create mock factory
-	fact := &mockFactory{
-		authClient: &mockAuthClient{},
-	}
+	fact := &factory.Factory{}
 	
 	// Create account command
-	cmd := NewCmdAccount(fact)
+	cmd := NewAccountCmd(fact)
 	
 	// Test basic properties
 	assert.Equal(t, "account", cmd.Use)
@@ -39,15 +59,9 @@ func TestNewCmdAccount(t *testing.T) {
 
 func TestAccountCommand_Factory(t *testing.T) {
 	// Test that factory is properly passed to subcommands
-	fact := &mockFactory{
-		authClient: &mockAuthClient{
-			accounts: map[string]auth.AccountToken{
-				"123": {AccountID: "123", AccountName: "Test"},
-			},
-		},
-	}
+	fact := &factory.Factory{}
 	
-	cmd := NewCmdAccount(fact)
+	cmd := NewAccountCmd(fact)
 	
 	// Get list subcommand and verify it works with the factory
 	listCmd, _, err := cmd.Find([]string{"list"})
