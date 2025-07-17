@@ -105,4 +105,3 @@ func (pr *PaginatedRequest) GetPage(path string, page int, result interface{}) e
 
 	return pr.client.Get(paginatedPath, result)
 }
-

@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/needmore/bc4/internal/errors"
 )
 
 const (
@@ -59,7 +61,23 @@ func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response,
 	if resp.StatusCode >= 400 {
 		defer resp.Body.Close()
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API error: %s (status: %d)", string(body), resp.StatusCode)
+
+		// Use our custom error types for better user experience
+		switch resp.StatusCode {
+		case http.StatusUnauthorized:
+			return nil, errors.NewAuthenticationError(fmt.Errorf("unauthorized: %s", string(body)))
+		case http.StatusNotFound:
+			// Try to extract resource info from the path
+			parts := strings.Split(path, "/")
+			resource := "resource"
+			if len(parts) > 2 {
+				// Extract resource type from path (e.g., /buckets/123/projects/456 -> project)
+				resource = strings.TrimSuffix(parts[len(parts)-2], "s")
+			}
+			return nil, errors.NewNotFoundError(resource, "", fmt.Errorf("not found: %s", string(body)))
+		default:
+			return nil, errors.NewAPIError(resp.StatusCode, string(body), nil)
+		}
 	}
 
 	return resp, nil

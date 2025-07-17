@@ -15,6 +15,7 @@ import (
 	"github.com/needmore/bc4/cmd/project"
 	"github.com/needmore/bc4/cmd/todo"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/errors"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/tui"
 	"github.com/needmore/bc4/internal/version"
@@ -61,6 +62,14 @@ Get started by running 'bc4' to launch the setup wizard.`,
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
+		// Don't format cobra's built-in errors (help, version, etc.)
+		// These are displayed properly by cobra itself
+		if err.Error() == "help requested" {
+			os.Exit(0)
+		}
+
+		// Format the error for user display
+		fmt.Fprintln(os.Stderr, errors.FormatError(err))
 		os.Exit(1)
 	}
 }

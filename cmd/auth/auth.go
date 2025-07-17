@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/needmore/bc4/internal/auth"
 	"github.com/needmore/bc4/internal/config"
+	"github.com/needmore/bc4/internal/errors"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -47,7 +48,7 @@ func newLoginCmd(f *factory.Factory) *cobra.Command {
 
 			// Check if credentials are configured
 			if cfg.ClientID == "" || cfg.ClientSecret == "" {
-				return fmt.Errorf("OAuth credentials not configured. Run 'bc4' to start the setup wizard")
+				return errors.NewConfigurationError("OAuth credentials not configured", nil)
 			}
 
 			// Create auth client
@@ -206,7 +207,7 @@ func GetAuthClient() (*auth.Client, error) {
 	}
 
 	if cfg.ClientID == "" || cfg.ClientSecret == "" {
-		return nil, fmt.Errorf("OAuth credentials not configured")
+		return nil, errors.NewConfigurationError("OAuth credentials not configured", nil)
 	}
 
 	return auth.NewClient(cfg.ClientID, cfg.ClientSecret), nil
