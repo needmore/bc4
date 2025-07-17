@@ -11,7 +11,7 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), inspire
 - 💬 **Message Posting** - Post messages to project message boards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
 - 🎯 **Card Management** - Manage cards with kanban board view
-- 🎨 **Beautiful TUI** - Interactive interface powered by Charm tools (maybe)
+- 🎨 **Beautiful TUI** - Interactive interface powered by Charm tools
 - 🔍 **Smart Search** - Find projects by pattern matching
 - 🔗 **URL Parameter Support** - Use Basecamp URLs directly as command arguments
 - 📝 **Markdown Support** - Write in Markdown, automatically converted to Basecamp's rich text format
@@ -246,38 +246,78 @@ bc4 card step check https://3.basecamp.com/1234567/buckets/89012345/card_tables/
 
 ## Examples
 
-### Quick Project Access
+### Common Workflows
 
-Find and set a project as default by pattern:
+#### Daily Standup Updates
+
 ```bash
-bc4 project executive
-# Finds first project with "executive" in the name
+# Post a formatted standup update to campfire
+bc4 campfire update
+# This opens an interactive editor for a formatted daily update
+
+# Quick status update to team campfire
+bc4 campfire post "Team" "PR #123 is ready for review 👀"
 ```
 
-### Post a Campfire Message
+#### Managing Development Tasks
 
 ```bash
-# Interactive mode
-bc4 campfire post
+# Create a todo from a Markdown file with rich formatting
+cat > task.md << EOF
+# Refactor Authentication Module
 
-# Direct message
-bc4 campfire post "marketing" "New campaign is live!"
+## Objectives
+- Improve error handling
+- Add retry logic for network failures
+- Update to use new OAuth2 library
+
+## Acceptance Criteria
+- [ ] All tests pass
+- [ ] No breaking changes to public API
+- [ ] Documentation updated
+EOF
+
+bc4 todo add --file task.md --list "Sprint 2025-01" --due 2025-01-25
+
+# Check off todos as you complete them
+bc4 todo check #18234  # Using the # prefix
+bc4 todo check https://3.basecamp.com/1234567/buckets/89012345/todos/18234  # Using URL
 ```
 
-### Create Todos
+#### Project Navigation
 
 ```bash
-# Quick todo creation with default list
-bc4 todo add "Fix login bug"
+# Quickly switch between projects using patterns
+bc4 project marketing    # Switches to first project matching "marketing"
+bc4 project "Q1 2025"   # Switches to project with "Q1 2025" in the name
 
-# Add to a specific list with details
-bc4 todo add "Update API docs" --list "Documentation" --due 2025-01-20
+# Set a default project to avoid constant switching
+bc4 project select       # Interactive project selector
+```
 
-# Mark as done when complete
-bc4 todo check 12345
+#### Card Board Management
 
-# Create a new list for organizing todos
-bc4 todo create-list "Q1 2025 Goals"
+```bash
+# View kanban board status
+bc4 card list            # Shows all card tables in project
+bc4 card table 12345     # Shows cards in specific table
+
+# Move cards through workflow
+bc4 card move 45678 --column "In Progress"
+bc4 card move 45678 --column "Review"
+bc4 card move 45678 --column "Done"
+
+# Assign team members to cards
+bc4 card assign 45678    # Interactive assignee selector
+```
+
+#### Working with URLs
+
+```bash
+# bc4 accepts Basecamp URLs directly - just copy from your browser!
+bc4 todo view https://3.basecamp.com/1234567/buckets/89012345/todos/12345
+bc4 card edit https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
+bc4 campfire view https://3.basecamp.com/1234567/buckets/89012345/chats/12345
 ```
 
 ## Configuration
@@ -309,7 +349,58 @@ Configuration is stored in:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+We welcome contributions from the community! Here's how you can help:
+
+### Filing Issues
+
+1. **Check existing issues**: Before filing a new issue, search the [issue tracker](https://github.com/needmore/bc4/issues) to see if it has already been reported.
+2. **Use clear titles**: Summarize the issue in a clear, descriptive title.
+3. **Provide details**: Include:
+   - Steps to reproduce the issue
+   - Expected behavior
+   - Actual behavior
+   - Your environment (OS, Go version, bc4 version)
+   - Any error messages or logs
+4. **Use issue templates**: If available, use the provided issue templates for bug reports or feature requests.
+
+### Submitting Pull Requests
+
+1. **Fork the repository**: Create your own fork of the bc4 repository.
+2. **Create a feature branch**: Use a descriptive branch name (e.g., `fix-auth-timeout`, `add-document-support`).
+3. **Follow code style**: Ensure your code follows the existing patterns and passes linting:
+   ```bash
+   golangci-lint run
+   ```
+4. **Write tests**: Add tests for any new functionality or bug fixes.
+5. **Update documentation**: Update the README or other docs if your changes affect user-facing functionality.
+6. **Commit messages**: Use clear, descriptive commit messages following conventional commit format:
+   - `feat:` for new features
+   - `fix:` for bug fixes
+   - `docs:` for documentation changes
+   - `test:` for test additions or fixes
+   - `refactor:` for code refactoring
+7. **Open a pull request**:
+   - Provide a clear description of the changes
+   - Reference any related issues (e.g., "Fixes #123")
+   - Ensure all CI checks pass
+8. **Be responsive**: Address any feedback or requested changes promptly.
+
+### Development Setup
+
+```bash
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/bc4.git
+cd bc4
+
+# Install dependencies
+go mod download
+
+# Run tests
+go test ./...
+
+# Build the binary
+go build -o bc4
+```
 
 ## License
 
