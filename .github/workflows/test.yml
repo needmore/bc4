@@ -8,11 +8,7 @@ on:
 
 jobs:
   test:
-    strategy:
-      matrix:
-        go-version: ['1.21', '1.22', '1.23']
-        os: [macos-latest, macos-13]  # Test on both Apple Silicon and Intel
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
@@ -21,7 +17,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: 'go.mod'
           cache: true
 
       - name: Download dependencies
@@ -42,7 +38,7 @@ jobs:
           ./build/bc4 --version
 
   lint:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
