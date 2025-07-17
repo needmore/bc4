@@ -200,7 +200,7 @@ func TestSave(t *testing.T) {
 				// Create existing config
 				oldConfig := &Config{ClientID: "old-client-id"}
 				data, _ := json.Marshal(oldConfig)
-				os.WriteFile(configPath, data, 0600)
+				_ = os.WriteFile(configPath, data, 0600)
 			},
 			verifyFunc: func(t *testing.T, tempDir string) {
 				data, err := os.ReadFile(configPath)

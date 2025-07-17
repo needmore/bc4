@@ -194,10 +194,10 @@ func TestMockClient_CallTracking(t *testing.T) {
 	client := NewMockClient()
 	
 	// Make several calls
-	client.GetProjects(context.Background())
-	client.GetProject(context.Background(), "123")
-	client.GetTodo(context.Background(), "123", 456)
-	client.CompleteTodo(context.Background(), "123", 456)
+	_, _ = client.GetProjects(context.Background())
+	_, _ = client.GetProject(context.Background(), "123")
+	_, _ = client.GetTodo(context.Background(), "123", 456)
+	_ = client.CompleteTodo(context.Background(), "123", 456)
 	
 	// Verify all calls were tracked
 	assert.Len(t, client.Calls, 4)
