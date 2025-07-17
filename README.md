@@ -1,6 +1,6 @@
 # bc4 - Basecamp Command Line Interface
 
-A powerful command-line interface for [Basecamp](https://basecamp.com/), inspired by GitHub's `gh` CLI. Manage your projects, todos, messages, and campfire chats directly from your terminal.
+A powerful command-line interface for [Basecamp](https://basecamp.com/), inspired by GitHub's `gh` CLI. Manage your projects, todos, messages, and campfire chats directly from your terminal. Made by your friends at [Needmore Designs](https://needmoredesigns.com).
 
 ## Features
 
