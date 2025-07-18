@@ -6,7 +6,7 @@ package main
 import (
 	"fmt"
 	"net/http"
-	
+
 	"github.com/needmore/bc4/internal/errors"
 )
 
@@ -18,7 +18,7 @@ func main() {
 	fmt.Println("Authentication Error:")
 	fmt.Println(errors.FormatError(authErr))
 	fmt.Println()
-	
+
 	// Example 2: Not Found Error
 	// Before: API error: {"error": "not found"} (status: 404)
 	// After:
@@ -26,7 +26,7 @@ func main() {
 	fmt.Println("Not Found Error:")
 	fmt.Println(errors.FormatError(notFoundErr))
 	fmt.Println()
-	
+
 	// Example 3: API Error (Rate Limit)
 	// Before: API error: {"error": "rate limit exceeded"} (status: 429)
 	// After:
@@ -34,7 +34,7 @@ func main() {
 	fmt.Println("Rate Limit Error:")
 	fmt.Println(errors.FormatError(rateLimitErr))
 	fmt.Println()
-	
+
 	// Example 4: Configuration Error
 	// Before: no account specified and no default account set
 	// After:
@@ -42,7 +42,7 @@ func main() {
 	fmt.Println("Configuration Error:")
 	fmt.Println(errors.FormatError(configErr))
 	fmt.Println()
-	
+
 	// Example 5: Network Error
 	// Before: request failed: dial tcp: lookup api.basecamp.com: no such host
 	// After:

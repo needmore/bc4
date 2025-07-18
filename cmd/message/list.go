@@ -107,7 +107,9 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 			}
 
 			// Render
-			table.Render()
+			if err := table.Render(); err != nil {
+				return fmt.Errorf("failed to render table: %w", err)
+			}
 
 			return nil
 		},

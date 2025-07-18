@@ -26,7 +26,7 @@ func TestMockClient_GetProjects(t *testing.T) {
 		client.Projects = expectedProjects
 
 		result, err := client.GetProjects(context.Background())
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, expectedProjects, result)
 		assert.Contains(t, client.Calls, "GetProjects")
@@ -37,7 +37,7 @@ func TestMockClient_GetProjects(t *testing.T) {
 		client.ProjectsError = errors.New("test error")
 
 		result, err := client.GetProjects(context.Background())
-		
+
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Equal(t, "test error", err.Error())
@@ -52,7 +52,7 @@ func TestMockClient_GetProject(t *testing.T) {
 		client.Project = expectedProject
 
 		result, err := client.GetProject(context.Background(), "123")
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, expectedProject, result)
 		assert.Contains(t, client.Calls, "GetProject(123)")
@@ -63,7 +63,7 @@ func TestMockClient_GetProject(t *testing.T) {
 		client.ProjectError = errors.New("custom error")
 
 		result, err := client.GetProject(context.Background(), "123")
-		
+
 		assert.Error(t, err)
 		assert.Nil(t, result)
 		assert.Contains(t, client.Calls, "GetProject(123)")
@@ -74,7 +74,7 @@ func TestMockClient_GetProject(t *testing.T) {
 		client.Project = nil
 
 		result, err := client.GetProject(context.Background(), "123")
-		
+
 		assert.Error(t, err)
 		assert.Equal(t, "project not found", err.Error())
 		assert.Nil(t, result)
@@ -89,7 +89,7 @@ func TestMockClient_TodoOperations(t *testing.T) {
 
 		req := api.TodoCreateRequest{Content: "New Todo"}
 		result, err := client.CreateTodo(context.Background(), "123", 456, req)
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, expectedTodo, result)
 		assert.Contains(t, client.Calls[0], "CreateTodo(123, 456")
@@ -97,9 +97,9 @@ func TestMockClient_TodoOperations(t *testing.T) {
 
 	t.Run("complete todo", func(t *testing.T) {
 		client := NewMockClient()
-		
+
 		err := client.CompleteTodo(context.Background(), "123", 456)
-		
+
 		assert.NoError(t, err)
 		assert.Contains(t, client.Calls, "CompleteTodo(123, 456)")
 	})
@@ -107,9 +107,9 @@ func TestMockClient_TodoOperations(t *testing.T) {
 	t.Run("complete todo with error", func(t *testing.T) {
 		client := NewMockClient()
 		client.CompleteTodoError = errors.New("completion failed")
-		
+
 		err := client.CompleteTodo(context.Background(), "123", 456)
-		
+
 		assert.Error(t, err)
 		assert.Equal(t, "completion failed", err.Error())
 	})
@@ -128,7 +128,7 @@ func TestMockClient_CardOperations(t *testing.T) {
 		client.CardTable = expectedTable
 
 		result, err := client.GetCardTable(context.Background(), "123", 456)
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, expectedTable, result)
 		assert.Contains(t, client.Calls, "GetCardTable(123, 456)")
@@ -141,7 +141,7 @@ func TestMockClient_CardOperations(t *testing.T) {
 
 		req := api.CardCreateRequest{Title: "New Card"}
 		result, err := client.CreateCard(context.Background(), "123", 1, req)
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, expectedCard, result)
 		assert.Contains(t, client.Calls[0], "CreateCard(123, 1")
@@ -149,9 +149,9 @@ func TestMockClient_CardOperations(t *testing.T) {
 
 	t.Run("move card", func(t *testing.T) {
 		client := NewMockClient()
-		
+
 		err := client.MoveCard(context.Background(), "123", 789, 2)
-		
+
 		assert.NoError(t, err)
 		assert.Contains(t, client.Calls, "MoveCard(123, 789, 2)")
 	})
@@ -165,7 +165,7 @@ func TestMockClient_StepOperations(t *testing.T) {
 
 		req := api.StepCreateRequest{Title: "New Step"}
 		result, err := client.CreateStep(context.Background(), "123", 456, req)
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, expectedStep, result)
 		assert.Contains(t, client.Calls[0], "CreateStep(123, 456")
@@ -173,18 +173,18 @@ func TestMockClient_StepOperations(t *testing.T) {
 
 	t.Run("set step completion", func(t *testing.T) {
 		client := NewMockClient()
-		
+
 		err := client.SetStepCompletion(context.Background(), "123", 999, true)
-		
+
 		assert.NoError(t, err)
 		assert.Contains(t, client.Calls, "SetStepCompletion(123, 999, true)")
 	})
 
 	t.Run("delete step", func(t *testing.T) {
 		client := NewMockClient()
-		
+
 		err := client.DeleteStep(context.Background(), "123", 999)
-		
+
 		assert.NoError(t, err)
 		assert.Contains(t, client.Calls, "DeleteStep(123, 999)")
 	})
@@ -192,13 +192,13 @@ func TestMockClient_StepOperations(t *testing.T) {
 
 func TestMockClient_CallTracking(t *testing.T) {
 	client := NewMockClient()
-	
+
 	// Make several calls
 	_, _ = client.GetProjects(context.Background())
 	_, _ = client.GetProject(context.Background(), "123")
 	_, _ = client.GetTodo(context.Background(), "123", 456)
 	_ = client.CompleteTodo(context.Background(), "123", 456)
-	
+
 	// Verify all calls were tracked
 	assert.Len(t, client.Calls, 4)
 	assert.Equal(t, "GetProjects", client.Calls[0])
