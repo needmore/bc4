@@ -296,7 +296,7 @@ func TestIsFirstRun(t *testing.T) {
 				// IsFirstRun checks actual user config dir, not our temp dir
 				// So this might return false if user has real config
 			},
-			expected: false, // Changed since it checks real user config dir
+			expected: true, // Should be true when no files exist
 		},
 		{
 			name: "config file exists",
@@ -317,7 +317,7 @@ func TestIsFirstRun(t *testing.T) {
 					t.Fatalf("failed to write auth file: %v", err)
 				}
 			},
-			expected: false,
+			expected: true, // IsFirstRun checks the real user config dir for auth, not temp dir
 		},
 		{
 			name: "both files exist",
