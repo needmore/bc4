@@ -62,7 +62,7 @@ vet:
 # Run linting (requires golangci-lint)
 lint:
 	@echo "Running linters..."
-	@golangci-lint run
+	@golangci-lint run ./...
 
 # Install binary to GOPATH/bin
 install: build

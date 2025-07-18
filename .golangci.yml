@@ -1,0 +1,72 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+# Configuration version (required)
+version: "2"
+
+run:
+  # Timeout for analysis
+  timeout: 5m
+  # Skip directories
+  skip-dirs:
+    - vendor
+    - testdata
+
+linters:
+  # Start with the standard set
+  default: standard
+  # Enable additional linters
+  enable:
+    - misspell
+    - goconst
+    - gocyclo
+    - dupl
+    - gosec
+    - unconvert
+    - prealloc
+    - nilerr
+    - unparam
+    - wastedassign
+    - makezero
+    - bodyclose
+    - errorlint
+    - exhaustive
+    - copyloopvar
+
+linters-settings:
+  gocyclo:
+    # Minimal cyclomatic complexity to report
+    min-complexity: 15
+  dupl:
+    # Minimal code duplicate size
+    threshold: 100
+  goconst:
+    # Minimal length of string constant
+    min-len: 3
+    # Minimal occurrences count to trigger
+    min-occurrences: 3
+  misspell:
+    # Correct commonly misspelled English words in comments
+    locale: US
+  gosec:
+    # Exclude specific rules
+    excludes:
+      - G104 # Audit errors not checked
+
+issues:
+  # Exclude known issues
+  exclude-rules:
+    # Exclude test files from some linters
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+        - gocyclo
+    # Allow init functions in main
+    - path: main\.go
+      linters:
+        - gochecknoinits
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+  # Maximum count of issues with the same text
+  max-same-issues: 3
