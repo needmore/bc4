@@ -76,15 +76,15 @@ func TestGetMessageBoard(t *testing.T) {
 					if requestCount == 1 {
 						// First request: return basic project
 						w.WriteHeader(http.StatusOK)
-						w.Write([]byte(`{"id": 123456, "name": "Test Project"}`))
+						_, _ = w.Write([]byte(`{"id": 123456, "name": "Test Project"}`))
 					} else if requestCount == 2 && tt.name == "successful response" {
 						// Second request for successful test: return project with dock
 						w.WriteHeader(tt.responseCode)
-						w.Write([]byte(tt.responseBody))
+						_, _ = w.Write([]byte(tt.responseBody))
 					} else {
 						// Other cases
 						w.WriteHeader(tt.responseCode)
-						w.Write([]byte(tt.responseBody))
+						_, _ = w.Write([]byte(tt.responseBody))
 					}
 					return
 				}
@@ -92,7 +92,7 @@ func TestGetMessageBoard(t *testing.T) {
 				// Message board details request
 				if r.URL.Path == "/123456/buckets/123456/message_boards/789.json" {
 					w.WriteHeader(http.StatusOK)
-					w.Write([]byte(`{
+					_, _ = w.Write([]byte(`{
 						"id": 789,
 						"title": "Message Board",
 						"name": "message_board",
@@ -105,7 +105,7 @@ func TestGetMessageBoard(t *testing.T) {
 				
 				// Default response
 				w.WriteHeader(tt.responseCode)
-				w.Write([]byte(tt.responseBody))
+				_, _ = w.Write([]byte(tt.responseBody))
 			}))
 			defer server.Close()
 
@@ -202,7 +202,7 @@ func TestListMessages(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				assert.Equal(t, "/123456/buckets/123456/message_boards/789/messages.json", r.URL.Path)
 				w.WriteHeader(tt.responseCode)
-				w.Write([]byte(tt.responseBody))
+				_, _ = w.Write([]byte(tt.responseBody))
 			}))
 			defer server.Close()
 
@@ -312,7 +312,7 @@ func TestCreateMessage(t *testing.T) {
 				assert.Equal(t, tt.request.Content, req.Content)
 
 				w.WriteHeader(tt.responseCode)
-				w.Write([]byte(tt.responseBody))
+				_, _ = w.Write([]byte(tt.responseBody))
 			}))
 			defer server.Close()
 
@@ -375,7 +375,7 @@ func TestUpdateMessage(t *testing.T) {
 				assert.Equal(t, http.MethodPut, r.Method)
 				w.WriteHeader(tt.responseCode)
 				if !tt.expectedError {
-					w.Write([]byte(`{
+					_, _ = w.Write([]byte(`{
 						"id": 123,
 						"subject": "Updated Subject",
 						"content": "<div>Updated content</div>"

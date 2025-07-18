@@ -63,7 +63,7 @@ func ShowInPager(content string, opts *PagerOptions) error {
 		// Fallback to direct output if pager fails
 		fmt.Print(content)
 		// Don't return the error since we successfully displayed the content
-		return nil
+		return nil //nolint:nilerr
 	}
 
 	return nil
@@ -133,7 +133,7 @@ func (p *pagerWriter) Close() error {
 		// Fallback to direct output if pager fails
 		fmt.Print(content)
 		// Don't return the error since we successfully displayed the content
-		return nil
+		return nil //nolint:nilerr
 	}
 
 	return nil

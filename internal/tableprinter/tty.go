@@ -177,12 +177,12 @@ func (t *ttyTablePrinter) calculateColumnWidths() {
 }
 
 // renderRow renders a single row with proper formatting
-func (t *ttyTablePrinter) renderRow(row []field, isHeader bool) {
+func (t *ttyTablePrinter) renderRow(row []field, _ bool) {
 	if len(row) == 0 {
 		return
 	}
 
-	var parts []string
+	parts := make([]string, 0, len(row))
 
 	for i, f := range row {
 		var content string

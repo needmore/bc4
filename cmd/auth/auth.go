@@ -112,7 +112,7 @@ func newLogoutCmd(f *factory.Factory) *cobra.Command {
 	return cmd
 }
 
-func newStatusCmd(f *factory.Factory) *cobra.Command {
+func newStatusCmd(_ *factory.Factory) *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show authentication status",

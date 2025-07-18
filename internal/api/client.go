@@ -375,7 +375,7 @@ func (c *Client) GetAllTodos(ctx context.Context, projectID string, todoListID i
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll(path, &completedTodos); err != nil {
 		// If we can't get completed todos, just return the incomplete ones
-		return allTodos, nil
+		return allTodos, err
 	}
 
 	// Mark them as completed (in case the API doesn't set this)

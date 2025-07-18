@@ -206,7 +206,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 	return cmd
 }
 
-func outputTodoListJSON(todoList *api.TodoList, todos []api.Todo, fields string) error {
+func outputTodoListJSON(todoList *api.TodoList, todos []api.Todo, _ string) error {
 	// Combine todo list and todos data
 	data := map[string]interface{}{
 		"id":          todoList.ID,
@@ -282,7 +282,7 @@ func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, g
 	fmt.Println(titleStyle.Render(todoList.Title))
 
 	// Display metadata - use the API's completed ratio if available
-	meta := ""
+	var meta string
 	if todoList.CompletedRatio != "" {
 		meta = todoList.CompletedRatio + " completed"
 	} else {
@@ -461,7 +461,7 @@ func displayTodoListWithGroupsSimple(todoList *api.TodoList, groups []api.TodoGr
 	return nil
 }
 
-func outputTodoListWithGroupsJSON(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo, fields string) error {
+func outputTodoListWithGroupsJSON(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo, _ string) error {
 	// Combine todo list, groups, and todos data
 	groupData := make([]map[string]interface{}, len(groups))
 	for i, group := range groups {

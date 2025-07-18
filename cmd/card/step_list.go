@@ -90,8 +90,8 @@ Examples:
 			if showCompleted || showPending {
 				var filtered []api.Step
 				for _, step := range card.Steps {
-					if (showCompleted && step.Status == "completed") ||
-						(showPending && step.Status != "completed") {
+					if (showCompleted && step.Status == statusCompleted) ||
+						(showPending && step.Status != statusCompleted) {
 						filtered = append(filtered, step)
 					}
 				}
@@ -116,7 +116,7 @@ Examples:
 			// Handle different output formats
 			format, _ := cmd.Flags().GetString("format")
 			switch format {
-			case "json":
+			case formatJSON:
 				output, err := json.MarshalIndent(filteredSteps, "", "  ")
 				if err != nil {
 					return fmt.Errorf("failed to format JSON: %w", err)
@@ -158,7 +158,7 @@ Examples:
 					if table.IsTTY() {
 						// Visual status indicator
 						status := "○"
-						if step.Status == "completed" {
+						if step.Status == statusCompleted {
 							status = "✓"
 						}
 						table.AddField(status)

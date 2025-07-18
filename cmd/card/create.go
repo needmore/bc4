@@ -218,7 +218,7 @@ func (m createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.String() {
-			case "enter":
+			case keyEnter:
 				if i, ok := m.columnList.SelectedItem().(columnItem); ok {
 					m.selectedColumn = &i.column
 					m.step = stepEnterTitle
@@ -234,7 +234,7 @@ func (m createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
 			switch msg.String() {
-			case "enter":
+			case keyEnter:
 				if m.titleInput.Value() != "" {
 					m.cardTitle = m.titleInput.Value()
 					m.step = stepEnterContent
@@ -271,41 +271,11 @@ func (m createModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stepSelectAssignees:
 		switch msg := msg.(type) {
 		case tea.KeyMsg:
-			switch msg.String() {
-			case "space":
-				if item, ok := m.peopleList.SelectedItem().(personItem); ok {
-					// Toggle selection
-					found := false
-					for idx, id := range m.selectedAssignees {
-						if id == item.person.ID {
-							// Remove from selection
-							m.selectedAssignees = append(m.selectedAssignees[:idx], m.selectedAssignees[idx+1:]...)
-							found = true
-							break
-						}
-					}
-					if !found {
-						// Add to selection
-						m.selectedAssignees = append(m.selectedAssignees, item.person.ID)
-					}
-					// Update the list to reflect selection state
-					items := m.peopleList.Items()
-					for i, listItem := range items {
-						if pi, ok := listItem.(personItem); ok {
-							if pi.person.ID == item.person.ID {
-								pi.selected = !found
-								items[i] = pi
-								break
-							}
-						}
-					}
-					m.peopleList.SetItems(items)
-				}
-			case "enter":
+			if msg.String() == keyEnter {
 				m.step = stepConfirm
 			}
 		}
-		m.peopleList, cmd = m.peopleList.Update(msg)
+		m.peopleList, m.selectedAssignees, cmd = handleAssigneeSelection(m.peopleList, m.selectedAssignees, msg)
 		cmds = append(cmds, cmd)
 
 	case stepConfirm:

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newSelectCmd(f *factory.Factory) *cobra.Command {
+func newSelectCmd(_ *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "select",
 		Short: "Select default todo list",
