@@ -19,7 +19,7 @@ func TestProjectCommands(t *testing.T) {
 		assert.Equal(t, "list", cmd.Use)
 		assert.Contains(t, cmd.Aliases, "ls")
 		assert.NotNil(t, cmd.RunE)
-		
+
 		// Test flags
 		assert.NotNil(t, cmd.Flag("json"))
 		assert.NotNil(t, cmd.Flag("format"))
@@ -30,7 +30,7 @@ func TestProjectCommands(t *testing.T) {
 		assert.Equal(t, "search [query]", cmd.Use)
 		assert.NotNil(t, cmd.RunE)
 		// Can't compare function values directly
-		
+
 		// Test flags
 		assert.NotNil(t, cmd.Flag("json"))
 		assert.NotNil(t, cmd.Flag("account"))
@@ -41,7 +41,7 @@ func TestProjectCommands(t *testing.T) {
 		assert.Equal(t, "set [project-id]", cmd.Use)
 		assert.NotNil(t, cmd.RunE)
 		// Can't compare function values directly
-		
+
 		// Test flags
 		// No clear flag in set command
 	})
@@ -51,7 +51,7 @@ func TestProjectCommands(t *testing.T) {
 		assert.Equal(t, "view [project-id or URL]", cmd.Use)
 		assert.NotNil(t, cmd.RunE)
 		// Can't compare function values directly
-		
+
 		// Test flags
 		assert.NotNil(t, cmd.Flag("json"))
 	})
@@ -72,7 +72,7 @@ func TestSortProjectsByNameFunc(t *testing.T) {
 		{ID: 2, Name: "Beta"},
 		{ID: 1, Name: "Alpha"},
 	}
-	
+
 	sortProjectsByName(projects)
 	assert.Equal(t, "Alpha", projects[0].Name)
 	assert.Equal(t, "Beta", projects[1].Name)

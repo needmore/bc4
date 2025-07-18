@@ -177,7 +177,81 @@ func (c *converter) stripUnsupportedTags(html string) string {
 	return html
 }
 
-// RichTextToMarkdown converts Basecamp's rich text to Markdown (not implemented yet)
+// RichTextToMarkdown converts Basecamp's rich text to Markdown
 func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
-	return "", fmt.Errorf("RichTextToMarkdown not implemented yet")
+	// Handle empty input
+	if richtext == "" || richtext == "<div></div>" {
+		return "", nil
+	}
+
+	// For now, provide a simple implementation that handles basic cases
+	// A proper implementation would use an HTML parser
+	
+	// Replace div with p for consistency
+	html := strings.ReplaceAll(richtext, "<div>", "<p>")
+	html = strings.ReplaceAll(html, "</div>", "</p>")
+	
+	// Remove all HTML tags for a basic conversion
+	// This is a simplified implementation
+	result := html
+	
+	// Handle specific tags
+	result = regexp.MustCompile(`<h1[^>]*>`).ReplaceAllString(result, "# ")
+	result = strings.ReplaceAll(result, "</h1>", "\n\n")
+	result = strings.ReplaceAll(result, "<p>", "")
+	result = strings.ReplaceAll(result, "</p>", "\n\n")
+	result = strings.ReplaceAll(result, "<strong>", "**")
+	result = strings.ReplaceAll(result, "</strong>", "**")
+	result = strings.ReplaceAll(result, "<b>", "**")
+	result = strings.ReplaceAll(result, "</b>", "**")
+	result = strings.ReplaceAll(result, "<em>", "*")
+	result = strings.ReplaceAll(result, "</em>", "*")
+	result = strings.ReplaceAll(result, "<i>", "*")
+	result = strings.ReplaceAll(result, "</i>", "*")
+	result = strings.ReplaceAll(result, "<strike>", "~~")
+	result = strings.ReplaceAll(result, "</strike>", "~~")
+	result = strings.ReplaceAll(result, "<del>", "~~")
+	result = strings.ReplaceAll(result, "</del>", "~~")
+	result = strings.ReplaceAll(result, "<br>", "\n")
+	result = strings.ReplaceAll(result, "<br/>", "\n")
+	result = strings.ReplaceAll(result, "<br />", "\n")
+	
+	// Handle lists
+	result = strings.ReplaceAll(result, "<ul>", "")
+	result = strings.ReplaceAll(result, "</ul>", "\n")
+	result = strings.ReplaceAll(result, "<li>", "- ")
+	result = strings.ReplaceAll(result, "</li>", "\n")
+	
+	// Handle blockquotes
+	result = strings.ReplaceAll(result, "<blockquote>", "> ")
+	result = strings.ReplaceAll(result, "</blockquote>", "\n\n")
+	
+	// Handle pre tags - check context to determine if inline or block
+	// Look for pre tags that are clearly inline (surrounded by other content on same line)
+	if regexp.MustCompile(`[^>\s]\s*<pre>`).MatchString(result) || regexp.MustCompile(`</pre>\s*[^<\s]`).MatchString(result) {
+		// Inline code
+		result = strings.ReplaceAll(result, "<pre>", "`")
+		result = strings.ReplaceAll(result, "</pre>", "`")
+	} else {
+		// Code block
+		result = regexp.MustCompile(`<pre>\s*`).ReplaceAllString(result, "```\n")
+		result = regexp.MustCompile(`\s*</pre>`).ReplaceAllString(result, "\n```")
+	}
+	
+	// Decode HTML entities
+	result = strings.ReplaceAll(result, "&amp;", "&")
+	result = strings.ReplaceAll(result, "&lt;", "<")
+	result = strings.ReplaceAll(result, "&gt;", ">")
+	result = strings.ReplaceAll(result, "&quot;", "\"")
+	result = strings.ReplaceAll(result, "&#39;", "'")
+	result = strings.ReplaceAll(result, "&nbsp;", " ")
+	
+	// Clean up multiple newlines
+	result = regexp.MustCompile(`\n{3,}`).ReplaceAllString(result, "\n\n")
+	
+	// Trim the result
+	result = strings.TrimSpace(result)
+	
+	return result, nil
 }
+

@@ -97,10 +97,10 @@ func TestLoad(t *testing.T) {
 				require.NoError(t, err)
 			},
 			envVars: map[string]string{
-				"BC4_CLIENT_ID":  "env-client-id",
+				"BC4_CLIENT_ID":     "env-client-id",
 				"BC4_CLIENT_SECRET": "env-client-secret",
-				"BC4_ACCOUNT_ID": "env-account-id",
-				"BC4_PROJECT_ID": "env-project-id",
+				"BC4_ACCOUNT_ID":    "env-account-id",
+				"BC4_PROJECT_ID":    "env-project-id",
 			},
 			expectedConfig: func(c *Config) {
 				assert.Equal(t, "env-client-id", c.ClientID)
@@ -115,24 +115,24 @@ func TestLoad(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create temp directory
 			tempDir := t.TempDir()
-			
+
 			// Clear viper for clean state
 			viper.Reset()
-			
+
 			// Setup test environment
 			if tt.setupFunc != nil {
 				tt.setupFunc(t, tempDir)
 			}
-			
+
 			// Set environment variables
 			for key, value := range tt.envVars {
 				_ = os.Setenv(key, value)
 				defer func(k string) { _ = os.Unsetenv(k) }(key)
 			}
-			
+
 			// Load config
 			config, err := Load()
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -179,11 +179,11 @@ func TestSave(t *testing.T) {
 				require.NoError(t, err)
 				// Just verify the file is readable/writable by owner
 				assert.True(t, info.Mode().Perm()&0600 == 0600)
-				
+
 				// Verify content
 				data, err := os.ReadFile(configPath)
 				require.NoError(t, err)
-				
+
 				var savedConfig Config
 				err = json.Unmarshal(data, &savedConfig)
 				require.NoError(t, err)
@@ -205,7 +205,7 @@ func TestSave(t *testing.T) {
 			verifyFunc: func(t *testing.T, tempDir string) {
 				data, err := os.ReadFile(configPath)
 				require.NoError(t, err)
-				
+
 				var savedConfig Config
 				err = json.Unmarshal(data, &savedConfig)
 				require.NoError(t, err)
@@ -213,7 +213,7 @@ func TestSave(t *testing.T) {
 			},
 		},
 		{
-			name: "write permission error",
+			name:   "write permission error",
 			config: &Config{},
 			setupFunc: func(t *testing.T, tempDir string) {
 				// Create read-only directory
@@ -229,13 +229,13 @@ func TestSave(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			
+
 			if tt.setupFunc != nil {
 				tt.setupFunc(t, tempDir)
 			}
-			
+
 			err := Save(tt.config)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
@@ -252,7 +252,7 @@ func TestGetConfigPath(t *testing.T) {
 	// Save original and restore
 	originalPath := configPath
 	defer func() { configPath = originalPath }()
-	
+
 	tests := []struct {
 		name         string
 		configPath   string
@@ -269,7 +269,7 @@ func TestGetConfigPath(t *testing.T) {
 			expectedPath: "",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			configPath = tt.configPath
@@ -283,7 +283,7 @@ func TestIsFirstRun(t *testing.T) {
 	// Save original and restore
 	originalPath := configPath
 	defer func() { configPath = originalPath }()
-	
+
 	tests := []struct {
 		name      string
 		setupFunc func(t *testing.T, tempDir string)
@@ -334,15 +334,15 @@ func TestIsFirstRun(t *testing.T) {
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			
+
 			if tt.setupFunc != nil {
 				tt.setupFunc(t, tempDir)
 			}
-			
+
 			result := IsFirstRun()
 			assert.Equal(t, tt.expected, result)
 		})
@@ -370,17 +370,17 @@ func TestConfig_Methods(t *testing.T) {
 			Color:  "never",
 		},
 	}
-	
+
 	// Test GetAccountConfig
 	t.Run("GetAccountConfig", func(t *testing.T) {
 		accountCfg, exists := cfg.Accounts["123"]
 		assert.True(t, exists)
 		assert.Equal(t, "Test Account", accountCfg.Name)
-		
+
 		_, exists = cfg.Accounts["999"]
 		assert.False(t, exists)
 	})
-	
+
 	// Test GetProjectDefaults
 	t.Run("GetProjectDefaults", func(t *testing.T) {
 		if accountCfg, ok := cfg.Accounts["123"]; ok {
@@ -393,7 +393,7 @@ func TestConfig_Methods(t *testing.T) {
 			}
 		}
 	})
-	
+
 	// Test Preferences
 	t.Run("Preferences", func(t *testing.T) {
 		assert.Equal(t, "nano", cfg.Preferences.Editor)
@@ -405,12 +405,12 @@ func TestConfig_Methods(t *testing.T) {
 func TestConfig_DefaultValues(t *testing.T) {
 	// Test that a new config has sensible defaults
 	cfg := &Config{}
-	
+
 	// Initialize maps if needed
 	if cfg.Accounts == nil {
 		cfg.Accounts = make(map[string]AccountConfig)
 	}
-	
+
 	assert.NotNil(t, cfg.Accounts)
 	assert.Empty(t, cfg.ClientID)
 	assert.Empty(t, cfg.ClientSecret)
@@ -444,23 +444,23 @@ func TestConfig_JSONMarshaling(t *testing.T) {
 			Color:  "always",
 		},
 	}
-	
+
 	// Marshal to JSON
 	data, err := json.Marshal(original)
 	require.NoError(t, err)
-	
+
 	// Unmarshal back
 	var restored Config
 	err = json.Unmarshal(data, &restored)
 	require.NoError(t, err)
-	
+
 	// Compare
 	assert.Equal(t, original.ClientID, restored.ClientID)
 	assert.Equal(t, original.ClientSecret, restored.ClientSecret)
 	assert.Equal(t, original.DefaultAccount, restored.DefaultAccount)
 	assert.Equal(t, original.DefaultProject, restored.DefaultProject)
 	assert.Equal(t, original.Accounts["123"].Name, restored.Accounts["123"].Name)
-	assert.Equal(t, original.Accounts["123"].ProjectDefaults["789"].DefaultTodoList, 
+	assert.Equal(t, original.Accounts["123"].ProjectDefaults["789"].DefaultTodoList,
 		restored.Accounts["123"].ProjectDefaults["789"].DefaultTodoList)
 	assert.Equal(t, original.Preferences.Editor, restored.Preferences.Editor)
 }

@@ -251,17 +251,6 @@ func TestMarkdownToRichText_Errors(t *testing.T) {
 	}
 }
 
-func TestRichTextToMarkdown_NotImplemented(t *testing.T) {
-	converter := NewConverter()
-
-	_, err := converter.RichTextToMarkdown("<div>Test</div>")
-	if err == nil {
-		t.Error("expected error for unimplemented RichTextToMarkdown")
-	}
-	if !strings.Contains(err.Error(), "not implemented") {
-		t.Errorf("expected 'not implemented' error, got: %v", err)
-	}
-}
 
 // Benchmark tests
 func BenchmarkMarkdownToRichText_Simple(b *testing.B) {
