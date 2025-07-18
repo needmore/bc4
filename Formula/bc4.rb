@@ -5,12 +5,12 @@
 class Bc4 < Formula
   desc "A CLI tool for interacting with Basecamp 4"
   homepage "https://github.com/needmore/bc4"
-  version "0.3.0"
+  version "0.4.0"
   license "MIT"
   depends_on :macos
 
-  url "https://github.com/needmore/bc4/releases/download/v0.3.0/bc4_0.3.0_Darwin_all.tar.gz"
-  sha256 "b0dcd2ac37ed9dc68c82bb1c39e432890fd650d0d44cfbfa246d4490a313ba00"
+  url "https://github.com/needmore/bc4/releases/download/v0.4.0/bc4_0.4.0_Darwin_all.tar.gz"
+  sha256 "c5593aa108a01f2f3994a4dc883dd50790bccb7fd17a9f907528e7c5a382a9ca"
 
   def install
     bin.install "bc4"
