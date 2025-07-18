@@ -190,8 +190,23 @@ bc4 todo set 12345
 ### Messaging
 
 ```bash
-# Post a message to the message board
+# List messages in the current project
+bc4 message list
+
+# Post a message interactively
 bc4 message post
+
+# Post a message with title and content
+bc4 message post --title "Project Update" --content "# Status\nThings are going well!"
+
+# Post from a markdown file
+cat update.md | bc4 message post --title "Weekly Update"
+
+# View a specific message
+bc4 message view 12345
+
+# Edit an existing message
+bc4 message edit 12345
 
 # Post to campfire chat
 bc4 campfire post "Quick update: deployment complete! 🚀"
@@ -412,7 +427,7 @@ bc4 supports Markdown input for creating content that gets automatically convert
 
 ### Supported Resources
 - ✅ **Todos** - Both title and description support Markdown
-- 🔄 **Messages** - Coming soon
+- ✅ **Messages** - List, post, view, and edit messages on project message boards
 - 🔄 **Documents** - Coming soon
 - 🔄 **Comments** - Coming soon
 - ❌ **Campfire** - Plain text only (API limitation)
