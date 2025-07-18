@@ -18,11 +18,6 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), inspire
 
 ## Installation
 
-### Prerequisites
-
-- Go 1.21 or later
-- Git
-
 ### Install with Homebrew (macOS)
 
 ```bash
@@ -31,6 +26,10 @@ brew install bc4
 ```
 
 ### Install from source
+
+Prerequisites for building from source:
+- Go 1.21 or later
+- Git
 
 ```bash
 # Clone the repository
