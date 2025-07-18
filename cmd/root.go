@@ -12,6 +12,7 @@ import (
 	"github.com/needmore/bc4/cmd/auth"
 	"github.com/needmore/bc4/cmd/campfire"
 	"github.com/needmore/bc4/cmd/card"
+	"github.com/needmore/bc4/cmd/message"
 	"github.com/needmore/bc4/cmd/project"
 	"github.com/needmore/bc4/cmd/todo"
 	"github.com/needmore/bc4/internal/config"
@@ -98,7 +99,7 @@ func init() {
 	rootCmd.AddCommand(account.NewAccountCmd(f))
 	rootCmd.AddCommand(project.NewProjectCmd(f))
 	rootCmd.AddCommand(todo.NewTodoCmd(f))
-	// rootCmd.AddCommand(message.NewMessageCmd())
+	rootCmd.AddCommand(message.NewMessageCmd(f))
 	rootCmd.AddCommand(campfire.NewCampfireCmd(f))
 	rootCmd.AddCommand(card.NewCardCmd(f))
 
