@@ -97,6 +97,7 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 		if err := server.Shutdown(ctx); err != nil {
 			// Log shutdown error but don't fail the operation
 			// since we're already in a defer
+			_ = err // Explicitly ignore the error
 		}
 	}()
 
@@ -125,7 +126,7 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 			AccessToken:  token.AccessToken,
 			RefreshToken: token.RefreshToken,
 			TokenType:    token.TokenType,
-			ExpiresIn:    int(token.Expiry.Sub(time.Now()).Seconds()),
+			ExpiresIn:    int(time.Until(token.Expiry).Seconds()),
 			ObtainedAt:   time.Now(),
 		}
 
@@ -257,7 +258,7 @@ func (c *Client) startCallbackServer(state string, codeChan chan<- string, error
 
 		// Send success response
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, `
+		_, _ = fmt.Fprintf(w, `
 			<html>
 			<head><title>Authentication Successful</title></head>
 			<body>
@@ -307,7 +308,7 @@ func (c *Client) refreshToken(token *AccountToken) (*AccountToken, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("token refresh failed: %s", resp.Status)
@@ -348,7 +349,7 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var authInfo struct {
 		Accounts []struct {
@@ -422,7 +423,7 @@ func (c *Client) loadAuthStore() {
 	if err != nil {
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	c.authStore = &AuthStore{}
 	_ = json.NewDecoder(file).Decode(c.authStore)
@@ -440,7 +441,7 @@ func (c *Client) saveAuthStore() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")

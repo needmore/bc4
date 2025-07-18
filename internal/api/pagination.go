@@ -43,7 +43,7 @@ func (pr *PaginatedRequest) GetAll(path string, result interface{}) error {
 		pr.rateLimiter.Wait()
 
 		// Prepare URL with pagination
-		paginatedPath := path
+		var paginatedPath string
 		if strings.Contains(path, "?") {
 			paginatedPath = fmt.Sprintf("%s&page=%d", path, page)
 		} else {
@@ -59,10 +59,10 @@ func (pr *PaginatedRequest) GetAll(path string, result interface{}) error {
 		// Create a new slice to decode this page's results
 		pageResults := reflect.New(sliceType)
 		if err := json.NewDecoder(resp.Body).Decode(pageResults.Interface()); err != nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return fmt.Errorf("failed to decode page %d: %w", page, err)
 		}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		// Append results to the main slice
 		pageSlice := pageResults.Elem()
@@ -96,7 +96,7 @@ func (pr *PaginatedRequest) GetPage(path string, page int, result interface{}) e
 	pr.rateLimiter.Wait()
 
 	// Prepare URL with pagination
-	paginatedPath := path
+	var paginatedPath string
 	if strings.Contains(path, "?") {
 		paginatedPath = fmt.Sprintf("%s&page=%d", path, page)
 	} else {

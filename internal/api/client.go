@@ -59,7 +59,7 @@ func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response,
 	}
 
 	if resp.StatusCode >= 400 {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		body, _ := io.ReadAll(resp.Body)
 
 		// Use our custom error types for better user experience
@@ -88,7 +88,7 @@ func (c *Client) Get(path string, result interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if result != nil {
 		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
@@ -113,7 +113,7 @@ func (c *Client) Post(path string, payload interface{}, result interface{}) erro
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if result != nil {
 		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
@@ -138,7 +138,7 @@ func (c *Client) Put(path string, payload interface{}, result interface{}) error
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if result != nil {
 		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
@@ -154,7 +154,7 @@ func (c *Client) Delete(path string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	return nil
 }
@@ -191,7 +191,7 @@ func (c *Client) GetProject(ctx context.Context, projectID string) (*Project, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch project: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if err := json.NewDecoder(resp.Body).Decode(&project); err != nil {
 		return nil, fmt.Errorf("failed to decode project: %w", err)
@@ -280,7 +280,7 @@ func (c *Client) GetProjectTodoSet(ctx context.Context, projectID string) (*Todo
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch project tools: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var projectData struct {
 		Dock []struct {
@@ -333,7 +333,7 @@ func (c *Client) GetTodoList(ctx context.Context, projectID string, todoListID i
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch todo list: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if err := json.NewDecoder(resp.Body).Decode(&todoList); err != nil {
 		return nil, fmt.Errorf("failed to decode todo list: %w", err)
@@ -469,7 +469,7 @@ func (c *Client) GetTodo(ctx context.Context, projectID string, todoID int64) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch todo: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if err := json.NewDecoder(resp.Body).Decode(&todo); err != nil {
 		return nil, fmt.Errorf("failed to decode todo: %w", err)
@@ -501,7 +501,7 @@ func (c *Client) GetPerson(ctx context.Context, personID int64) (*Person, error)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch person: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if err := json.NewDecoder(resp.Body).Decode(&person); err != nil {
 		return nil, fmt.Errorf("failed to decode person: %w", err)
