@@ -48,13 +48,13 @@ func (t *tsvTablePrinter) Render() error {
 		}
 
 		if hasContent {
-			fmt.Fprintln(t.writer, strings.Join(t.headers, "\t"))
+			_, _ = fmt.Fprintln(t.writer, strings.Join(t.headers, "\t"))
 		}
 	}
 
 	// Render data rows
 	for _, row := range t.rows {
-		fmt.Fprintln(t.writer, strings.Join(row, "\t"))
+		_, _ = fmt.Fprintln(t.writer, strings.Join(row, "\t"))
 	}
 
 	return nil

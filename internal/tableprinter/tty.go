@@ -218,5 +218,5 @@ func (t *ttyTablePrinter) renderRow(row []field, isHeader bool) {
 
 	// Join with GitHub CLI-style spacing (3 spaces)
 	output := strings.Join(parts, "   ")
-	fmt.Fprintln(t.writer, output)
+	_, _ = fmt.Fprintln(t.writer, output)
 }

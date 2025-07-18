@@ -170,11 +170,12 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.handleEnter()
 
 		case tea.KeyTab, tea.KeyShiftTab:
-			if m.currentStep == stepClientID {
+			switch m.currentStep {
+			case stepClientID:
 				m.clientID.Blur()
 				m.clientSecret.Focus()
 				m.currentStep = stepClientSecret
-			} else if m.currentStep == stepClientSecret {
+			case stepClientSecret:
 				m.clientSecret.Blur()
 				m.clientID.Focus()
 				m.currentStep = stepClientID
@@ -693,9 +694,9 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		if p, ok := listItem.(projectItem); ok {
 			str := fmt.Sprintf("  %s", p.name)
 			if index == m.Index() {
-				fmt.Fprint(w, selectedItemStyle.Render("→ "+p.name))
+				_, _ = fmt.Fprint(w, selectedItemStyle.Render("→ "+p.name))
 			} else {
-				fmt.Fprint(w, normalItemStyle.Render(str))
+				_, _ = fmt.Fprint(w, normalItemStyle.Render(str))
 			}
 			return
 		}
@@ -704,8 +705,8 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 	str := fmt.Sprintf("  %s", i.name)
 	if index == m.Index() {
-		fmt.Fprint(w, selectedItemStyle.Render("→ "+i.name))
+		_, _ = fmt.Fprint(w, selectedItemStyle.Render("→ "+i.name))
 	} else {
-		fmt.Fprint(w, normalItemStyle.Render(str))
+		_, _ = fmt.Fprint(w, normalItemStyle.Render(str))
 	}
 }

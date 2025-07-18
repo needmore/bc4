@@ -206,180 +206,6 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 	return cmd
 }
 
-func displayTodoList(todoList *api.TodoList, todos []api.Todo, format ui.OutputFormat, showAll bool) error {
-	// Filter todos if not showing all
-	if !showAll {
-		var filteredTodos []api.Todo
-		for _, todo := range todos {
-			if !todo.Completed {
-				filteredTodos = append(filteredTodos, todo)
-			}
-		}
-		todos = filteredTodos
-	}
-
-	// Terminal display with nice formatting
-	if !ui.IsTerminal(os.Stdout) || format == ui.OutputFormatTSV {
-		// Non-TTY or TSV format - simple output
-		return displayTodoListSimple(todoList, todos)
-	}
-
-	// Pretty terminal display
-	titleStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("99"))
-
-	metaStyle := lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241"))
-
-	// Display title
-	fmt.Println(titleStyle.Render(todoList.Title))
-
-	// Display metadata - use the API's completed ratio
-	meta := ""
-	if todoList.CompletedRatio != "" {
-		meta = todoList.CompletedRatio + " completed"
-	} else {
-		// Fallback to counting
-		completed := 0
-		for _, todo := range todos {
-			if todo.Completed {
-				completed++
-			}
-		}
-		meta = fmt.Sprintf("%d/%d completed", completed, len(todos))
-	}
-
-	if todoList.CreatedAt != "" {
-		if createdTime, err := time.Parse(time.RFC3339, todoList.CreatedAt); err == nil {
-			meta += fmt.Sprintf(" • Created %s", createdTime.Format("Jan 2, 2006"))
-		}
-	}
-	fmt.Println(metaStyle.Render(meta))
-	fmt.Println()
-
-	// Display description if present
-	if todoList.Description != "" {
-		// Render markdown description
-		renderer, _ := glamour.NewTermRenderer(
-			glamour.WithAutoStyle(),
-			glamour.WithWordWrap(ui.GetTerminalWidth()-4),
-		)
-
-		if rendered, err := renderer.Render(todoList.Description); err == nil {
-			fmt.Print(rendered)
-		} else {
-			fmt.Println(todoList.Description)
-		}
-		fmt.Println()
-	}
-
-	// Display todos
-	if len(todos) == 0 {
-		fmt.Println(metaStyle.Render("No todos in this list"))
-		return nil
-	}
-
-	// Create GitHub CLI-style table
-	table := tableprinter.New(os.Stdout)
-
-	// Add headers dynamically based on TTY mode
-	if table.IsTTY() {
-		table.AddHeader("", "TODO", "ASSIGNEE", "DUE")
-	} else {
-		table.AddHeader("STATUS", "TODO", "ASSIGNEE", "STATE", "DUE")
-	}
-
-	cs := table.GetColorScheme()
-
-	// Add todos
-	for _, todo := range todos {
-		// Status column - symbol for TTY, text for non-TTY
-		if table.IsTTY() {
-			table.AddStatusField(todo.Completed)
-		} else {
-			if todo.Completed {
-				table.AddField("completed")
-			} else {
-				table.AddField("incomplete")
-			}
-		}
-
-		// Todo title with completion styling
-		title := todo.Content
-		if title == "" {
-			title = todo.Title
-		}
-		table.AddTodoField(title, todo.Completed)
-
-		// Get assignees
-		assignee := ""
-		if len(todo.Assignees) > 0 {
-			names := []string{}
-			for _, a := range todo.Assignees {
-				names = append(names, a.Name)
-			}
-			assignee = strings.Join(names, ", ")
-		}
-		table.AddField(assignee, cs.Muted)
-
-		// Add STATE column only for non-TTY
-		if !table.IsTTY() {
-			if todo.Completed {
-				table.AddField("completed")
-			} else {
-				table.AddField("incomplete")
-			}
-		}
-
-		// Due date
-		due := ""
-		if todo.DueOn != nil && *todo.DueOn != "" {
-			if dueTime, err := time.Parse("2006-01-02", *todo.DueOn); err == nil {
-				due = dueTime.Format("Jan 2")
-			}
-		}
-		table.AddField(due, cs.Muted)
-
-		table.EndRow()
-	}
-
-	_ = table.Render()
-	return nil
-}
-
-func displayTodoListSimple(todoList *api.TodoList, todos []api.Todo) error {
-	// Simple TSV output
-	fmt.Printf("Todo List: %s\n", todoList.Title)
-	fmt.Printf("ID: %d\n", todoList.ID)
-
-	completed := 0
-	for _, todo := range todos {
-		if todo.Completed {
-			completed++
-		}
-	}
-	fmt.Printf("Progress: %d/%d completed\n\n", completed, len(todos))
-
-	// Output todos as TSV
-	fmt.Println("Status\tTodo\tDue")
-	for _, todo := range todos {
-		status := "[ ]"
-		if todo.Completed {
-			status = "[x]"
-		}
-
-		due := ""
-		if todo.DueOn != nil {
-			due = *todo.DueOn
-		}
-
-		fmt.Printf("%s\t%s\t%s\n", status, todo.Title, due)
-	}
-
-	return nil
-}
-
 func outputTodoListJSON(todoList *api.TodoList, todos []api.Todo, fields string) error {
 	// Combine todo list and todos data
 	data := map[string]interface{}{
@@ -392,11 +218,8 @@ func outputTodoListJSON(todoList *api.TodoList, todos []api.Todo, fields string)
 		"todos":       todos,
 	}
 
-	// If specific fields requested, filter the output
-	if fields != "" {
-		// This is a simplified version - in production you'd parse the fields
-		// and extract only requested fields
-	}
+	// TODO: If specific fields requested, filter the output
+	// Currently, all fields are returned regardless of the fields parameter
 
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
@@ -661,11 +484,8 @@ func outputTodoListWithGroupsJSON(todoList *api.TodoList, groups []api.TodoGroup
 		"groups":      groupData,
 	}
 
-	// If specific fields requested, filter the output
-	if fields != "" {
-		// This is a simplified version - in production you'd parse the fields
-		// and extract only requested fields
-	}
+	// TODO: If specific fields requested, filter the output
+	// Currently, all fields are returned regardless of the fields parameter
 
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
@@ -715,14 +535,14 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 
 	// Add headers dynamically based on TTY mode and groups
 	if table.IsTTY() {
-		if groups != nil && len(groups) > 0 {
+		if len(groups) > 0 {
 			table.AddHeader("ID", "", "TODO", "GROUP", "ASSIGNEE", "DUE")
 		} else {
 			table.AddHeader("ID", "", "TODO", "ASSIGNEE", "DUE")
 		}
 	} else {
 		// Add STATE column for non-TTY mode (machine readable)
-		if groups != nil && len(groups) > 0 {
+		if len(groups) > 0 {
 			table.AddHeader("ID", "STATUS", "TODO", "GROUP", "ASSIGNEE", "STATE", "DUE")
 		} else {
 			table.AddHeader("ID", "STATUS", "TODO", "ASSIGNEE", "STATE", "DUE")
@@ -732,7 +552,7 @@ func displayTodoListGitHubStyle(todoList *api.TodoList, groups []api.TodoGroup, 
 	cs := table.GetColorScheme()
 
 	// Add all todos to single table
-	if groups != nil && len(groups) > 0 {
+	if len(groups) > 0 {
 		// With groups
 		for _, group := range groups {
 			if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {

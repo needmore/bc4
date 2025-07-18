@@ -133,7 +133,7 @@ Examples:
 			}
 
 			// Find the current step index
-			var currentIndex int = -1
+			currentIndex := -1
 			for i, step := range card.Steps {
 				if step.ID == stepID {
 					currentIndex = i

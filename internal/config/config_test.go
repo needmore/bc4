@@ -126,8 +126,8 @@ func TestLoad(t *testing.T) {
 			
 			// Set environment variables
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
-				defer os.Unsetenv(key)
+				_ = os.Setenv(key, value)
+				defer func(k string) { _ = os.Unsetenv(k) }(key)
 			}
 			
 			// Load config
@@ -302,7 +302,9 @@ func TestIsFirstRun(t *testing.T) {
 			name: "config file exists",
 			setupFunc: func(t *testing.T, tempDir string) {
 				configPath = filepath.Join(tempDir, "config.json")
-				os.WriteFile(configPath, []byte("{}"), 0600)
+				if err := os.WriteFile(configPath, []byte("{}"), 0600); err != nil {
+					t.Fatalf("failed to write config file: %v", err)
+				}
 			},
 			expected: false,
 		},
@@ -311,7 +313,9 @@ func TestIsFirstRun(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) {
 				configPath = filepath.Join(tempDir, "config.json")
 				authPath := filepath.Join(tempDir, "auth.json")
-				os.WriteFile(authPath, []byte("{}"), 0600)
+				if err := os.WriteFile(authPath, []byte("{}"), 0600); err != nil {
+					t.Fatalf("failed to write auth file: %v", err)
+				}
 			},
 			expected: false,
 		},
@@ -320,8 +324,12 @@ func TestIsFirstRun(t *testing.T) {
 			setupFunc: func(t *testing.T, tempDir string) {
 				configPath = filepath.Join(tempDir, "config.json")
 				authPath := filepath.Join(tempDir, "auth.json")
-				os.WriteFile(configPath, []byte("{}"), 0600)
-				os.WriteFile(authPath, []byte("{}"), 0600)
+				if err := os.WriteFile(configPath, []byte("{}"), 0600); err != nil {
+					t.Fatalf("failed to write config file: %v", err)
+				}
+				if err := os.WriteFile(authPath, []byte("{}"), 0600); err != nil {
+					t.Fatalf("failed to write auth file: %v", err)
+				}
 			},
 			expected: false,
 		},

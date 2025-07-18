@@ -151,7 +151,7 @@ func (c *Client) GetProjectCardTable(ctx context.Context, projectID string) (*Ca
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch project tools: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var projectData struct {
 		Dock []struct {
@@ -186,7 +186,7 @@ func (c *Client) GetCardTable(ctx context.Context, projectID string, cardTableID
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch card table: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if err := json.NewDecoder(resp.Body).Decode(&cardTable); err != nil {
 		return nil, fmt.Errorf("failed to decode card table: %w", err)
@@ -218,7 +218,7 @@ func (c *Client) GetCard(ctx context.Context, projectID string, cardID int64) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch card: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if err := json.NewDecoder(resp.Body).Decode(&card); err != nil {
 		return nil, fmt.Errorf("failed to decode card: %w", err)
