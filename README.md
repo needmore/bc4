@@ -26,7 +26,8 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), inspire
 ### Install with Homebrew (macOS)
 
 ```bash
-brew install needmore/bc4/bc4
+brew tap needmore/bc4 https://github.com/needmore/bc4
+brew install bc4
 ```
 
 ### Install from source
