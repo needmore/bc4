@@ -2,12 +2,14 @@ package account
 
 import (
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/auth"
@@ -27,7 +29,7 @@ type accountItem struct {
 }
 
 type selectModel struct {
-	table    table.Model
+	list     list.Model
 	accounts []accountItem
 	spinner  spinner.Model
 	loading  bool
@@ -49,11 +51,12 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		// Only update table dimensions if it's been initialized
-		if m.table.Cursor() >= 0 {
-			m.table.SetWidth(msg.Width)
-			tableHeight := ui.CalculateTableHeight(msg.Height, len(m.table.Rows()))
-			m.table.SetHeight(tableHeight)
+		// Update list dimensions if it's been initialized
+		if m.list.Items() != nil {
+			listHeight := min(m.height-10, len(m.list.Items())*3+6)
+			listWidth := min(m.width-20, 60)
+			m.list.SetWidth(listWidth)
+			m.list.SetHeight(listHeight)
 		}
 		return m, nil
 
@@ -65,18 +68,11 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
 		case "enter":
-			selectedRow := m.table.SelectedRow()
-			if len(selectedRow) >= 2 {
-				// Get the account ID from the selected row
-				accountID := selectedRow[1]
-				for _, acc := range m.accounts {
-					if acc.id == accountID {
-						return m, tea.Sequence(
-							m.setDefaultAccount(accountID, acc.name),
-							tea.Quit,
-						)
-					}
-				}
+			if selected, ok := m.list.SelectedItem().(accountListItem); ok {
+				return m, tea.Sequence(
+					m.setDefaultAccount(selected.id, selected.name),
+					tea.Quit,
+				)
 			}
 		}
 
@@ -89,40 +85,28 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 
-		// Create table columns
-		columns := []table.Column{
-			{Title: "", Width: 40},
-			{Title: "", Width: 10},
-			{Title: "", Width: 10},
-		}
-
-		// Create rows
-		rows := []table.Row{}
+		// Create list items
+		items := make([]list.Item, 0, len(m.accounts))
 		for _, acc := range m.accounts {
-			defaultStr := ""
-			if acc.current {
-				defaultStr = "✓"
-			}
-
-			rows = append(rows, table.Row{
-				acc.name,
-				acc.id,
-				defaultStr,
+			items = append(items, accountListItem{
+				id:      acc.id,
+				name:    acc.name,
+				current: acc.current,
 			})
 		}
 
-		// Create table
-		t := table.New(
-			table.WithColumns(columns),
-			table.WithRows(rows),
-			table.WithFocused(true),
-			table.WithHeight(ui.CalculateTableHeight(m.height, len(rows))),
-		)
+		// Calculate list dimensions
+		listHeight := min(m.height-10, len(items)*2+6)
+		listWidth := min(m.width-20, 60)
 
-		// Apply common table styling
-		t = ui.StyleTable(t)
-
-		m.table = t
+		// Create list with custom delegate
+		m.list = list.New(items, accountDelegate{}, listWidth, listHeight)
+		m.list.Title = "Select Account"
+		m.list.SetShowStatusBar(false)
+		m.list.SetFilteringEnabled(true)
+		m.list.SetShowHelp(false)
+		m.list.Styles.Title = titleStyle
+		m.list.Styles.TitleBar = lipgloss.NewStyle()
 		return m, nil
 
 	case spinner.TickMsg:
@@ -133,7 +117,7 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if !m.loading {
 		var cmd tea.Cmd
-		m.table, cmd = m.table.Update(msg)
+		m.list, cmd = m.list.Update(msg)
 		return m, cmd
 	}
 
@@ -153,7 +137,16 @@ func (m selectModel) View() string {
 		return "\n  No accounts found.\n\n"
 	}
 
-	return ui.BaseTableStyle.Render(m.table.View()) + "\n" + ui.HelpStyle.Render("↑/↓: Navigate • Enter: Select • q/Esc: Cancel")
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		m.list.View(),
+		"",
+		helpStyle.Render("↑/↓: Navigate • Enter: Select • /: Filter • Esc: Cancel"),
+	)
+
+	return lipgloss.Place(m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		content,
+	)
 }
 
 func (m *selectModel) loadAccounts() tea.Cmd {
@@ -234,6 +227,72 @@ func (m *selectModel) setDefaultAccount(accountID, accountName string) tea.Cmd {
 		}
 		return nil
 	}
+}
+
+// Styles
+var (
+	titleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("99")).
+			MarginBottom(1)
+
+	helpStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241"))
+
+	selectedItemStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("170")).
+				Bold(true)
+
+	normalItemStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252"))
+
+	currentMarkerStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("42")).
+				Bold(true)
+)
+
+// accountListItem implements list.Item
+type accountListItem struct {
+	id      string
+	name    string
+	current bool
+}
+
+func (i accountListItem) FilterValue() string { return i.name }
+func (i accountListItem) Title() string       { return i.name }
+func (i accountListItem) Description() string { return fmt.Sprintf("ID: %s", i.id) }
+
+// Custom delegate for account items
+type accountDelegate struct{}
+
+func (d accountDelegate) Height() int                               { return 1 }
+func (d accountDelegate) Spacing() int                              { return 0 }
+func (d accountDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+
+func (d accountDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	i, ok := listItem.(accountListItem)
+	if !ok {
+		return
+	}
+
+	// Build the display string
+	str := i.name
+	if i.current {
+		str = str + " " + currentMarkerStyle.Render("✓")
+	}
+
+	if index == m.Index() {
+		_, _ = fmt.Fprint(w, selectedItemStyle.Render("→ "+str))
+	} else {
+		_, _ = fmt.Fprint(w, normalItemStyle.Render("  "+str))
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func newSelectCmd(f *factory.Factory) *cobra.Command {

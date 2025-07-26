@@ -2,11 +2,13 @@ package project
 
 import (
 	"fmt"
+	"io"
 	"strconv"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/spinner"
-	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
 	"github.com/needmore/bc4/internal/api"
@@ -22,7 +24,7 @@ type projectsLoadedMsg struct {
 }
 
 type selectModel struct {
-	table     table.Model
+	list      list.Model
 	projects  []api.Project
 	spinner   spinner.Model
 	loading   bool
@@ -45,11 +47,12 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		// Only update table dimensions if it's been initialized
-		if m.table.Cursor() >= 0 {
-			m.table.SetWidth(msg.Width)
-			tableHeight := ui.CalculateTableHeight(msg.Height, len(m.table.Rows()))
-			m.table.SetHeight(tableHeight)
+		// Update list dimensions if it's been initialized
+		if m.list.Items() != nil {
+			listHeight := min(m.height-10, len(m.list.Items())*3+6)
+			listWidth := min(m.width-20, 70)
+			m.list.SetWidth(listWidth)
+			m.list.SetHeight(listHeight)
 		}
 		return m, nil
 
@@ -61,12 +64,9 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
 		case "enter":
-			selectedRow := m.table.SelectedRow()
-			if len(selectedRow) >= 2 {
-				// Get the project ID from the selected row
-				projectID := selectedRow[1]
+			if selected, ok := m.list.SelectedItem().(projectItem); ok {
 				for _, p := range m.projects {
-					if strconv.FormatInt(p.ID, 10) == projectID {
+					if strconv.FormatInt(p.ID, 10) == selected.id {
 						return m, tea.Sequence(
 							m.saveDefaultProject(p),
 							tea.Quit,
@@ -89,45 +89,28 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Sort projects alphabetically
 		sortProjectsByName(m.projects)
 
-		// Create table columns
-		columns := []table.Column{
-			{Title: "", Width: 40},
-			{Title: "", Width: 10},
-			{Title: "", Width: 50},
-		}
-
-		// Create rows
-		rows := []table.Row{}
+		// Create list items
+		items := make([]list.Item, 0, len(m.projects))
 		for _, project := range m.projects {
-			desc := project.Description
-			// Don't fall back to Purpose - just leave blank if no description
-			// Truncate description if too long
-			if len(desc) > 47 {
-				desc = desc[:44] + "..."
-			}
-
-			rows = append(rows, table.Row{
-				project.Name,
-				strconv.FormatInt(project.ID, 10),
-				desc,
+			items = append(items, projectItem{
+				id:   strconv.FormatInt(project.ID, 10),
+				name: project.Name,
+				desc: project.Description,
 			})
 		}
 
-		// Calculate table height based on window height
-		tableHeight := ui.CalculateTableHeight(m.height, len(rows))
+		// Calculate list dimensions
+		listHeight := min(m.height-10, len(items)*3+6)
+		listWidth := min(m.width-20, 70)
 
-		// Create table
-		t := table.New(
-			table.WithColumns(columns),
-			table.WithRows(rows),
-			table.WithFocused(true),
-			table.WithHeight(tableHeight),
-		)
-
-		// Apply common table styling
-		t = ui.StyleTable(t)
-
-		m.table = t
+		// Create list with custom delegate
+		m.list = list.New(items, itemDelegate{}, listWidth, listHeight)
+		m.list.Title = "Select Project"
+		m.list.SetShowStatusBar(false)
+		m.list.SetFilteringEnabled(true)
+		m.list.SetShowHelp(false)
+		m.list.Styles.Title = titleStyle
+		m.list.Styles.TitleBar = lipgloss.NewStyle()
 		return m, nil
 
 	case spinner.TickMsg:
@@ -138,7 +121,7 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if !m.loading {
 		var cmd tea.Cmd
-		m.table, cmd = m.table.Update(msg)
+		m.list, cmd = m.list.Update(msg)
 		return m, cmd
 	}
 
@@ -158,7 +141,16 @@ func (m selectModel) View() string {
 		return "\n  No projects found.\n\n"
 	}
 
-	return ui.BaseTableStyle.Render(m.table.View()) + "\n" + ui.HelpStyle.Render("↑/↓: Navigate • Enter: Select • q/Esc: Cancel")
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		m.list.View(),
+		"",
+		helpStyle.Render("↑/↓: Navigate • Enter: Select • /: Filter • Esc: Cancel"),
+	)
+
+	return lipgloss.Place(m.width, m.height,
+		lipgloss.Center, lipgloss.Center,
+		content,
+	)
 }
 
 func (m *selectModel) loadProjects() tea.Cmd {
@@ -211,6 +203,74 @@ func (m *selectModel) saveDefaultProject(project api.Project) tea.Cmd {
 		fmt.Printf("\nDefault project set to: %s (ID: %d)\n", project.Name, project.ID)
 		return nil
 	}
+}
+
+// Styles
+var (
+	titleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(lipgloss.Color("99")).
+			MarginBottom(1)
+
+	helpStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241"))
+
+	selectedItemStyle = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("170")).
+				Bold(true)
+
+	normalItemStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("252"))
+)
+
+// projectItem implements list.Item
+type projectItem struct {
+	id   string
+	name string
+	desc string
+}
+
+func (i projectItem) FilterValue() string { return i.name }
+func (i projectItem) Title() string       { return i.name }
+func (i projectItem) Description() string { return i.desc }
+
+// Custom item delegate for cleaner rendering
+type itemDelegate struct{}
+
+func (d itemDelegate) Height() int                               { return 2 }
+func (d itemDelegate) Spacing() int                              { return 1 }
+func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+
+func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	i, ok := listItem.(projectItem)
+	if !ok {
+		return
+	}
+
+	// Render name
+	name := i.name
+	if index == m.Index() {
+		_, _ = fmt.Fprintln(w, selectedItemStyle.Render("→ "+name))
+	} else {
+		_, _ = fmt.Fprintln(w, normalItemStyle.Render("  "+name))
+	}
+
+	// Render description on second line
+	if i.desc != "" {
+		desc := i.desc
+		if len(desc) > 60 {
+			desc = desc[:57] + "..."
+		}
+		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).PaddingLeft(4)
+		_, _ = fmt.Fprintln(w, descStyle.Render(desc))
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func newSelectCmd(f *factory.Factory) *cobra.Command {
