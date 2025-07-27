@@ -160,7 +160,10 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				cfg.DefaultAccount = m.selectedAccount
-				_ = config.Save(cfg)
+				if err := config.Save(cfg); err != nil {
+					m.err = fmt.Errorf("failed to save config: %w", err)
+					return m, nil
+				}
 				m.currentStep = stepComplete
 				return m, nil
 			}
@@ -501,6 +504,14 @@ func (m FirstRunModel) viewSelectProject() string {
 		helpStyle.Render("↑/↓: Navigate • Enter: Select • Esc: Skip"),
 	)
 
+	if m.err != nil {
+		content = lipgloss.JoinVertical(lipgloss.Left,
+			content,
+			"",
+			errorStyle.Render("Error: "+m.err.Error()),
+		)
+	}
+
 	return lipgloss.Place(m.width, m.height,
 		lipgloss.Center, lipgloss.Center,
 		content,
@@ -598,17 +609,15 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 			}
 		}
 
-		_ = config.Save(cfg)
+		if err := config.Save(cfg); err != nil {
+			m.err = fmt.Errorf("failed to save config: %w", err)
+			return m, nil
+		}
 		m.currentStep = stepComplete
 		return m, nil
 
 	case stepComplete:
-		// Save credentials to config
-		cfg := &config.Config{
-			ClientID:     m.clientID.Value(),
-			ClientSecret: m.clientSecret.Value(),
-		}
-		_ = config.Save(cfg)
+		// Config has already been saved in previous steps
 		return m, tea.Quit
 	}
 
