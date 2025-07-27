@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-07-28
+
+### Added
+- Interactive todo list selection with `bc4 todo select` command (#40)
+- Message board functionality for posting and viewing Campfire messages (#36)
+- Unified selection UI using list components for better user experience
+
+### Changed
+- Project and account selection now use consistent list-based UI with filtering capability
+- Improved UI consistency across all interactive selection commands
+
+### Fixed
+- Resolved multiple linting issues for better code quality
+- Fixed table rendering error in message list command
+
+### Documentation
+- Updated README to reflect new message board functionality
+- Clarified that prerequisites are only needed for building from source
+
 ## [0.4.0] - 2025-07-18
 
 ### Fixed
