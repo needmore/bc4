@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	authURL     = "https://launchpad.37signals.com/authorization/new"
-	tokenURL    = "https://launchpad.37signals.com/authorization/token"
-	redirectURL = "http://localhost:8888/callback"
+	authURL          = "https://launchpad.37signals.com/authorization/new"
+	tokenURL         = "https://launchpad.37signals.com/authorization/token"
+	callbackPort     = "8888"
+	redirectURL      = "http://localhost:" + callbackPort + "/callback"
 )
 
 // TokenData represents the stored OAuth token information
@@ -275,7 +276,7 @@ func (c *Client) startCallbackServer(state string, codeChan chan<- string, error
 	})
 
 	server := &http.Server{
-		Addr:    ":8888",
+		Addr:    ":" + callbackPort,
 		Handler: mux,
 	}
 
