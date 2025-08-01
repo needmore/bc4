@@ -14,6 +14,8 @@ import (
 
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
+
+	"github.com/needmore/bc4/internal/version"
 )
 
 const (
@@ -343,7 +345,7 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
-	req.Header.Set("User-Agent", "bc4-cli/1.0.0 (github.com/needmore/bc4)")
+	req.Header.Set("User-Agent", version.UserAgent())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

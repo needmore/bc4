@@ -1,0 +1,50 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+run:
+  # Timeout for analysis
+  timeout: 5m
+  # Skip directories
+  skip-dirs:
+    - vendor
+    - testdata
+
+linters:
+  # Enable additional linters
+  enable:
+    - misspell
+    - goconst
+    - unconvert
+    - prealloc
+    - nilerr
+    - unparam
+    - wastedassign
+    - makezero
+    - bodyclose
+    - errorlint
+  # Disable problematic linters for now
+  disable:
+    - gocyclo
+    - dupl
+    - gosec
+    - exhaustive
+
+linters-settings:
+  gocyclo:
+    # Increased to allow current complex functions
+    min-complexity: 40
+  dupl:
+    # Increased to allow current duplications
+    threshold: 150
+  goconst:
+    # Minimal length of string constant
+    min-len: 3
+    # Minimal occurrences count to trigger
+    min-occurrences: 3
+  misspell:
+    # Correct spellings using locale preferences
+    locale: US
+    # Ignore words
+    ignore-words:
+      - basecamp
+      - github
