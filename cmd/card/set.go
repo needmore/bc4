@@ -21,12 +21,7 @@ func newSetCmd(f *factory.Factory) *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Apply overrides if specified
-			if accountID != "" {
-				f = f.WithAccount(accountID)
-			}
-			if projectID != "" {
-				f = f.WithProject(projectID)
-			}
+			f = f.ApplyOverrides(accountID, projectID)
 
 			// Get API client from factory
 			client, err := f.ApiClient()

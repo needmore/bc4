@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/needmore/bc4/internal/errors"
+	"github.com/needmore/bc4/internal/version"
 )
 
 const (
 	defaultBaseURL = "https://3.basecampapi.com"
-	userAgent      = "bc4-cli/1.0.0 (github.com/needmore/bc4)"
 )
 
 type Client struct {
@@ -51,7 +51,7 @@ func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response,
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", version.UserAgent())
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

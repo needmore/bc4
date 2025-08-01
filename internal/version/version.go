@@ -59,3 +59,8 @@ func (i Info) DetailedString() string {
 		i.Platform,
 	)
 }
+
+// UserAgent returns a properly formatted User-Agent string for HTTP requests
+func UserAgent() string {
+	return fmt.Sprintf("bc4-cli/%s (github.com/needmore/bc4)", Version)
+}

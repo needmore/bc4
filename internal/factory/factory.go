@@ -159,3 +159,16 @@ func (f *Factory) ApiClient() (*api.ModularClient, error) {
 func (f *Factory) Context() context.Context {
 	return context.Background()
 }
+
+// ApplyOverrides applies account and project overrides if they are not empty.
+// This is a helper function to reduce duplication across commands.
+func (f *Factory) ApplyOverrides(accountID, projectID string) *Factory {
+	factory := f
+	if accountID != "" {
+		factory = factory.WithAccount(accountID)
+	}
+	if projectID != "" {
+		factory = factory.WithProject(projectID)
+	}
+	return factory
+}
