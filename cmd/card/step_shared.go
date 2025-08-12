@@ -27,7 +27,7 @@ func createStepCommand(f *factory.Factory, op stepOperation) *cobra.Command {
 	// Configure command based on operation
 	var use, short, long, flagName, flagUsage string
 	var examples []string
-	
+
 	switch op {
 	case stepOperationCheck:
 		use = "check [CARD_ID or URL] [STEP_ID or URL]"
@@ -142,7 +142,7 @@ Examples:
 			if err != nil {
 				return err
 			}
-			
+
 			ctx := context.Background()
 
 			// Perform the operation

@@ -180,4 +180,3 @@ func (c *Client) ListMessageCategories(ctx context.Context, projectID string, me
 
 	return categories, nil
 }
-

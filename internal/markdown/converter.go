@@ -186,15 +186,15 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 
 	// For now, provide a simple implementation that handles basic cases
 	// A proper implementation would use an HTML parser
-	
+
 	// Replace div with p for consistency
 	html := strings.ReplaceAll(richtext, "<div>", "<p>")
 	html = strings.ReplaceAll(html, "</div>", "</p>")
-	
+
 	// Remove all HTML tags for a basic conversion
 	// This is a simplified implementation
 	result := html
-	
+
 	// Handle specific tags
 	result = regexp.MustCompile(`<h1[^>]*>`).ReplaceAllString(result, "# ")
 	result = strings.ReplaceAll(result, "</h1>", "\n\n")
@@ -215,17 +215,17 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 	result = strings.ReplaceAll(result, "<br>", "\n")
 	result = strings.ReplaceAll(result, "<br/>", "\n")
 	result = strings.ReplaceAll(result, "<br />", "\n")
-	
+
 	// Handle lists
 	result = strings.ReplaceAll(result, "<ul>", "")
 	result = strings.ReplaceAll(result, "</ul>", "\n")
 	result = strings.ReplaceAll(result, "<li>", "- ")
 	result = strings.ReplaceAll(result, "</li>", "\n")
-	
+
 	// Handle blockquotes
 	result = strings.ReplaceAll(result, "<blockquote>", "> ")
 	result = strings.ReplaceAll(result, "</blockquote>", "\n\n")
-	
+
 	// Handle pre tags - check context to determine if inline or block
 	// Look for pre tags that are clearly inline (surrounded by other content on same line)
 	if regexp.MustCompile(`[^>\s]\s*<pre>`).MatchString(result) || regexp.MustCompile(`</pre>\s*[^<\s]`).MatchString(result) {
@@ -237,7 +237,7 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 		result = regexp.MustCompile(`<pre>\s*`).ReplaceAllString(result, "```\n")
 		result = regexp.MustCompile(`\s*</pre>`).ReplaceAllString(result, "\n```")
 	}
-	
+
 	// Decode HTML entities
 	result = strings.ReplaceAll(result, "&amp;", "&")
 	result = strings.ReplaceAll(result, "&lt;", "<")
@@ -245,13 +245,12 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 	result = strings.ReplaceAll(result, "&quot;", "\"")
 	result = strings.ReplaceAll(result, "&#39;", "'")
 	result = strings.ReplaceAll(result, "&nbsp;", " ")
-	
+
 	// Clean up multiple newlines
 	result = regexp.MustCompile(`\n{3,}`).ReplaceAllString(result, "\n\n")
-	
+
 	// Trim the result
 	result = strings.TrimSpace(result)
-	
+
 	return result, nil
 }
-

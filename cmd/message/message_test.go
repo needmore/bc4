@@ -30,4 +30,3 @@ func TestNewMessageCmd(t *testing.T) {
 	assert.True(t, subcommands["view"])
 	assert.True(t, subcommands["edit"])
 }
-

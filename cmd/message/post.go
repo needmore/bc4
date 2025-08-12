@@ -146,4 +146,3 @@ You can provide message content in several ways:
 
 	return cmd
 }
-

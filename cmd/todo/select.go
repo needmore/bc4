@@ -96,10 +96,10 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		items := make([]list.Item, 0, len(m.todoLists))
 		for _, todoList := range m.todoLists {
 			items = append(items, todoListItem{
-				id:         strconv.FormatInt(todoList.ID, 10),
-				name:       todoList.Title,
-				desc:       todoList.Description,
-				completed:  todoList.CompletedRatio,
+				id:        strconv.FormatInt(todoList.ID, 10),
+				name:      todoList.Title,
+				desc:      todoList.Description,
+				completed: todoList.CompletedRatio,
 			})
 		}
 
@@ -217,7 +217,6 @@ func (m *selectModel) saveDefaultTodoList(todoList api.TodoList) tea.Cmd {
 	}
 }
 
-
 // Styles
 var (
 	titleStyle = lipgloss.NewStyle().
@@ -269,7 +268,7 @@ func (d todoListDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 	if i.completed != "" {
 		name = fmt.Sprintf("%s %s", name, completedStyle.Render("("+i.completed+")"))
 	}
-	
+
 	if index == m.Index() {
 		_, _ = fmt.Fprintln(w, selectedItemStyle.Render("→ "+name))
 	} else {
