@@ -464,3 +464,84 @@ func TestConfig_JSONMarshaling(t *testing.T) {
 		restored.Accounts["123"].ProjectDefaults["789"].DefaultTodoList)
 	assert.Equal(t, original.Preferences.Editor, restored.Preferences.Editor)
 }
+
+func TestConfig_FirstRunScenario(t *testing.T) {
+	// Save original config path and restore after tests
+	originalPath := configPath
+	defer func() { configPath = originalPath }()
+
+	// Create temp directory
+	tempDir := t.TempDir()
+	configPath = filepath.Join(tempDir, "bc4", "config.json")
+
+	// Clear viper for clean state
+	viper.Reset()
+
+	// Simulate first run - config file doesn't exist
+	// Load should return empty config (not nil)
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+	assert.Empty(t, cfg.ClientID)
+	assert.Empty(t, cfg.ClientSecret)
+
+	// Simulate the first-run logic that should save credentials
+	// This is what the bug was preventing
+	if cfg == nil {
+		cfg = &Config{
+			Accounts: make(map[string]AccountConfig),
+		}
+	}
+	// The fix: check if credentials are empty instead of if cfg is nil
+	if cfg.ClientID == "" {
+		cfg.ClientID = "test-client-id"
+	}
+	if cfg.ClientSecret == "" {
+		cfg.ClientSecret = "test-client-secret"
+	}
+	cfg.DefaultAccount = "123456"
+
+	// Save the config
+	err = Save(cfg)
+	require.NoError(t, err)
+
+	// Verify the config was saved correctly by loading it again
+	cfg2, err := Load()
+	require.NoError(t, err)
+	assert.Equal(t, "test-client-id", cfg2.ClientID)
+	assert.Equal(t, "test-client-secret", cfg2.ClientSecret)
+	assert.Equal(t, "123456", cfg2.DefaultAccount)
+}
+
+func TestConfig_EnvironmentVariablesNoConfigFile(t *testing.T) {
+	// Save original config path and restore after tests
+	originalPath := configPath
+	defer func() { configPath = originalPath }()
+
+	// Create temp directory but don't create config file
+	tempDir := t.TempDir()
+	configPath = filepath.Join(tempDir, "bc4", "config.json")
+
+	// Clear viper for clean state
+	viper.Reset()
+
+	// Set environment variables
+	_ = os.Setenv("BC4_CLIENT_ID", "env-test-id")
+	_ = os.Setenv("BC4_CLIENT_SECRET", "env-test-secret")
+	_ = os.Setenv("BC4_ACCOUNT_ID", "env-account-123")
+	defer func() {
+		_ = os.Unsetenv("BC4_CLIENT_ID")
+		_ = os.Unsetenv("BC4_CLIENT_SECRET")
+		_ = os.Unsetenv("BC4_ACCOUNT_ID")
+	}()
+
+	// Load config (no file exists, should use environment variables)
+	cfg, err := Load()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Verify environment variables are loaded even without config file
+	assert.Equal(t, "env-test-id", cfg.ClientID)
+	assert.Equal(t, "env-test-secret", cfg.ClientSecret)
+	assert.Equal(t, "env-account-123", cfg.DefaultAccount)
+}

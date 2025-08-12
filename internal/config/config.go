@@ -53,32 +53,33 @@ func Load() (*Config, error) {
 	viper.SetEnvPrefix("BC4")
 	viper.AutomaticEnv()
 
+	var config Config
+
 	// Check if config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		// Return empty config for first run
-		return &Config{
+		config = Config{
 			Accounts: make(map[string]AccountConfig),
 			Preferences: PreferencesConfig{
 				Editor: os.Getenv("EDITOR"),
 				Pager:  "less",
 				Color:  "auto",
 			},
-		}, nil
+		}
+	} else {
+		// Read config file
+		file, err := os.Open(configPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open config file: %w", err)
+		}
+		defer func() { _ = file.Close() }()
+
+		if err := json.NewDecoder(file).Decode(&config); err != nil {
+			return nil, fmt.Errorf("failed to decode config: %w", err)
+		}
 	}
 
-	// Read config file
-	file, err := os.Open(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open config file: %w", err)
-	}
-	defer func() { _ = file.Close() }()
-
-	var config Config
-	if err := json.NewDecoder(file).Decode(&config); err != nil {
-		return nil, fmt.Errorf("failed to decode config: %w", err)
-	}
-
-	// Override with environment variables
+	// Override with environment variables (applies to both file and no-file cases)
 	if clientID := viper.GetString("CLIENT_ID"); clientID != "" {
 		config.ClientID = clientID
 	}
