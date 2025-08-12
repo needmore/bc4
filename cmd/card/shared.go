@@ -8,7 +8,7 @@ import (
 // handleAssigneeSelection handles the common logic for selecting/deselecting assignees
 func handleAssigneeSelection(peopleList list.Model, selectedAssignees []int64, msg tea.Msg) (list.Model, []int64, tea.Cmd) {
 	var cmd tea.Cmd
-	
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -43,7 +43,7 @@ func handleAssigneeSelection(peopleList list.Model, selectedAssignees []int64, m
 			}
 		}
 	}
-	
+
 	peopleList, cmd = peopleList.Update(msg)
 	return peopleList, selectedAssignees, cmd
 }

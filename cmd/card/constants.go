@@ -7,11 +7,11 @@ const (
 	keySpace = "space"
 	keyEsc   = "esc"
 	keyCtrlC = "ctrl+c"
-	
+
 	// Status constants
 	statusCompleted = "completed"
 	statusActive    = "active"
-	
+
 	// Format constants
 	formatJSON = "json"
 )

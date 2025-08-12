@@ -22,4 +22,3 @@ func NewMessageCmd(f *factory.Factory) *cobra.Command {
 
 	return cmd
 }
-

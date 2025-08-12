@@ -251,7 +251,6 @@ func TestMarkdownToRichText_Errors(t *testing.T) {
 	}
 }
 
-
 // Benchmark tests
 func BenchmarkMarkdownToRichText_Simple(b *testing.B) {
 	converter := NewConverter()

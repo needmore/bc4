@@ -89,4 +89,3 @@ func TestListCmdFlags(t *testing.T) {
 	assert.Equal(t, "l", limitFlag.Shorthand)
 	assert.Equal(t, "Limit number of messages shown", limitFlag.Usage)
 }
-
