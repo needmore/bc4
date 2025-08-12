@@ -7,7 +7,7 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), strongl
 - 🔐 **OAuth2 Authentication** - Secure authentication with token management
 - 👥 **Multi-Account Support** - Manage multiple Basecamp accounts with ease
 - 📁 **Project Management** - List, search, and select projects
-- ✅ **Todo Management** - Create, list, check/uncheck todos across projects (supports Markdown → rich text)
+- ✅ **Todo Management** - Create, list, check/uncheck todos across projects (supports Markdown → rich text and grouping)
 - 💬 **Message Posting** - Post messages to project message boards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
 - 🎯 **Card Management** - Manage cards with kanban board view
@@ -141,8 +141,12 @@ bc4 todo list [list-id|name]
 # View todos with completed items included
 bc4 todo list [list-id|name] --all
 
-# View todos grouped by sections (for grouped todo lists)
+# View todos grouped by sections (for organized todo lists)
+# Use --grouped to show each group with clear headers
 bc4 todo list [list-id|name] --grouped
+
+# View todos in a flat table with GROUP column (default for grouped lists)
+bc4 todo list [list-id|name]
 
 # View details of a specific todo
 bc4 todo view 12345
