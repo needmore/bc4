@@ -44,17 +44,17 @@ func NewConverter() Converter {
 func (c *converter) MarkdownToRichText(markdown string) (string, error) {
 	// Trim input
 	input := strings.TrimSpace(markdown)
-	
+
 	// Handle empty input
 	if input == "" {
 		return "", nil
 	}
-	
+
 	// Check if this is simple plain text that doesn't need HTML wrapping
 	if c.isSimplePlainText(input) {
 		return input, nil
 	}
-	
+
 	var buf bytes.Buffer
 	if err := c.md.Convert([]byte(input), &buf); err != nil {
 		return "", fmt.Errorf("failed to convert markdown: %w", err)
@@ -84,29 +84,29 @@ func (c *converter) isSimplePlainText(input string) bool {
 	if strings.TrimSpace(input) == "" {
 		return false
 	}
-	
+
 	// Must be single line
 	if strings.Contains(input, "\n") {
 		return false
 	}
-	
+
 	// Check for common markdown patterns that would require HTML formatting
 	markdownPatterns := []string{
-		"**", "*", "~~", "`", "[", "]", "(", ")", "#", ">", "-", "+", 
+		"**", "*", "~~", "`", "[", "]", "(", ")", "#", ">", "-", "+",
 		"<", ">", "&", "@", "http://", "https://", "mailto:",
 	}
-	
+
 	for _, pattern := range markdownPatterns {
 		if strings.Contains(input, pattern) {
 			return false
 		}
 	}
-	
+
 	// Check for numbered list patterns (1. 2. etc.)
 	if matched, _ := regexp.MatchString(`^\d+\.`, strings.TrimSpace(input)); matched {
 		return false
 	}
-	
+
 	// If we get here, it's likely simple plain text
 	return true
 }

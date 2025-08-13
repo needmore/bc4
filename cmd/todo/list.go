@@ -444,12 +444,12 @@ func displayTodoListWithGroupsSimple(todoList *api.TodoList, groups []api.TodoGr
 		// Use proper CSV writer for CSV format
 		writer := csv.NewWriter(os.Stdout)
 		defer writer.Flush()
-		
+
 		// Write header
 		if err := writer.Write([]string{"Group", "Status", "Todo", "Due"}); err != nil {
 			return fmt.Errorf("failed to write CSV header: %w", err)
 		}
-		
+
 		// Write data rows
 		for _, group := range groups {
 			if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {

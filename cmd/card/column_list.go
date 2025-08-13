@@ -91,12 +91,12 @@ Examples:
 				// Output comma-separated values using proper CSV writer
 				writer := csv.NewWriter(os.Stdout)
 				defer writer.Flush()
-				
+
 				// Write header
 				if err := writer.Write([]string{"ID", "TITLE", "DESCRIPTION", "CARDS_COUNT"}); err != nil {
 					return fmt.Errorf("failed to write CSV header: %w", err)
 				}
-				
+
 				// Write data rows
 				for _, column := range cardTable.Lists {
 					record := []string{

@@ -128,12 +128,12 @@ Examples:
 				// Output comma-separated values using proper CSV writer
 				writer := csv.NewWriter(os.Stdout)
 				defer writer.Flush()
-				
+
 				// Write header
 				if err := writer.Write([]string{"ID", "TITLE", "STATUS", "ASSIGNEES", "DUE_ON"}); err != nil {
 					return fmt.Errorf("failed to write CSV header: %w", err)
 				}
-				
+
 				// Write data rows
 				for _, step := range filteredSteps {
 					assigneeNames := []string{}

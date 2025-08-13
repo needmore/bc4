@@ -7,7 +7,7 @@ import (
 // TestSimplePlainTextDetection tests the isSimplePlainText detection logic
 func TestSimplePlainTextDetection(t *testing.T) {
 	converter := &converter{}
-	
+
 	tests := []struct {
 		input    string
 		expected bool
@@ -20,7 +20,7 @@ func TestSimplePlainTextDetection(t *testing.T) {
 		{"Fix bugs", true, "short task"},
 		{"Update the documentation files", true, "longer but simple text"},
 		{"A very long task description that goes on and on but contains no markdown formatting at all", true, "very long plain text"},
-		
+
 		// Should NOT be simple plain text
 		{"Task with **bold** text", false, "contains bold formatting"},
 		{"Task with *italic* text", false, "contains italic formatting"},
@@ -40,7 +40,7 @@ func TestSimplePlainTextDetection(t *testing.T) {
 		{"", false, "empty string"},
 		{"   ", false, "whitespace only"},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.reason, func(t *testing.T) {
 			result := converter.isSimplePlainText(tt.input)
