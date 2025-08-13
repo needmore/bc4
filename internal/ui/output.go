@@ -17,8 +17,8 @@ const (
 	OutputFormatTable OutputFormat = "table"
 	// OutputFormatJSON renders as JSON
 	OutputFormatJSON OutputFormat = "json"
-	// OutputFormatTSV renders as tab-separated values
-	OutputFormatTSV OutputFormat = "tsv"
+	// OutputFormatCSV renders as comma-separated values
+	OutputFormatCSV OutputFormat = "csv"
 )
 
 // ParseOutputFormat parses a string into an OutputFormat
@@ -28,8 +28,8 @@ func ParseOutputFormat(s string) (OutputFormat, error) {
 		return OutputFormatTable, nil
 	case "json":
 		return OutputFormatJSON, nil
-	case "tsv":
-		return OutputFormatTSV, nil
+	case "csv":
+		return OutputFormatCSV, nil
 	default:
 		return "", fmt.Errorf("unknown output format: %s", s)
 	}

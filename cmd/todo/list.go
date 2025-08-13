@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -197,7 +198,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID (overrides default)")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID (overrides default)")
-	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table, json, or tsv")
+	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table, json, or csv")
 	cmd.Flags().StringVar(&jsonFields, "json", "", "Output JSON with specified fields")
 	cmd.Flags().BoolVarP(&webView, "web", "w", false, "Open in web browser")
 	cmd.Flags().BoolVarP(&showAll, "all", "A", false, "Show all todos including completed ones")
@@ -265,9 +266,9 @@ func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, g
 	}
 
 	// Terminal display with nice formatting
-	if !ui.IsTerminal(os.Stdout) || format == ui.OutputFormatTSV {
-		// Non-TTY or TSV format - simple output
-		return displayTodoListWithGroupsSimple(todoList, groups, groupedTodos)
+	if !ui.IsTerminal(os.Stdout) || format == ui.OutputFormatCSV {
+		// Non-TTY or CSV format - simple output
+		return displayTodoListWithGroupsSimple(todoList, groups, groupedTodos, format)
 	}
 
 	// Pretty terminal display
@@ -419,8 +420,8 @@ func displayTodoListWithGroups(todoList *api.TodoList, groups []api.TodoGroup, g
 	return nil
 }
 
-func displayTodoListWithGroupsSimple(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo) error {
-	// Simple TSV output
+func displayTodoListWithGroupsSimple(todoList *api.TodoList, groups []api.TodoGroup, groupedTodos map[string][]api.Todo, format ui.OutputFormat) error {
+	// Simple output for non-TTY and CSV format
 	fmt.Printf("Todo List: %s\n", todoList.Title)
 	fmt.Printf("ID: %d\n", todoList.ID)
 
@@ -438,22 +439,56 @@ func displayTodoListWithGroupsSimple(todoList *api.TodoList, groups []api.TodoGr
 	}
 	fmt.Printf("Progress: %d/%d completed\n\n", totalCompleted, totalTodos)
 
-	// Output groups and todos as TSV
-	fmt.Println("Group\tStatus\tTodo\tDue")
-	for _, group := range groups {
-		if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
-			for _, todo := range todos {
-				status := "[ ]"
-				if todo.Completed {
-					status = "[x]"
-				}
+	// Output groups and todos in the requested format
+	if format == ui.OutputFormatCSV {
+		// Use proper CSV writer for CSV format
+		writer := csv.NewWriter(os.Stdout)
+		defer writer.Flush()
+		
+		// Write header
+		if err := writer.Write([]string{"Group", "Status", "Todo", "Due"}); err != nil {
+			return fmt.Errorf("failed to write CSV header: %w", err)
+		}
+		
+		// Write data rows
+		for _, group := range groups {
+			if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
+				for _, todo := range todos {
+					status := "[ ]"
+					if todo.Completed {
+						status = "[x]"
+					}
 
-				due := ""
-				if todo.DueOn != nil {
-					due = *todo.DueOn
-				}
+					due := ""
+					if todo.DueOn != nil {
+						due = *todo.DueOn
+					}
 
-				fmt.Printf("%s\t%s\t%s\t%s\n", group.Title, status, todo.Title, due)
+					record := []string{group.Title, status, todo.Title, due}
+					if err := writer.Write(record); err != nil {
+						return fmt.Errorf("failed to write CSV record: %w", err)
+					}
+				}
+			}
+		}
+	} else {
+		// Tab-separated output for non-TTY (backwards compatibility)
+		fmt.Println("Group\tStatus\tTodo\tDue")
+		for _, group := range groups {
+			if todos, ok := groupedTodos[fmt.Sprintf("%d", group.ID)]; ok {
+				for _, todo := range todos {
+					status := "[ ]"
+					if todo.Completed {
+						status = "[x]"
+					}
+
+					due := ""
+					if todo.DueOn != nil {
+						due = *todo.DueOn
+					}
+
+					fmt.Printf("%s\t%s\t%s\t%s\n", group.Title, status, todo.Title, due)
+				}
 			}
 		}
 	}

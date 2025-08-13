@@ -1,6 +1,7 @@
 package card
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -123,9 +124,17 @@ Examples:
 				}
 				fmt.Println(string(output))
 
-			case "tsv":
-				// Output tab-separated values
-				fmt.Println("ID\tTITLE\tSTATUS\tASSIGNEES\tDUE_ON")
+			case "csv":
+				// Output comma-separated values using proper CSV writer
+				writer := csv.NewWriter(os.Stdout)
+				defer writer.Flush()
+				
+				// Write header
+				if err := writer.Write([]string{"ID", "TITLE", "STATUS", "ASSIGNEES", "DUE_ON"}); err != nil {
+					return fmt.Errorf("failed to write CSV header: %w", err)
+				}
+				
+				// Write data rows
 				for _, step := range filteredSteps {
 					assigneeNames := []string{}
 					for _, a := range step.Assignees {
@@ -135,12 +144,16 @@ Examples:
 					if step.DueOn != nil {
 						dueOn = *step.DueOn
 					}
-					fmt.Printf("%d\t%s\t%s\t%s\t%s\n",
-						step.ID,
+					record := []string{
+						strconv.FormatInt(step.ID, 10),
 						step.Title,
 						step.Status,
 						strings.Join(assigneeNames, ", "),
-						dueOn)
+						dueOn,
+					}
+					if err := writer.Write(record); err != nil {
+						return fmt.Errorf("failed to write CSV record: %w", err)
+					}
 				}
 
 			default: // table format

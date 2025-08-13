@@ -1,6 +1,7 @@
 package card
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -86,15 +87,27 @@ Examples:
 				}
 				fmt.Println(string(output))
 
-			case "tsv":
-				// Output tab-separated values
-				fmt.Println("ID\tTITLE\tDESCRIPTION\tCARDS_COUNT")
+			case "csv":
+				// Output comma-separated values using proper CSV writer
+				writer := csv.NewWriter(os.Stdout)
+				defer writer.Flush()
+				
+				// Write header
+				if err := writer.Write([]string{"ID", "TITLE", "DESCRIPTION", "CARDS_COUNT"}); err != nil {
+					return fmt.Errorf("failed to write CSV header: %w", err)
+				}
+				
+				// Write data rows
 				for _, column := range cardTable.Lists {
-					fmt.Printf("%d\t%s\t%s\t%d\n",
-						column.ID,
+					record := []string{
+						strconv.FormatInt(column.ID, 10),
 						column.Title,
-						"",
-						column.CardsCount)
+						"", // Description
+						strconv.Itoa(column.CardsCount),
+					}
+					if err := writer.Write(record); err != nil {
+						return fmt.Errorf("failed to write CSV record: %w", err)
+					}
 				}
 
 			default: // table format
@@ -123,7 +136,7 @@ Examples:
 		},
 	}
 
-	cmd.Flags().String("format", "table", "Output format: table, json, tsv")
+	cmd.Flags().String("format", "table", "Output format: table, json, csv")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 
