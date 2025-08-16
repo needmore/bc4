@@ -154,10 +154,15 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cfg, _ := config.Load()
 				if cfg == nil {
 					cfg = &config.Config{
-						ClientID:     m.clientID.Value(),
-						ClientSecret: m.clientSecret.Value(),
-						Accounts:     make(map[string]config.AccountConfig),
+						Accounts: make(map[string]config.AccountConfig),
 					}
+				}
+				// Ensure OAuth credentials are set from user input
+				if cfg.ClientID == "" {
+					cfg.ClientID = m.clientID.Value()
+				}
+				if cfg.ClientSecret == "" {
+					cfg.ClientSecret = m.clientSecret.Value()
 				}
 				cfg.DefaultAccount = m.selectedAccount
 				if err := config.Save(cfg); err != nil {
@@ -588,10 +593,15 @@ func (m FirstRunModel) handleEnter() (tea.Model, tea.Cmd) {
 		cfg, _ := config.Load()
 		if cfg == nil {
 			cfg = &config.Config{
-				ClientID:     m.clientID.Value(),
-				ClientSecret: m.clientSecret.Value(),
-				Accounts:     make(map[string]config.AccountConfig),
+				Accounts: make(map[string]config.AccountConfig),
 			}
+		}
+		// Ensure OAuth credentials are set from user input
+		if cfg.ClientID == "" {
+			cfg.ClientID = m.clientID.Value()
+		}
+		if cfg.ClientSecret == "" {
+			cfg.ClientSecret = m.clientSecret.Value()
 		}
 
 		// Save default account
