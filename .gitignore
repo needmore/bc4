@@ -25,6 +25,7 @@ dist/
 # IDE specific files
 .idea/
 .vscode/
+.nova/
 *.swp
 *.swo
 *~
