@@ -30,7 +30,11 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list [list-id|name]",
 		Short: "View todos in a specific list",
-		Long:  `View all todos in a specific todo list. Can specify by ID or partial name match.`,
+		Long: `View all todos in a specific todo list. Can specify by ID or partial name match.
+
+For todo lists that are organized into groups/sections, use --grouped to display
+them with clear section headers, or leave it off to show all todos in a flat table
+with a GROUP column for easy scanning.`,
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Apply account override if specified
@@ -201,7 +205,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 	cmd.Flags().StringVar(&jsonFields, "json", "", "Output JSON with specified fields")
 	cmd.Flags().BoolVarP(&webView, "web", "w", false, "Open in web browser")
 	cmd.Flags().BoolVarP(&showAll, "all", "A", false, "Show all todos including completed ones")
-	cmd.Flags().BoolVar(&grouped, "grouped", false, "Show groups separately with headers instead of in columns")
+	cmd.Flags().BoolVar(&grouped, "grouped", false, "Show todo groups/sections separately with headers (for organized todo lists)")
 
 	return cmd
 }

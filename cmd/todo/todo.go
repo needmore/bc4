@@ -13,7 +13,13 @@ func NewTodoCmd(f *factory.Factory) *cobra.Command {
 		Long: `Work with Basecamp todos and todo lists.
 
 Basecamp projects can have multiple todo lists, each containing individual todos.
-Use these commands to navigate and manage your tasks.`,
+Todo lists can optionally be organized into groups for better organization.
+Use these commands to navigate and manage your tasks.
+
+Examples:
+  bc4 todo list                    # List todos in default todo list
+  bc4 todo list --grouped          # Show todos grouped by sections
+  bc4 todo list "Sprint Tasks"     # List todos in specific list`,
 		Aliases: []string{"todos", "t"},
 	}
 
