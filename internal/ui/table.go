@@ -23,4 +23,3 @@ func GetTerminalHeight() int {
 	}
 	return defaultHeight
 }
-

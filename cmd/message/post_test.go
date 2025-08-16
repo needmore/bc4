@@ -120,4 +120,3 @@ func TestPostCmdLongDescription(t *testing.T) {
 	assert.Contains(t, cmd.Long, "cat")
 	assert.Contains(t, cmd.Long, "bc4 message post")
 }
-

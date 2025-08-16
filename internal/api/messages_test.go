@@ -70,7 +70,7 @@ func TestGetMessageBoard(t *testing.T) {
 			// Create test server
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				requestCount++
-				
+
 				// Handle different requests based on path and count
 				if r.URL.Path == "/123456/projects/123456.json" {
 					if requestCount == 1 {
@@ -88,7 +88,7 @@ func TestGetMessageBoard(t *testing.T) {
 					}
 					return
 				}
-				
+
 				// Message board details request
 				if r.URL.Path == "/123456/buckets/123456/message_boards/789.json" {
 					w.WriteHeader(http.StatusOK)
@@ -102,7 +102,7 @@ func TestGetMessageBoard(t *testing.T) {
 					}`))
 					return
 				}
-				
+
 				// Default response
 				w.WriteHeader(tt.responseCode)
 				_, _ = w.Write([]byte(tt.responseBody))
@@ -404,4 +404,3 @@ func TestUpdateMessage(t *testing.T) {
 		})
 	}
 }
-

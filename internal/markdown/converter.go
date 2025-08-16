@@ -42,8 +42,21 @@ func NewConverter() Converter {
 
 // MarkdownToRichText converts GitHub Flavored Markdown to Basecamp's rich text HTML format
 func (c *converter) MarkdownToRichText(markdown string) (string, error) {
+	// Trim input
+	input := strings.TrimSpace(markdown)
+	
+	// Handle empty input
+	if input == "" {
+		return "", nil
+	}
+	
+	// Check if this is simple plain text that doesn't need HTML wrapping
+	if c.isSimplePlainText(input) {
+		return input, nil
+	}
+	
 	var buf bytes.Buffer
-	if err := c.md.Convert([]byte(markdown), &buf); err != nil {
+	if err := c.md.Convert([]byte(input), &buf); err != nil {
 		return "", fmt.Errorf("failed to convert markdown: %w", err)
 	}
 
@@ -62,6 +75,40 @@ func (c *converter) MarkdownToRichText(markdown string) (string, error) {
 	}
 
 	return result, nil
+}
+
+// isSimplePlainText checks if the input is simple plain text without markdown formatting
+// that doesn't need HTML wrapping (like simple todo titles)
+func (c *converter) isSimplePlainText(input string) bool {
+	// Must not be empty
+	if strings.TrimSpace(input) == "" {
+		return false
+	}
+	
+	// Must be single line
+	if strings.Contains(input, "\n") {
+		return false
+	}
+	
+	// Check for common markdown patterns that would require HTML formatting
+	markdownPatterns := []string{
+		"**", "*", "~~", "`", "[", "]", "(", ")", "#", ">", "-", "+", 
+		"<", ">", "&", "@", "http://", "https://", "mailto:",
+	}
+	
+	for _, pattern := range markdownPatterns {
+		if strings.Contains(input, pattern) {
+			return false
+		}
+	}
+	
+	// Check for numbered list patterns (1. 2. etc.)
+	if matched, _ := regexp.MatchString(`^\d+\.`, strings.TrimSpace(input)); matched {
+		return false
+	}
+	
+	// If we get here, it's likely simple plain text
+	return true
 }
 
 // postProcessHTML transforms standard HTML to Basecamp's rich text format
@@ -186,15 +233,15 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 
 	// For now, provide a simple implementation that handles basic cases
 	// A proper implementation would use an HTML parser
-	
+
 	// Replace div with p for consistency
 	html := strings.ReplaceAll(richtext, "<div>", "<p>")
 	html = strings.ReplaceAll(html, "</div>", "</p>")
-	
+
 	// Remove all HTML tags for a basic conversion
 	// This is a simplified implementation
 	result := html
-	
+
 	// Handle specific tags
 	result = regexp.MustCompile(`<h1[^>]*>`).ReplaceAllString(result, "# ")
 	result = strings.ReplaceAll(result, "</h1>", "\n\n")
@@ -215,17 +262,17 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 	result = strings.ReplaceAll(result, "<br>", "\n")
 	result = strings.ReplaceAll(result, "<br/>", "\n")
 	result = strings.ReplaceAll(result, "<br />", "\n")
-	
+
 	// Handle lists
 	result = strings.ReplaceAll(result, "<ul>", "")
 	result = strings.ReplaceAll(result, "</ul>", "\n")
 	result = strings.ReplaceAll(result, "<li>", "- ")
 	result = strings.ReplaceAll(result, "</li>", "\n")
-	
+
 	// Handle blockquotes
 	result = strings.ReplaceAll(result, "<blockquote>", "> ")
 	result = strings.ReplaceAll(result, "</blockquote>", "\n\n")
-	
+
 	// Handle pre tags - check context to determine if inline or block
 	// Look for pre tags that are clearly inline (surrounded by other content on same line)
 	if regexp.MustCompile(`[^>\s]\s*<pre>`).MatchString(result) || regexp.MustCompile(`</pre>\s*[^<\s]`).MatchString(result) {
@@ -237,7 +284,7 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 		result = regexp.MustCompile(`<pre>\s*`).ReplaceAllString(result, "```\n")
 		result = regexp.MustCompile(`\s*</pre>`).ReplaceAllString(result, "\n```")
 	}
-	
+
 	// Decode HTML entities
 	result = strings.ReplaceAll(result, "&amp;", "&")
 	result = strings.ReplaceAll(result, "&lt;", "<")
@@ -245,13 +292,12 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 	result = strings.ReplaceAll(result, "&quot;", "\"")
 	result = strings.ReplaceAll(result, "&#39;", "'")
 	result = strings.ReplaceAll(result, "&nbsp;", " ")
-	
+
 	// Clean up multiple newlines
 	result = regexp.MustCompile(`\n{3,}`).ReplaceAllString(result, "\n\n")
-	
+
 	// Trim the result
 	result = strings.TrimSpace(result)
-	
+
 	return result, nil
 }
-

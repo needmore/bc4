@@ -15,7 +15,7 @@ func TestMarkdownToRichText(t *testing.T) {
 		{
 			name:     "plain text in paragraph",
 			input:    "Hello world",
-			expected: "<div>Hello world</div>",
+			expected: "Hello world",
 		},
 		{
 			name:     "bold text",
@@ -181,7 +181,7 @@ func TestMarkdownToRichText(t *testing.T) {
 		{
 			name:     "very long line",
 			input:    strings.Repeat("word ", 100),
-			expected: "<div>" + strings.TrimSpace(strings.Repeat("word ", 100)) + "</div>",
+			expected: strings.TrimSpace(strings.Repeat("word ", 100)),
 		},
 
 		// Complex examples
@@ -250,7 +250,6 @@ func TestMarkdownToRichText_Errors(t *testing.T) {
 		t.Errorf("expected empty result for empty input, got: %q", result)
 	}
 }
-
 
 // Benchmark tests
 func BenchmarkMarkdownToRichText_Simple(b *testing.B) {
