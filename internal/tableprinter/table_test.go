@@ -49,10 +49,10 @@ func TestTTYTablePrinter(t *testing.T) {
 	}
 }
 
-func TestTSVTablePrinter(t *testing.T) {
+func TestCSVTablePrinter(t *testing.T) {
 	var buf bytes.Buffer
 
-	// Create TSV table printer (non-TTY)
+	// Create CSV table printer (non-TTY)
 	printer := New(&buf, false, 80)
 
 	// Add headers
@@ -78,14 +78,55 @@ func TestTSVTablePrinter(t *testing.T) {
 		t.Errorf("Expected 2 lines, got %d", len(lines))
 	}
 
-	// Header should be tab-separated
-	if lines[0] != "ID\tNAME\tSTATUS" {
-		t.Errorf("Expected tab-separated header, got: %s", lines[0])
+	// Header should be comma-separated
+	if lines[0] != "ID,NAME,STATUS" {
+		t.Errorf("Expected comma-separated header, got: %s", lines[0])
 	}
 
-	// Data should be tab-separated
-	if lines[1] != "123\tTest Project\tActive" {
-		t.Errorf("Expected tab-separated data, got: %s", lines[1])
+	// Data should be comma-separated
+	if lines[1] != "123,Test Project,Active" {
+		t.Errorf("Expected comma-separated data, got: %s", lines[1])
+	}
+}
+
+func TestCSVTablePrinterWithEscaping(t *testing.T) {
+	var buf bytes.Buffer
+
+	// Create CSV table printer (non-TTY)
+	printer := New(&buf, false, 80)
+
+	// Add headers
+	printer.AddHeader([]string{"ID", "NAME", "DESCRIPTION"})
+
+	// Add rows with special characters that need escaping
+	printer.AddField("123")
+	printer.AddField("Project, with comma")
+	printer.AddField("Description with \"quotes\"")
+	printer.EndRow()
+
+	// Render
+	err := printer.Render()
+	if err != nil {
+		t.Fatalf("Failed to render: %v", err)
+	}
+
+	output := buf.String()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+
+	// Should have header and data row
+	if len(lines) != 2 {
+		t.Errorf("Expected 2 lines, got %d", len(lines))
+	}
+
+	// Header should be comma-separated
+	if lines[0] != "ID,NAME,DESCRIPTION" {
+		t.Errorf("Expected comma-separated header, got: %s", lines[0])
+	}
+
+	// Data should be properly escaped
+	expected := "123,\"Project, with comma\",\"Description with \"\"quotes\"\"\""
+	if lines[1] != expected {
+		t.Errorf("Expected escaped CSV data, got: %s", lines[1])
 	}
 }
 

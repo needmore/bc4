@@ -186,7 +186,7 @@ If no table ID or name is provided, uses the default card table if set.`,
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().StringVar(&columnFilter, "column", "", "Filter to show only specific column")
-	cmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json, tsv)")
+	cmd.Flags().StringVarP(&format, "format", "f", "table", "Output format (table, json, csv)")
 
 	return cmd
 }

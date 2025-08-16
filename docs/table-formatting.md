@@ -10,12 +10,12 @@ All list commands now support multiple output formats via the `--format` flag:
 
 - `table` (default): Human-readable table with borders and color
 - `json`: JSON output for scripting
-- `tsv`: Tab-separated values for easy parsing
+- `csv`: Comma-separated values for easy parsing
 
 Example:
 ```bash
 bc4 project list --format=json
-bc4 account list --format=tsv
+bc4 account list --format=csv
 bc4 todo list --format=table
 ```
 
@@ -61,7 +61,7 @@ The `internal/ui/output.go` module provides:
 
 - `OutputConfig`: Configuration for output formatting
 - `TableWriter`: Interface for writing tabular data
-- Format conversion between table, JSON, and TSV
+- Format conversion between table, JSON, and CSV
 
 ### Integration with Lipgloss
 
@@ -84,9 +84,9 @@ bc4 project list
 bc4 account list --format=json | jq '.[].Name'
 ```
 
-### TSV Output for Spreadsheets
+### CSV Output for Spreadsheets
 ```bash
-bc4 todo list --format=tsv > todos.tsv
+bc4 todo list --format=csv > todos.csv
 ```
 
 ### Disable Colors
@@ -100,4 +100,4 @@ NO_COLOR=1 bc4 project list
 2. **Filtering**: Add ability to filter rows based on criteria
 3. **Custom column selection**: Allow users to choose which columns to display
 4. **Pager integration**: Automatically page long tables
-5. **Export formats**: Add CSV, Markdown table formats
+5. **Export formats**: Add Markdown table formats

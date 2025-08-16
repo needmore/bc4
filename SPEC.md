@@ -338,7 +338,7 @@ bc4 card step delete [ID|URL] [STEP|URL]   # Delete a step (accepts IDs or step 
   - Shows step progress (e.g., "Steps: 2/5")
   - Groups cards by column
   - `--column`: Filter to show only specific column
-  - `--format`: Output format (table, json, tsv)
+  - `--format`: Output format (table, json, csv)
   
 - **`card view [ID|URL]`**: Shows detailed card information
   - Accepts numeric ID or Basecamp URL (e.g., `https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345`)
@@ -486,7 +486,7 @@ bc4 implements a comprehensive table rendering system modeled after GitHub CLI's
 1. **Core Layer** (`internal/tableprinter`):
    - `TablePrinter` interface with fluent API (AddHeader/AddField/EndRow)
    - `ttyTablePrinter`: Terminal output with formatting, colors, intelligent column widths
-   - `tsvTablePrinter`: Tab-separated output for scripts/pipes
+   - `csvTablePrinter`: Comma-separated output for scripts/pipes
    - Field-level formatting options (WithColor, WithTruncate, WithPadding)
 
 2. **Integration Layer** (`internal/ui/tableprinter`):
@@ -499,7 +499,7 @@ bc4 implements a comprehensive table rendering system modeled after GitHub CLI's
 
 **TTY vs Non-TTY Behavior:**
 - **TTY Mode**: Human-readable with colors, symbols (✓/○), relative times, #ID prefixes
-- **Non-TTY Mode**: Machine-readable TSV, RFC3339 times, additional STATE columns
+- **Non-TTY Mode**: Machine-readable CSV, RFC3339 times, additional STATE columns
 
 **Intelligent Column Widths:**
 - GitHub CLI's exact proportional distribution algorithm

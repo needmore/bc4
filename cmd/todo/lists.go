@@ -159,7 +159,7 @@ func newListsCmd(f *factory.Factory) *cobra.Command {
 	cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON (deprecated, use --format=json)")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID (overrides default)")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID (overrides default)")
-	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table, json, or tsv")
+	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table, json, or csv")
 
 	return cmd
 }

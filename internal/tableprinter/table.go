@@ -51,7 +51,7 @@ func WithColor(colorFunc func(string) string) fieldOption {
 // New creates a new TablePrinter based on the writer and TTY detection
 func New(writer io.Writer, isTTY bool, maxWidth int) TablePrinter {
 	if !isTTY {
-		return &tsvTablePrinter{
+		return &csvTablePrinter{
 			writer: writer,
 		}
 	}
