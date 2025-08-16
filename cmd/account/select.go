@@ -88,11 +88,7 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Create list items
 		items := make([]list.Item, 0, len(m.accounts))
 		for _, acc := range m.accounts {
-			items = append(items, accountListItem{
-				id:      acc.id,
-				name:    acc.name,
-				current: acc.current,
-			})
+			items = append(items, accountListItem(acc))
 		}
 
 		// Calculate list dimensions

@@ -1,6 +1,9 @@
 # golangci-lint configuration
 # https://golangci-lint.run/usage/configuration/
 
+# Configuration version
+version: 2
+
 run:
   # Timeout for analysis
   timeout: 5m

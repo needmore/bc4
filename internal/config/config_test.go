@@ -281,8 +281,12 @@ func TestGetConfigPath(t *testing.T) {
 
 func TestIsFirstRun(t *testing.T) {
 	// Save original and restore
-	originalPath := configPath
-	defer func() { configPath = originalPath }()
+	originalConfigPath := configPath
+	originalAuthPath := authPath
+	defer func() { 
+		configPath = originalConfigPath
+		authPath = originalAuthPath
+	}()
 
 	tests := []struct {
 		name      string
@@ -293,15 +297,15 @@ func TestIsFirstRun(t *testing.T) {
 			name: "no files exist - first run",
 			setupFunc: func(t *testing.T, tempDir string) {
 				configPath = filepath.Join(tempDir, "config.json")
-				// IsFirstRun checks actual user config dir, not our temp dir
-				// So this might return false if user has real config
+				authPath = filepath.Join(tempDir, "auth.json")
 			},
-			expected: true, // Should be true when no files exist
+			expected: true,
 		},
 		{
 			name: "config file exists",
 			setupFunc: func(t *testing.T, tempDir string) {
 				configPath = filepath.Join(tempDir, "config.json")
+				authPath = filepath.Join(tempDir, "auth.json")
 				if err := os.WriteFile(configPath, []byte("{}"), 0600); err != nil {
 					t.Fatalf("failed to write config file: %v", err)
 				}
@@ -312,18 +316,18 @@ func TestIsFirstRun(t *testing.T) {
 			name: "auth file exists but not config",
 			setupFunc: func(t *testing.T, tempDir string) {
 				configPath = filepath.Join(tempDir, "config.json")
-				authPath := filepath.Join(tempDir, "auth.json")
+				authPath = filepath.Join(tempDir, "auth.json")
 				if err := os.WriteFile(authPath, []byte("{}"), 0600); err != nil {
 					t.Fatalf("failed to write auth file: %v", err)
 				}
 			},
-			expected: true, // IsFirstRun checks the real user config dir for auth, not temp dir
+			expected: false,
 		},
 		{
 			name: "both files exist",
 			setupFunc: func(t *testing.T, tempDir string) {
 				configPath = filepath.Join(tempDir, "config.json")
-				authPath := filepath.Join(tempDir, "auth.json")
+				authPath = filepath.Join(tempDir, "auth.json")
 				if err := os.WriteFile(configPath, []byte("{}"), 0600); err != nil {
 					t.Fatalf("failed to write config file: %v", err)
 				}
@@ -485,12 +489,9 @@ func TestConfig_FirstRunScenario(t *testing.T) {
 	assert.Empty(t, cfg.ClientID)
 	assert.Empty(t, cfg.ClientSecret)
 
-	// Simulate the first-run logic that should save credentials
-	// This is what the bug was preventing
-	if cfg == nil {
-		cfg = &Config{
-			Accounts: make(map[string]AccountConfig),
-		}
+	// Ensure accounts map is initialized
+	if cfg.Accounts == nil {
+		cfg.Accounts = make(map[string]AccountConfig)
 	}
 	// The fix: check if credentials are empty instead of if cfg is nil
 	if cfg.ClientID == "" {

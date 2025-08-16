@@ -41,10 +41,12 @@ type PreferencesConfig struct {
 }
 
 var configPath string
+var authPath string
 
 func init() {
 	configDir, _ := os.UserConfigDir()
 	configPath = filepath.Join(configDir, "bc4", "config.json")
+	authPath = filepath.Join(configDir, "bc4", "auth.json")
 }
 
 // Load loads the configuration from file
@@ -133,8 +135,6 @@ func IsFirstRun() bool {
 	}
 
 	// Check for auth file
-	authDir, _ := os.UserConfigDir()
-	authPath := filepath.Join(authDir, "bc4", "auth.json")
 	if _, err := os.Stat(authPath); err == nil {
 		return false
 	}
