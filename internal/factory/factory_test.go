@@ -136,3 +136,59 @@ func TestFactory_LazyLoading(t *testing.T) {
 		t.Error("ApiClient should not be created until requested")
 	}
 }
+
+func TestApplyOverrides(t *testing.T) {
+	tests := []struct {
+		name      string
+		accountID string
+		projectID string
+	}{
+		{
+			name:      "both empty",
+			accountID: "",
+			projectID: "",
+		},
+		{
+			name:      "account only",
+			accountID: "123456",
+			projectID: "",
+		},
+		{
+			name:      "project only",
+			accountID: "",
+			projectID: "789012",
+		},
+		{
+			name:      "both specified",
+			accountID: "123456",
+			projectID: "789012",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := New() // Create fresh factory for each test
+			result := f.ApplyOverrides(tt.accountID, tt.projectID)
+
+			// Should return same factory instance
+			if result != f {
+				t.Error("ApplyOverrides should return same factory instance")
+			}
+
+			// Check that overrides were applied correctly
+			if tt.accountID != "" && result.accountID != tt.accountID {
+				t.Errorf("Expected accountID %s, got %s", tt.accountID, result.accountID)
+			}
+			if tt.accountID == "" && result.accountID != "" {
+				t.Errorf("Expected empty accountID when not specified, got %s", result.accountID)
+			}
+
+			if tt.projectID != "" && result.projectID != tt.projectID {
+				t.Errorf("Expected projectID %s, got %s", tt.projectID, result.projectID)
+			}
+			if tt.projectID == "" && result.projectID != "" {
+				t.Errorf("Expected empty projectID when not specified, got %s", result.projectID)
+			}
+		})
+	}
+}

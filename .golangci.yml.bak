@@ -1,0 +1,121 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+
+# Configuration version (required)
+version: "2"
+
+run:
+  # Timeout for analysis
+  timeout: 5m
+  # Skip directories
+  skip-dirs:
+    - vendor
+    - testdata
+
+linters:
+  # Start with the standard set
+  default: standard
+  # Enable additional linters
+  enable:
+    - misspell
+    - goconst
+    - unconvert
+    - prealloc
+    - nilerr
+    - unparam
+    - wastedassign
+    - makezero
+    - bodyclose
+    - errorlint
+    - copyloopvar
+  # Disable problematic linters for now
+  disable:
+    - gocyclo
+    - dupl
+    - gosec
+    - exhaustive
+
+linters-settings:
+  gocyclo:
+    # Increased to allow current complex functions
+    min-complexity: 40
+  dupl:
+    # Increased to allow current duplications
+    threshold: 150
+  goconst:
+    # Minimal length of string constant
+    min-len: 3
+    # Minimal occurrences count to trigger
+    min-occurrences: 3
+  misspell:
+    # Correct commonly misspelled English words in comments
+    locale: US
+  gosec:
+    # Exclude specific rules
+    excludes:
+      - G104 # Audit errors not checked
+      - G101 # Hardcoded credentials (false positive on tokenURL)
+      - G112 # Potential Slowloris Attack (http.Server config)
+      - G204 # Subprocess launched with variable (needed for pager)
+      - G301 # Poor file permissions (0755 for directories is fine)
+      - G304 # Potential file inclusion (needed for config files)
+      - G306 # Poor file permissions (0644 for files is fine)
+  exhaustive:
+    # Don't require all cases to be handled
+    default-signifies-exhaustive: true
+
+issues:
+  # Exclude known issues
+  exclude-rules:
+    # Exclude test files from some linters
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+        - gocyclo
+        - exhaustive
+    # Allow init functions in main
+    - path: main\.go
+      linters:
+        - gochecknoinits
+    # Exclude specific files with legitimate complexity
+    - path: cmd/card/list\.go
+      linters:
+        - gocyclo
+    - path: cmd/card/step_list\.go
+      linters:
+        - gocyclo
+    - path: cmd/card/step_move\.go
+      linters:
+        - gocyclo
+    - path: cmd/card/table\.go
+      linters:
+        - gocyclo
+    - path: cmd/card/view\.go
+      linters:
+        - gocyclo
+    - path: cmd/todo/add\.go
+      linters:
+        - gocyclo
+    - path: cmd/todo/list\.go
+      linters:
+        - gocyclo
+        - dupl
+    - path: cmd/todo/view\.go
+      linters:
+        - gocyclo
+    # Exclude pager subprocess execution warnings
+    - path: internal/utils/pager\.go
+      linters:
+        - gosec
+    # Exclude auth hardcoded URL (it's a constant, not a credential)
+    - path: internal/auth/auth\.go
+      text: "G101"
+    # Allow current duplicate code patterns
+    - path: cmd/card/
+      linters:
+        - dupl
+  # Maximum issues count per one linter
+  max-issues-per-linter: 50
+  # Maximum count of issues with the same text
+  max-same-issues: 10

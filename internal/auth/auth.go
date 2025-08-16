@@ -14,12 +14,15 @@ import (
 
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
+
+	"github.com/needmore/bc4/internal/version"
 )
 
 const (
-	authURL     = "https://launchpad.37signals.com/authorization/new"
-	tokenURL    = "https://launchpad.37signals.com/authorization/token"
-	redirectURL = "http://localhost:8888/callback"
+	authURL          = "https://launchpad.37signals.com/authorization/new"
+	tokenURL         = "https://launchpad.37signals.com/authorization/token"
+	callbackPort     = "8888"
+	redirectURL      = "http://localhost:" + callbackPort + "/callback"
 )
 
 // TokenData represents the stored OAuth token information
@@ -273,7 +276,7 @@ func (c *Client) startCallbackServer(state string, codeChan chan<- string, error
 	})
 
 	server := &http.Server{
-		Addr:    ":8888",
+		Addr:    ":" + callbackPort,
 		Handler: mux,
 	}
 
@@ -343,7 +346,7 @@ func (c *Client) fetchAndSaveAccountInfo(ctx context.Context, token *AccountToke
 		return err
 	}
 	req.Header.Set("Authorization", "Bearer "+token.AccessToken)
-	req.Header.Set("User-Agent", "bc4-cli/1.0.0 (github.com/needmore/bc4)")
+	req.Header.Set("User-Agent", version.UserAgent())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

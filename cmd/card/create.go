@@ -395,12 +395,7 @@ Examples:
   bc4 card create --table 123 --column 456  # Skip to card details for column 456`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Apply overrides if specified
-			if accountID != "" {
-				f = f.WithAccount(accountID)
-			}
-			if projectID != "" {
-				f = f.WithProject(projectID)
-			}
+			f = f.ApplyOverrides(accountID, projectID)
 
 			// Get API client
 			client, err := f.ApiClient()

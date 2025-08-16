@@ -26,15 +26,8 @@ func newListsCmd(f *factory.Factory) *cobra.Command {
 		Long:    `List all todo lists in the current or specified project.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Apply account override if specified
-			if accountID != "" {
-				f = f.WithAccount(accountID)
-			}
-
-			// Apply project override if specified
-			if projectID != "" {
-				f = f.WithProject(projectID)
-			}
+			// Apply overrides if specified
+			f = f.ApplyOverrides(accountID, projectID)
 
 			// Get API client from factory
 			client, err := f.ApiClient()

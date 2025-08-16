@@ -26,10 +26,8 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 		Long:    `List all projects in your Basecamp account. Use 'project select' for interactive selection.`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Apply account override if specified
-			if accountID != "" {
-				f = f.WithAccount(accountID)
-			}
+			// Apply overrides if specified
+			f = f.ApplyOverrides(accountID, "")
 
 			// Get API client from factory
 			client, err := f.ApiClient()
