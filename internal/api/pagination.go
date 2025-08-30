@@ -90,26 +90,163 @@ func (pr *PaginatedRequest) GetAll(path string, result interface{}) error {
 	return nil
 }
 
-// parseNextLinkURL extracts the next page URL from a Link header
+// parseNextLinkURL extracts the next page URL from a Link header according to RFC5988
 // Example: <https://3.basecampapi.com/999999999/buckets/2085958496/messages.json?page=4>; rel="next"
+// Handles complex cases with quoted parameters and multiple links properly
 func parseNextLinkURL(linkHeader string) string {
-	// Split by comma to handle multiple links
-	links := strings.Split(linkHeader, ",")
+	if linkHeader == "" {
+		return ""
+	}
+
+	// Parse Link header entries more robustly
+	links := parseLinkHeaderEntries(linkHeader)
 	
 	for _, link := range links {
-		link = strings.TrimSpace(link)
-		// Look for rel="next"
-		if strings.Contains(link, `rel="next"`) {
-			// Extract URL from angle brackets
-			start := strings.Index(link, "<")
-			end := strings.Index(link, ">")
-			if start != -1 && end != -1 && start < end {
-				return strings.TrimSpace(link[start+1 : end])
-			}
+		// Check if this link has rel="next"
+		if link.hasRelation("next") {
+			return link.URL
 		}
 	}
 	
 	return ""
+}
+
+// LinkEntry represents a single entry in a Link header
+type LinkEntry struct {
+	URL    string
+	Params map[string]string
+}
+
+// hasRelation checks if the link has the specified relation type
+func (le *LinkEntry) hasRelation(rel string) bool {
+	if relValue, exists := le.Params["rel"]; exists {
+		// Handle both quoted and unquoted rel values, and space-separated multiple rels
+		relValue = strings.Trim(relValue, `"`)
+		relations := strings.Fields(relValue)
+		for _, r := range relations {
+			if strings.EqualFold(r, rel) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// parseLinkHeaderEntries parses a Link header into individual entries
+// This handles RFC5988 compliant parsing including quoted parameters with commas
+func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
+	var entries []LinkEntry
+	
+	// State machine for parsing
+	var currentEntry *LinkEntry
+	i := 0
+	
+	for i < len(linkHeader) {
+		// Skip whitespace
+		for i < len(linkHeader) && (linkHeader[i] == ' ' || linkHeader[i] == '\t') {
+			i++
+		}
+		if i >= len(linkHeader) {
+			break
+		}
+		
+		// Look for start of URL in angle brackets
+		if linkHeader[i] == '<' {
+			// Start new entry
+			currentEntry = &LinkEntry{Params: make(map[string]string)}
+			i++ // skip '<'
+			
+			// Find end of URL
+			urlStart := i
+			for i < len(linkHeader) && linkHeader[i] != '>' {
+				i++
+			}
+			if i < len(linkHeader) {
+				currentEntry.URL = linkHeader[urlStart:i]
+				i++ // skip '>'
+			}
+			
+			// Parse parameters after the URL
+			for i < len(linkHeader) {
+				// Skip whitespace and semicolons
+				for i < len(linkHeader) && (linkHeader[i] == ' ' || linkHeader[i] == '\t' || linkHeader[i] == ';') {
+					i++
+				}
+				if i >= len(linkHeader) {
+					break
+				}
+				
+				// Check if we hit a comma (next link) or end
+				if linkHeader[i] == ',' {
+					i++ // skip comma
+					break
+				}
+				
+				// Parse parameter name
+				paramStart := i
+				for i < len(linkHeader) && linkHeader[i] != '=' && linkHeader[i] != ',' && linkHeader[i] != ' ' && linkHeader[i] != '\t' {
+					i++
+				}
+				if i > paramStart {
+					paramName := linkHeader[paramStart:i]
+					
+					// Skip whitespace around =
+					for i < len(linkHeader) && (linkHeader[i] == ' ' || linkHeader[i] == '\t') {
+						i++
+					}
+					
+					var paramValue string
+					if i < len(linkHeader) && linkHeader[i] == '=' {
+						i++ // skip '='
+						
+						// Skip whitespace after =
+						for i < len(linkHeader) && (linkHeader[i] == ' ' || linkHeader[i] == '\t') {
+							i++
+						}
+						
+						if i < len(linkHeader) {
+							if linkHeader[i] == '"' {
+								// Quoted value - handle escapes
+								i++ // skip opening quote
+								valueStart := i
+								for i < len(linkHeader) {
+									if linkHeader[i] == '"' {
+										// Check if it's escaped
+										if i == 0 || linkHeader[i-1] != '\\' {
+											paramValue = linkHeader[valueStart:i]
+											i++ // skip closing quote
+											break
+										}
+									}
+									i++
+								}
+							} else {
+								// Unquoted value - read until space, semicolon, or comma
+								valueStart := i
+								for i < len(linkHeader) && linkHeader[i] != ' ' && linkHeader[i] != '\t' && 
+									linkHeader[i] != ';' && linkHeader[i] != ',' {
+									i++
+								}
+								paramValue = linkHeader[valueStart:i]
+							}
+						}
+					}
+					
+					currentEntry.Params[paramName] = paramValue
+				}
+			}
+			
+			// Add completed entry
+			if currentEntry != nil && currentEntry.URL != "" {
+				entries = append(entries, *currentEntry)
+			}
+		} else {
+			// Skip unexpected characters
+			i++
+		}
+	}
+	
+	return entries
 }
 
 // extractPathFromURL converts an absolute Basecamp API URL to a relative path
