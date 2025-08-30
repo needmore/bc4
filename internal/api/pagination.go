@@ -35,32 +35,24 @@ func (pr *PaginatedRequest) GetAll(path string, result interface{}) error {
 	sliceValue := reflect.ValueOf(result).Elem()
 	sliceType := sliceValue.Type()
 
-	page := 1
-	hasNextPage := true
+	currentPath := path
+	totalFetched := 0
 
-	for hasNextPage {
+	for currentPath != "" {
 		// Wait for rate limit
 		pr.rateLimiter.Wait()
 
-		// Prepare URL with pagination
-		var paginatedPath string
-		if strings.Contains(path, "?") {
-			paginatedPath = fmt.Sprintf("%s&page=%d", path, page)
-		} else {
-			paginatedPath = fmt.Sprintf("%s?page=%d", path, page)
-		}
-
 		// Make the request
-		resp, err := pr.client.doRequest("GET", paginatedPath, nil)
+		resp, err := pr.client.doRequest("GET", currentPath, nil)
 		if err != nil {
-			return fmt.Errorf("failed to fetch page %d: %w", page, err)
+			return fmt.Errorf("failed to fetch paginated results: %w", err)
 		}
 
 		// Create a new slice to decode this page's results
 		pageResults := reflect.New(sliceType)
 		if err := json.NewDecoder(resp.Body).Decode(pageResults.Interface()); err != nil {
 			_ = resp.Body.Close()
-			return fmt.Errorf("failed to decode page %d: %w", page, err)
+			return fmt.Errorf("failed to decode paginated results: %w", err)
 		}
 		_ = resp.Body.Close()
 
@@ -70,19 +62,27 @@ func (pr *PaginatedRequest) GetAll(path string, result interface{}) error {
 			sliceValue.Set(reflect.Append(sliceValue, pageSlice.Index(i)))
 		}
 
-		// Check for next page in Link header
-		linkHeader := resp.Header.Get("Link")
-		hasNextPage = strings.Contains(linkHeader, `rel="next"`)
+		totalFetched += pageSlice.Len()
 
-		// If no results on this page, we're done
+		// Parse Link header to get next page URL according to RFC5988
+		// Basecamp uses proper Link headers with rel="next"
+		currentPath = ""
+		linkHeader := resp.Header.Get("Link")
+		if linkHeader != "" {
+			nextURL := parseNextLinkURL(linkHeader)
+			if nextURL != "" {
+				// Convert absolute URL to relative path for our client
+				currentPath = extractPathFromURL(nextURL)
+			}
+		}
+
+		// If no results on this page, we're done (safety check)
 		if pageSlice.Len() == 0 {
 			break
 		}
 
-		page++
-
 		// Small delay between requests to be respectful
-		if hasNextPage {
+		if currentPath != "" {
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
@@ -90,7 +90,50 @@ func (pr *PaginatedRequest) GetAll(path string, result interface{}) error {
 	return nil
 }
 
+// parseNextLinkURL extracts the next page URL from a Link header
+// Example: <https://3.basecampapi.com/999999999/buckets/2085958496/messages.json?page=4>; rel="next"
+func parseNextLinkURL(linkHeader string) string {
+	// Split by comma to handle multiple links
+	links := strings.Split(linkHeader, ",")
+	
+	for _, link := range links {
+		link = strings.TrimSpace(link)
+		// Look for rel="next"
+		if strings.Contains(link, `rel="next"`) {
+			// Extract URL from angle brackets
+			start := strings.Index(link, "<")
+			end := strings.Index(link, ">")
+			if start != -1 && end != -1 && start < end {
+				return strings.TrimSpace(link[start+1 : end])
+			}
+		}
+	}
+	
+	return ""
+}
+
+// extractPathFromURL converts an absolute Basecamp API URL to a relative path
+// Example: https://3.basecampapi.com/999999999/buckets/123/todos.json?page=2 -> /buckets/123/todos.json?page=2
+func extractPathFromURL(absoluteURL string) string {
+	// Find the position after the account ID (third slash after https://)
+	parts := strings.Split(absoluteURL, "/")
+	if len(parts) >= 5 && strings.HasPrefix(absoluteURL, "https://") {
+		// Reconstruct path from the bucket part onward
+		pathParts := parts[4:] // Skip https:, "", domain, accountID
+		return "/" + strings.Join(pathParts, "/")
+	}
+	
+	// Fallback - if it's already a relative path, return as-is
+	if strings.HasPrefix(absoluteURL, "/") {
+		return absoluteURL
+	}
+	
+	return ""
+}
+
 // GetPage fetches a single page of results
+// Note: For new code, prefer using GetAll() which handles pagination automatically.
+// This method is kept for backwards compatibility and specific use cases.
 func (pr *PaginatedRequest) GetPage(path string, page int, result interface{}) error {
 	// Wait for rate limit
 	pr.rateLimiter.Wait()

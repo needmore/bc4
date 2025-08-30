@@ -174,7 +174,9 @@ func (c *Client) ListMessageCategories(ctx context.Context, projectID string, me
 	var categories []MessageCategory
 	path := fmt.Sprintf("/buckets/%s/categories.json?categorizable_type=Message::Board&categorizable_id=%d", projectID, messageBoardID)
 
-	if err := c.Get(path, &categories); err != nil {
+	// Use paginated request to ensure we get all categories
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &categories); err != nil {
 		return nil, fmt.Errorf("failed to list message categories: %w", err)
 	}
 
