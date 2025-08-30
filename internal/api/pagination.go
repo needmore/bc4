@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 	"time"
@@ -252,20 +253,55 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 // extractPathFromURL converts an absolute Basecamp API URL to a relative path
 // Example: https://3.basecampapi.com/999999999/buckets/123/todos.json?page=2 -> /buckets/123/todos.json?page=2
 func extractPathFromURL(absoluteURL string) string {
-	// Find the position after the account ID (third slash after https://)
-	parts := strings.Split(absoluteURL, "/")
-	if len(parts) >= 5 && strings.HasPrefix(absoluteURL, "https://") {
-		// Reconstruct path from the bucket part onward
-		pathParts := parts[4:] // Skip https:, "", domain, accountID
-		return "/" + strings.Join(pathParts, "/")
-	}
-	
-	// Fallback - if it's already a relative path, return as-is
+	// If it's already a relative path, return as-is
 	if strings.HasPrefix(absoluteURL, "/") {
 		return absoluteURL
 	}
 	
-	return ""
+	// Parse the URL properly using the standard library
+	parsedURL, err := url.Parse(absoluteURL)
+	if err != nil {
+		// If URL parsing fails, return empty string to stop pagination
+		return ""
+	}
+	
+	// If it doesn't look like a proper URL (no scheme and not starting with /), 
+	// treat it as malformed
+	if parsedURL.Scheme == "" && !strings.HasPrefix(absoluteURL, "/") {
+		return ""
+	}
+	
+	// For Basecamp API URLs, we need to extract the path after the account ID
+	// Format: https://3.basecampapi.com/ACCOUNT_ID/buckets/...
+	path := parsedURL.Path
+	
+	// Check if this looks like a Basecamp API URL
+	if parsedURL.Host != "" && strings.Contains(parsedURL.Host, "basecampapi.com") {
+		// Split the path and look for the pattern /ACCOUNT_ID/buckets/...
+		pathParts := strings.Split(strings.TrimPrefix(path, "/"), "/")
+		
+		// Need at least account_id + "buckets" + resource
+		if len(pathParts) >= 3 && pathParts[1] == "buckets" {
+			// Reconstruct path starting from /buckets/...
+			relativePath := "/" + strings.Join(pathParts[1:], "/")
+			
+			// Add query parameters if present
+			if parsedURL.RawQuery != "" {
+				relativePath += "?" + parsedURL.RawQuery
+			}
+			
+			return relativePath
+		}
+	}
+	
+	// For non-Basecamp URLs or unexpected formats, return the full path + query
+	// This provides better fallback behavior
+	fullPath := path
+	if parsedURL.RawQuery != "" {
+		fullPath += "?" + parsedURL.RawQuery
+	}
+	
+	return fullPath
 }
 
 // GetPage fetches a single page of results

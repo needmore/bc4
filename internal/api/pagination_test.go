@@ -228,9 +228,39 @@ func TestExtractPathFromURL(t *testing.T) {
 			expected:    "/buckets/987654321/todolists/111/todos.json?page=2",
 		},
 		{
+			name:        "basecamp URL with port",
+			absoluteURL: "https://3.basecampapi.com:443/999999999/buckets/123/todos.json?page=2",
+			expected:    "/buckets/123/todos.json?page=2",
+		},
+		{
+			name:        "basecamp URL without query params",
+			absoluteURL: "https://3.basecampapi.com/999999999/buckets/123/todolists/456/todos.json",
+			expected:    "/buckets/123/todolists/456/todos.json",
+		},
+		{
+			name:        "basecamp URL with complex query params",
+			absoluteURL: "https://3.basecampapi.com/999999999/buckets/123/todos.json?page=2&limit=50&completed=true",
+			expected:    "/buckets/123/todos.json?page=2&limit=50&completed=true",
+		},
+		{
+			name:        "basecamp URL with fragment (should be ignored)",
+			absoluteURL: "https://3.basecampapi.com/999999999/buckets/123/todos.json?page=2#section",
+			expected:    "/buckets/123/todos.json?page=2",
+		},
+		{
 			name:        "already relative path",
 			absoluteURL: "/buckets/123/todos.json",
 			expected:    "/buckets/123/todos.json",
+		},
+		{
+			name:        "relative path with query",
+			absoluteURL: "/buckets/123/todos.json?page=2",
+			expected:    "/buckets/123/todos.json?page=2",
+		},
+		{
+			name:        "non-basecamp URL (fallback behavior)",
+			absoluteURL: "https://api.example.com/v1/items?page=2",
+			expected:    "/v1/items?page=2",
 		},
 		{
 			name:        "malformed URL",
@@ -238,9 +268,24 @@ func TestExtractPathFromURL(t *testing.T) {
 			expected:    "",
 		},
 		{
+			name:        "URL with invalid characters",
+			absoluteURL: "https://invalid url with spaces",
+			expected:    "",
+		},
+		{
 			name:        "empty URL",
 			absoluteURL: "",
 			expected:    "",
+		},
+		{
+			name:        "URL with encoded characters",
+			absoluteURL: "https://3.basecampapi.com/999999999/buckets/123/todos.json?search=hello%20world&page=2",
+			expected:    "/buckets/123/todos.json?search=hello%20world&page=2",
+		},
+		{
+			name:        "basecamp URL with non-standard path structure (fallback)",
+			absoluteURL: "https://3.basecampapi.com/nonstandard/path?page=2",
+			expected:    "/nonstandard/path?page=2",
 		},
 	}
 
