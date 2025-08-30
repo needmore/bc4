@@ -24,7 +24,7 @@ func NewPaginatedRequest(client *Client) *PaginatedRequest {
 
 // GetAll fetches all pages of results from a paginated endpoint
 // The result parameter must be a pointer to a slice
-func (pr *PaginatedRequest) GetAll(path string, result interface{}) error {
+func (pr *PaginatedRequest) GetAll(path string, result any) error {
 	// Validate that result is a pointer to a slice
 	resultType := reflect.TypeOf(result)
 	if resultType.Kind() != reflect.Ptr || resultType.Elem().Kind() != reflect.Slice {
@@ -237,7 +237,7 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 			}
 			
 			// Add completed entry
-			if currentEntry != nil && currentEntry.URL != "" {
+			if currentEntry.URL != "" {
 				entries = append(entries, *currentEntry)
 			}
 		} else {
@@ -271,7 +271,7 @@ func extractPathFromURL(absoluteURL string) string {
 // GetPage fetches a single page of results
 // Note: For new code, prefer using GetAll() which handles pagination automatically.
 // This method is kept for backwards compatibility and specific use cases.
-func (pr *PaginatedRequest) GetPage(path string, page int, result interface{}) error {
+func (pr *PaginatedRequest) GetPage(path string, page int, result any) error {
 	// Wait for rate limit
 	pr.rateLimiter.Wait()
 
