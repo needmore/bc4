@@ -197,6 +197,11 @@ You can specify the card using either:
 			fmt.Fprintf(&buf, "Created: %s\n", card.CreatedAt.Format("2006-01-02 15:04"))
 			fmt.Fprintf(&buf, "Updated: %s\n", card.UpdatedAt.Format("2006-01-02 15:04"))
 
+			// Comments count
+			if card.CommentsCount > 0 {
+				fmt.Fprintf(&buf, "Comments: %d\n", card.CommentsCount)
+			}
+
 			// Show steps if any
 			if len(card.Steps) > 0 {
 				fmt.Fprintf(&buf, "\nSteps (%d):\n", len(card.Steps))
