@@ -73,7 +73,7 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 				}
 
 				if !confirm {
-					fmt.Println("Cancelled")
+					fmt.Println("Canceled")
 					return nil
 				}
 			}
