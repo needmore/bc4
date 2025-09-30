@@ -9,20 +9,39 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), strongl
 - 📁 **Project Management** - List, search, and select projects
 - ✅ **Todo Management** - Create, list, check/uncheck todos across projects (supports Markdown → rich text and grouping)
 - 💬 **Message Posting** - Post messages to project message boards
+- 💭 **Comment Management** - View, create, edit, and delete comments on todos, messages, documents, and cards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
 - 🎯 **Card Management** - Manage cards with kanban board view
 - 🎨 **Beautiful TUI** - Interactive interface
 - 🔍 **Smart Search** - Find projects by pattern matching
 - 🔗 **URL Parameter Support** - Use Basecamp URLs directly as command arguments
 - 📝 **Markdown Support** - Write in Markdown, automatically converted to Basecamp's rich text format
+- 🖥️ **Cross-Platform** - Available for macOS, Linux, and Windows
 
 ## Installation
 
-### Install with Homebrew (macOS)
+### Install with Homebrew (macOS and Linux)
 
 ```bash
 brew tap needmore/bc4 https://github.com/needmore/bc4
 brew install bc4
+```
+
+### Download Pre-built Binaries
+
+Download the latest release for your platform from the [releases page](https://github.com/needmore/bc4/releases):
+
+- **macOS** (Intel): `bc4_darwin_amd64`
+- **macOS** (Apple Silicon): `bc4_darwin_arm64`
+- **Linux** (64-bit): `bc4_linux_amd64`
+- **Linux** (ARM64): `bc4_linux_arm64`
+- **Windows** (64-bit): `bc4_windows_amd64.exe`
+- **Windows** (ARM64): `bc4_windows_arm64.exe`
+
+After downloading, make the binary executable (macOS/Linux):
+```bash
+chmod +x bc4_*
+sudo mv bc4_* /usr/local/bin/bc4
 ```
 
 ### Install from source
@@ -263,6 +282,42 @@ bc4 card step check 12345 456  # Card ID and Step ID
 bc4 card step check https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345/steps/456
 ```
 
+### Comment Management
+
+```bash
+# List comments on a recording (todo, message, document, or card)
+bc4 comment list 12345  # Using recording ID
+bc4 comment list https://3.basecamp.com/1234567/buckets/89012345/todos/12345  # Using URL
+
+# View a specific comment (by ID or URL)
+bc4 comment view 67890
+bc4 comment view https://3.basecamp.com/1234567/buckets/89012345/comments/67890
+
+# Create a comment interactively
+bc4 comment create 12345
+bc4 comment create https://3.basecamp.com/1234567/buckets/89012345/todos/12345
+
+# Create a comment with inline content (supports Markdown)
+bc4 comment create 12345 --content "Great work on this! **Approved** ✅"
+
+# Create a comment from stdin
+echo "# Review Notes\n\nLooks good to me!" | bc4 comment create 12345
+
+# Edit a comment (by ID or URL)
+bc4 comment edit 67890
+bc4 comment edit https://3.basecamp.com/1234567/buckets/89012345/comments/67890
+
+# Edit with inline content
+bc4 comment edit 67890 --content "Updated: this is now **complete**"
+
+# Delete a comment (with confirmation prompt)
+bc4 comment delete 67890
+bc4 comment delete https://3.basecamp.com/1234567/buckets/89012345/comments/67890
+
+# Delete without confirmation
+bc4 comment delete 67890 --yes
+```
+
 ## Examples
 
 ### Common Workflows
@@ -432,8 +487,8 @@ bc4 supports Markdown input for creating content that gets automatically convert
 ### Supported Resources
 - ✅ **Todos** - Both title and description support Markdown
 - ✅ **Messages** - List, post, view, and edit messages on project message boards
+- ✅ **Comments** - Create and edit comments with Markdown formatting
 - 🔄 **Documents** - Coming soon
-- 🔄 **Comments** - Coming soon
 - ❌ **Campfire** - Plain text only (API limitation)
 
 ### Supported Markdown Elements
