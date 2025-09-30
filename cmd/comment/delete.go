@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/needmore/bc4/internal/factory"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -15,7 +16,7 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 	var skipConfirm bool
 
 	cmd := &cobra.Command{
-		Use:   "delete <comment-id>",
+		Use:   "delete <comment-id|url>",
 		Short: "Delete a comment",
 		Long:  `Delete a comment. This operation cannot be undone.`,
 		Args:  cobra.ExactArgs(1),
@@ -26,16 +27,30 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 				return err
 			}
 
-			// Parse comment ID
-			commentID, err := strconv.ParseInt(args[0], 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid comment ID: %s", args[0])
-			}
+			var commentID int64
+			var projectID string
 
-			// Get project ID
-			projectID, err := f.ProjectID()
-			if err != nil {
-				return err
+			// Parse the argument - could be a URL or ID
+			if parser.IsBasecampURL(args[0]) {
+				parsed, err := parser.ParseBasecampURL(args[0])
+				if err != nil {
+					return fmt.Errorf("invalid Basecamp URL: %w", err)
+				}
+				if parsed.ResourceType != parser.ResourceTypeComment {
+					return fmt.Errorf("URL is not a comment URL: %s", args[0])
+				}
+				commentID = parsed.ResourceID
+				projectID = strconv.FormatInt(parsed.ProjectID, 10)
+			} else {
+				// It's just an ID, we need the project ID from config
+				commentID, err = strconv.ParseInt(args[0], 10, 64)
+				if err != nil {
+					return fmt.Errorf("invalid comment ID: %s", args[0])
+				}
+				projectID, err = f.ProjectID()
+				if err != nil {
+					return err
+				}
 			}
 
 			// Get the comment first to show what will be deleted

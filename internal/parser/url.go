@@ -23,6 +23,7 @@ const (
 	ResourceTypeCampfire      ResourceType = "campfire"
 	ResourceTypeMessage       ResourceType = "message"
 	ResourceTypeDocument      ResourceType = "document"
+	ResourceTypeComment       ResourceType = "comment"
 	ResourceTypeVault         ResourceType = "vault"
 	ResourceTypeSchedule      ResourceType = "schedule"
 	ResourceTypeQuestionnaire ResourceType = "questionnaire"
@@ -225,6 +226,22 @@ var urlPatterns = []urlPattern{
 				ProjectID:    projectID,
 				ResourceType: ResourceTypeDocument,
 				ResourceID:   documentID,
+			}, nil
+		},
+	},
+	// Comment pattern: /1234567/buckets/89012345/comments/34567890
+	{
+		regex:        regexp.MustCompile(`^/(\d+)/buckets/(\d+)/comments/(\d+)`),
+		resourceType: ResourceTypeComment,
+		extractor: func(matches []string) (*ParsedURL, error) {
+			accountID, _ := strconv.ParseInt(matches[1], 10, 64)
+			projectID, _ := strconv.ParseInt(matches[2], 10, 64)
+			commentID, _ := strconv.ParseInt(matches[3], 10, 64)
+			return &ParsedURL{
+				AccountID:    accountID,
+				ProjectID:    projectID,
+				ResourceType: ResourceTypeComment,
+				ResourceID:   commentID,
 			}, nil
 		},
 	},

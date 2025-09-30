@@ -11,6 +11,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -19,14 +20,14 @@ func newEditCmd(f *factory.Factory) *cobra.Command {
 	var content string
 
 	cmd := &cobra.Command{
-		Use:   "edit <comment-id>",
+		Use:   "edit <comment-id|url>",
 		Short: "Edit an existing comment",
 		Long: `Edit an existing comment.
 
 You can provide updated content in several ways:
   - Interactively (default)
   - Via --content flag
-  - Via stdin: cat updated.md | bc4 comment edit <comment-id>`,
+  - Via stdin: cat updated.md | bc4 comment edit <comment-id|url>`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get API client from factory
@@ -35,16 +36,30 @@ You can provide updated content in several ways:
 				return err
 			}
 
-			// Parse comment ID
-			commentID, err := strconv.ParseInt(args[0], 10, 64)
-			if err != nil {
-				return fmt.Errorf("invalid comment ID: %s", args[0])
-			}
+			var commentID int64
+			var projectID string
 
-			// Get project ID
-			projectID, err := f.ProjectID()
-			if err != nil {
-				return err
+			// Parse the argument - could be a URL or ID
+			if parser.IsBasecampURL(args[0]) {
+				parsed, err := parser.ParseBasecampURL(args[0])
+				if err != nil {
+					return fmt.Errorf("invalid Basecamp URL: %w", err)
+				}
+				if parsed.ResourceType != parser.ResourceTypeComment {
+					return fmt.Errorf("URL is not a comment URL: %s", args[0])
+				}
+				commentID = parsed.ResourceID
+				projectID = strconv.FormatInt(parsed.ProjectID, 10)
+			} else {
+				// It's just an ID, we need the project ID from config
+				commentID, err = strconv.ParseInt(args[0], 10, 64)
+				if err != nil {
+					return fmt.Errorf("invalid comment ID: %s", args[0])
+				}
+				projectID, err = f.ProjectID()
+				if err != nil {
+					return err
+				}
 			}
 
 			// Get the existing comment
