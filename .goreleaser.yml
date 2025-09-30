@@ -24,14 +24,21 @@ builds:
       - -X github.com/needmore/bc4/internal/version.GitCommit={{.Commit}}
       - -X github.com/needmore/bc4/internal/version.BuildDate={{.Date}}
     
-    # Build for macOS only (as requested)
+    # Build for macOS, Linux, and Windows
     goos:
       - darwin
+      - linux
+      - windows
     
-    # Build for both Intel and Apple Silicon
+    # Build for Intel (amd64) and ARM (arm64)
     goarch:
       - amd64
       - arm64
+    
+    # Ignore combinations that don't make sense
+    ignore:
+      - goos: windows
+        goarch: arm64
     
     # Environment variables
     env:
@@ -63,8 +70,10 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
     
-    # Use tar.gz for macOS
-    format: tar.gz
+    # Use tar.gz for Unix systems, zip for Windows
+    format_overrides:
+      - goos: windows
+        format: zip
     
     # Additional files to include
     files:
@@ -123,7 +132,7 @@ release:
   footer: |
     ## Installation
     
-    ### Homebrew (Recommended)
+    ### Homebrew (macOS - Recommended)
     ```bash
     brew install needmore/bc4/bc4
     ```
@@ -131,7 +140,7 @@ release:
     ### Direct Download
     Download the appropriate archive for your system from the assets below.
     
-    For macOS:
+    #### macOS
     - Intel Macs: `bc4_*_Darwin_x86_64.tar.gz`
     - Apple Silicon Macs: `bc4_*_Darwin_arm64.tar.gz`
     
@@ -140,6 +149,21 @@ release:
     tar -xzf bc4_*.tar.gz
     sudo mv bc4 /usr/local/bin/
     ```
+    
+    #### Linux
+    - Intel/AMD 64-bit: `bc4_*_Linux_x86_64.tar.gz`
+    - ARM 64-bit: `bc4_*_Linux_arm64.tar.gz`
+    
+    Extract and install:
+    ```bash
+    tar -xzf bc4_*.tar.gz
+    sudo mv bc4 /usr/local/bin/
+    ```
+    
+    #### Windows
+    - 64-bit: `bc4_*_Windows_x86_64.zip`
+    
+    Extract the zip file and add `bc4.exe` to your PATH.
 
 # Homebrew tap configuration (same repository)
 brews:

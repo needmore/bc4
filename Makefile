@@ -38,11 +38,27 @@ build-all: clean
 	@echo "Building for darwin/arm64..."
 	@GOOS=darwin GOARCH=arm64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY)-darwin-arm64 .
 	
-	# Create universal binary for macOS
-	@echo "Creating universal binary..."
-	@lipo -create -output $(DIST_DIR)/$(BINARY)-darwin-universal \
-		$(DIST_DIR)/$(BINARY)-darwin-amd64 \
-		$(DIST_DIR)/$(BINARY)-darwin-arm64
+	# Linux Intel/AMD
+	@echo "Building for linux/amd64..."
+	@GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY)-linux-amd64 .
+	
+	# Linux ARM
+	@echo "Building for linux/arm64..."
+	@GOOS=linux GOARCH=arm64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY)-linux-arm64 .
+	
+	# Windows Intel/AMD
+	@echo "Building for windows/amd64..."
+	@GOOS=windows GOARCH=amd64 go build $(LDFLAGS) -o $(DIST_DIR)/$(BINARY)-windows-amd64.exe .
+	
+	# Create universal binary for macOS (only on macOS systems with lipo)
+	@if command -v lipo >/dev/null 2>&1; then \
+		echo "Creating universal binary..."; \
+		lipo -create -output $(DIST_DIR)/$(BINARY)-darwin-universal \
+			$(DIST_DIR)/$(BINARY)-darwin-amd64 \
+			$(DIST_DIR)/$(BINARY)-darwin-arm64; \
+	else \
+		echo "Skipping universal binary (lipo not available)"; \
+	fi
 
 # Run tests
 test:

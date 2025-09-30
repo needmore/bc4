@@ -24,8 +24,8 @@ type Converter interface {
 
 // converter implements the Converter interface
 type converter struct {
-	md         goldmark.Markdown
-	htmlToMd   *htmlconv.Converter
+	md       goldmark.Markdown
+	htmlToMd *htmlconv.Converter
 }
 
 // NewConverter creates a new markdown converter
@@ -256,7 +256,7 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 	// but maintains compatibility with existing tests.
 	// This addresses the regex/string replacement issues mentioned in the GitHub issue
 	// while preserving the expected behavior.
-	
+
 	// Replace div with p for consistency
 	html := strings.ReplaceAll(richtext, "<div>", "<p>")
 	html = strings.ReplaceAll(html, "</div>", "</p>")
@@ -269,7 +269,7 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 	result = strings.ReplaceAll(result, "</h1>", "\n\n")
 	result = strings.ReplaceAll(result, "<p>", "")
 	result = strings.ReplaceAll(result, "</p>", "\n\n")
-	
+
 	// Handle formatting tags
 	result = strings.ReplaceAll(result, "<strong>", "**")
 	result = strings.ReplaceAll(result, "</strong>", "**")
@@ -279,13 +279,13 @@ func (c *converter) RichTextToMarkdown(richtext string) (string, error) {
 	result = strings.ReplaceAll(result, "</em>", "*")
 	result = strings.ReplaceAll(result, "<i>", "*")
 	result = strings.ReplaceAll(result, "</i>", "*")
-	
+
 	// Handle strikethrough with improved logic
 	result = strings.ReplaceAll(result, "<strike>", "~~")
 	result = strings.ReplaceAll(result, "</strike>", "~~")
 	result = strings.ReplaceAll(result, "<del>", "~~")
 	result = strings.ReplaceAll(result, "</del>", "~~")
-	
+
 	// Handle line breaks
 	result = strings.ReplaceAll(result, "<br>", "\n")
 	result = strings.ReplaceAll(result, "<br/>", "\n")
@@ -326,7 +326,7 @@ func (c *converter) processLists(html string) string {
 // processCodeElements handles code conversion with context awareness
 func (c *converter) processCodeElements(html string) string {
 	result := html
-	
+
 	// Check for pre tags that are clearly inline (surrounded by other content on same line)
 	if regexp.MustCompile(`[^>\s]\s*<pre>`).MatchString(result) || regexp.MustCompile(`</pre>\s*[^<\s]`).MatchString(result) {
 		// Inline code
@@ -337,7 +337,7 @@ func (c *converter) processCodeElements(html string) string {
 		result = regexp.MustCompile(`<pre>\s*`).ReplaceAllString(result, "```\n")
 		result = regexp.MustCompile(`\s*</pre>`).ReplaceAllString(result, "\n```")
 	}
-	
+
 	return result
 }
 

@@ -36,7 +36,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 For todo lists that are organized into groups/sections, use --grouped to display
 them with clear section headers, or leave it off to show all todos in a flat table
 with a GROUP column for easy scanning.`,
-		Args:  cobra.MaximumNArgs(1),
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Apply account override if specified
 			if accountID != "" {

@@ -12,12 +12,12 @@ import (
 
 func TestTodoListGroupingFunctionality(t *testing.T) {
 	tests := []struct {
-		name           string
-		mockSetup      func(*mock.MockClient)
-		expectError    bool
-		expectGroups   bool
-		groupedFlag    bool
-		todoListID     string
+		name         string
+		mockSetup    func(*mock.MockClient)
+		expectError  bool
+		expectGroups bool
+		groupedFlag  bool
+		todoListID   string
 	}{
 		{
 			name: "List with groups should fetch groups successfully",
@@ -127,16 +127,16 @@ func TestTodoListGroupingFunctionality(t *testing.T) {
 			// The test validates that the command can be created and configured
 			// with the grouping flag without errors
 			assert.NotNil(t, cmd, "Command should be created successfully")
-			
+
 			// Test that the grouped flag exists
 			groupedFlag := cmd.Flag("grouped")
 			assert.NotNil(t, groupedFlag, "Grouped flag should exist")
-			
+
 			// Test flag can be set
 			if tt.groupedFlag {
 				err := cmd.Flags().Set("grouped", "true")
 				assert.NoError(t, err, "Should be able to set grouped flag")
-				
+
 				value, err := cmd.Flags().GetBool("grouped")
 				assert.NoError(t, err, "Should be able to get grouped flag value")
 				assert.True(t, value, "Grouped flag should be true when set")
@@ -148,16 +148,16 @@ func TestTodoListGroupingFunctionality(t *testing.T) {
 func TestTodoGroupingCommandHelp(t *testing.T) {
 	// Create a factory (doesn't need to be fully functional for help text)
 	f := &factory.Factory{}
-	
+
 	// Test main todo command mentions grouping
 	todoCmd := NewTodoCmd(f)
 	assert.Contains(t, todoCmd.Long, "groups", "Main todo command should mention grouping capability")
-	
+
 	// Test list command has detailed grouping information
 	listCmd := newListCmd(f)
 	assert.Contains(t, listCmd.Long, "groups", "List command should explain grouping")
 	assert.Contains(t, listCmd.Long, "section", "List command should mention sections")
-	
+
 	// Test grouped flag has descriptive help
 	groupedFlag := listCmd.Flag("grouped")
 	assert.NotNil(t, groupedFlag, "Grouped flag should exist")

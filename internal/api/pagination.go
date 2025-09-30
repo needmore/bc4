@@ -101,14 +101,14 @@ func parseNextLinkURL(linkHeader string) string {
 
 	// Parse Link header entries more robustly
 	links := parseLinkHeaderEntries(linkHeader)
-	
+
 	for _, link := range links {
 		// Check if this link has rel="next"
 		if link.hasRelation("next") {
 			return link.URL
 		}
 	}
-	
+
 	return ""
 }
 
@@ -137,11 +137,11 @@ func (le *LinkEntry) hasRelation(rel string) bool {
 // This handles RFC5988 compliant parsing including quoted parameters with commas
 func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 	var entries []LinkEntry
-	
+
 	// State machine for parsing
 	var currentEntry *LinkEntry
 	i := 0
-	
+
 	for i < len(linkHeader) {
 		// Skip whitespace
 		for i < len(linkHeader) && (linkHeader[i] == ' ' || linkHeader[i] == '\t') {
@@ -150,13 +150,13 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 		if i >= len(linkHeader) {
 			break
 		}
-		
+
 		// Look for start of URL in angle brackets
 		if linkHeader[i] == '<' {
 			// Start new entry
 			currentEntry = &LinkEntry{Params: make(map[string]string)}
 			i++ // skip '<'
-			
+
 			// Find end of URL
 			urlStart := i
 			for i < len(linkHeader) && linkHeader[i] != '>' {
@@ -166,7 +166,7 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 				currentEntry.URL = linkHeader[urlStart:i]
 				i++ // skip '>'
 			}
-			
+
 			// Parse parameters after the URL
 			for i < len(linkHeader) {
 				// Skip whitespace and semicolons
@@ -176,13 +176,13 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 				if i >= len(linkHeader) {
 					break
 				}
-				
+
 				// Check if we hit a comma (next link) or end
 				if linkHeader[i] == ',' {
 					i++ // skip comma
 					break
 				}
-				
+
 				// Parse parameter name
 				paramStart := i
 				for i < len(linkHeader) && linkHeader[i] != '=' && linkHeader[i] != ',' && linkHeader[i] != ' ' && linkHeader[i] != '\t' {
@@ -190,21 +190,21 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 				}
 				if i > paramStart {
 					paramName := linkHeader[paramStart:i]
-					
+
 					// Skip whitespace around =
 					for i < len(linkHeader) && (linkHeader[i] == ' ' || linkHeader[i] == '\t') {
 						i++
 					}
-					
+
 					var paramValue string
 					if i < len(linkHeader) && linkHeader[i] == '=' {
 						i++ // skip '='
-						
+
 						// Skip whitespace after =
 						for i < len(linkHeader) && (linkHeader[i] == ' ' || linkHeader[i] == '\t') {
 							i++
 						}
-						
+
 						if i < len(linkHeader) {
 							if linkHeader[i] == '"' {
 								// Quoted value - handle escapes
@@ -224,7 +224,7 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 							} else {
 								// Unquoted value - read until space, semicolon, or comma
 								valueStart := i
-								for i < len(linkHeader) && linkHeader[i] != ' ' && linkHeader[i] != '\t' && 
+								for i < len(linkHeader) && linkHeader[i] != ' ' && linkHeader[i] != '\t' &&
 									linkHeader[i] != ';' && linkHeader[i] != ',' {
 									i++
 								}
@@ -232,11 +232,11 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 							}
 						}
 					}
-					
+
 					currentEntry.Params[paramName] = paramValue
 				}
 			}
-			
+
 			// Add completed entry
 			if currentEntry.URL != "" {
 				entries = append(entries, *currentEntry)
@@ -246,7 +246,7 @@ func parseLinkHeaderEntries(linkHeader string) []LinkEntry {
 			i++
 		}
 	}
-	
+
 	return entries
 }
 
@@ -257,50 +257,50 @@ func extractPathFromURL(absoluteURL string) string {
 	if strings.HasPrefix(absoluteURL, "/") {
 		return absoluteURL
 	}
-	
+
 	// Parse the URL properly using the standard library
 	parsedURL, err := url.Parse(absoluteURL)
 	if err != nil {
 		// If URL parsing fails, return empty string to stop pagination
 		return ""
 	}
-	
-	// If it doesn't look like a proper URL (no scheme and not starting with /), 
+
+	// If it doesn't look like a proper URL (no scheme and not starting with /),
 	// treat it as malformed
 	if parsedURL.Scheme == "" && !strings.HasPrefix(absoluteURL, "/") {
 		return ""
 	}
-	
+
 	// For Basecamp API URLs, we need to extract the path after the account ID
 	// Format: https://3.basecampapi.com/ACCOUNT_ID/buckets/...
 	path := parsedURL.Path
-	
+
 	// Check if this looks like a Basecamp API URL
 	if parsedURL.Host != "" && strings.Contains(parsedURL.Host, "basecampapi.com") {
 		// Split the path and look for the pattern /ACCOUNT_ID/buckets/...
 		pathParts := strings.Split(strings.TrimPrefix(path, "/"), "/")
-		
+
 		// Need at least account_id + "buckets" + resource
 		if len(pathParts) >= 3 && pathParts[1] == "buckets" {
 			// Reconstruct path starting from /buckets/...
 			relativePath := "/" + strings.Join(pathParts[1:], "/")
-			
+
 			// Add query parameters if present
 			if parsedURL.RawQuery != "" {
 				relativePath += "?" + parsedURL.RawQuery
 			}
-			
+
 			return relativePath
 		}
 	}
-	
+
 	// For non-Basecamp URLs or unexpected formats, return the full path + query
 	// This provides better fallback behavior
 	fullPath := path
 	if parsedURL.RawQuery != "" {
 		fullPath += "?" + parsedURL.RawQuery
 	}
-	
+
 	return fullPath
 }
 
