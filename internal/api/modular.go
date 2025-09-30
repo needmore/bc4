@@ -70,6 +70,14 @@ type PeopleOperations interface {
 	GetPerson(ctx context.Context, personID int64) (*Person, error)
 }
 
+// CommentOperations defines comment-specific operations
+type CommentOperations interface {
+	ListComments(ctx context.Context, projectID string, recordingID int64) ([]Comment, error)
+	GetComment(ctx context.Context, projectID string, commentID int64) (*Comment, error)
+	CreateComment(ctx context.Context, projectID string, recordingID int64, req CommentCreateRequest) (*Comment, error)
+	UpdateComment(ctx context.Context, projectID string, commentID int64, req CommentUpdateRequest) (*Comment, error)
+}
+
 // ModularClient provides access to all API operations through focused interfaces
 type ModularClient struct {
 	*Client // Embed the existing client for now
@@ -114,6 +122,11 @@ func (c *ModularClient) Columns() ColumnOperations {
 
 // People returns the people operations interface
 func (c *ModularClient) People() PeopleOperations {
+	return c.Client
+}
+
+// Comments returns the comment operations interface
+func (c *ModularClient) Comments() CommentOperations {
 	return c.Client
 }
 

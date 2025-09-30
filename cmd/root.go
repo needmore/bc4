@@ -12,6 +12,7 @@ import (
 	"github.com/needmore/bc4/cmd/auth"
 	"github.com/needmore/bc4/cmd/campfire"
 	"github.com/needmore/bc4/cmd/card"
+	"github.com/needmore/bc4/cmd/comment"
 	"github.com/needmore/bc4/cmd/document"
 	"github.com/needmore/bc4/cmd/message"
 	"github.com/needmore/bc4/cmd/project"
@@ -104,6 +105,7 @@ func init() {
 	rootCmd.AddCommand(document.NewDocumentCmd(f))
 	rootCmd.AddCommand(campfire.NewCampfireCmd(f))
 	rootCmd.AddCommand(card.NewCardCmd(f))
+	rootCmd.AddCommand(comment.NewCommentCmd(f))
 
 	// Add version command (doesn't need factory)
 	rootCmd.AddCommand(versionCmd)

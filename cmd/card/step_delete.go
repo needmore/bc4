@@ -104,7 +104,7 @@ Examples:
 				var response string
 				_, _ = fmt.Scanln(&response)
 				if response != "y" && response != "Y" {
-					fmt.Println("Deletion cancelled")
+					fmt.Println("Deletion canceled")
 					return nil
 				}
 			}

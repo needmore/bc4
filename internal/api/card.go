@@ -38,19 +38,20 @@ type Column struct {
 
 // Card represents a card in a card table
 type Card struct {
-	ID         int64     `json:"id"`
-	Title      string    `json:"title"`
-	Content    string    `json:"content"`
-	Status     string    `json:"status"`
-	DueOn      *string   `json:"due_on,omitempty"`
-	Assignees  []Person  `json:"assignees"`
-	Steps      []Step    `json:"steps"`
-	StepsCount int       `json:"steps_count"`
-	Creator    *Person   `json:"creator"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
-	Parent     *Column   `json:"parent"`
-	URL        string    `json:"url"`
+	ID            int64     `json:"id"`
+	Title         string    `json:"title"`
+	Content       string    `json:"content"`
+	Status        string    `json:"status"`
+	DueOn         *string   `json:"due_on,omitempty"`
+	Assignees     []Person  `json:"assignees"`
+	Steps         []Step    `json:"steps"`
+	StepsCount    int       `json:"steps_count"`
+	CommentsCount int       `json:"comments_count"`
+	Creator       *Person   `json:"creator"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	Parent        *Column   `json:"parent"`
+	URL           string    `json:"url"`
 }
 
 // Step represents a step within a card
