@@ -63,9 +63,9 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 				}
 			}
 
-			// Delete the comment by archiving it
-			path := fmt.Sprintf("/buckets/%s/recordings/%d/status/archived.json", projectID, commentID)
-			if err := client.Put(path, nil, nil); err != nil {
+			// Delete the comment
+			path := fmt.Sprintf("/buckets/%s/comments/%d.json", projectID, commentID)
+			if err := client.Delete(path); err != nil {
 				return fmt.Errorf("failed to delete comment: %w", err)
 			}
 
