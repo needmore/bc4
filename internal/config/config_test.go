@@ -283,7 +283,7 @@ func TestIsFirstRun(t *testing.T) {
 	// Save original and restore
 	originalConfigPath := configPath
 	originalAuthPath := authPath
-	defer func() { 
+	defer func() {
 		configPath = originalConfigPath
 		authPath = originalAuthPath
 	}()

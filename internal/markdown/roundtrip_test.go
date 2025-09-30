@@ -13,34 +13,34 @@ func TestRoundTripConversion(t *testing.T) {
 	converter := NewConverter()
 
 	tests := []struct {
-		name string
+		name  string
 		input string
 		// Sometimes the round-trip might produce slightly different but equivalent markdown
-		expectedOutput string 
+		expectedOutput string
 	}{
 		{
-			name: "simple formatting",
-			input: "This has **bold** and *italic* text",
+			name:           "simple formatting",
+			input:          "This has **bold** and *italic* text",
 			expectedOutput: "This has **bold** and *italic* text",
 		},
 		{
-			name: "strikethrough",
-			input: "This is ~~deleted~~ text",
+			name:           "strikethrough",
+			input:          "This is ~~deleted~~ text",
 			expectedOutput: "This is ~~deleted~~ text",
 		},
 		{
-			name: "heading with content",
-			input: "# Main Title\n\nSome content below",
+			name:           "heading with content",
+			input:          "# Main Title\n\nSome content below",
 			expectedOutput: "# Main Title\n\nSome content below",
 		},
 		{
-			name: "unordered list",
-			input: "- First item\n- Second item",
+			name:           "unordered list",
+			input:          "- First item\n- Second item",
 			expectedOutput: "- First item\n- Second item",
 		},
 		{
-			name: "inline code", 
-			input: "Use `console.log()` to debug",
+			name:           "inline code",
+			input:          "Use `console.log()` to debug",
 			expectedOutput: "Use `console.log()` to debug",
 		},
 	}
@@ -85,34 +85,34 @@ func TestBasecampHTMLValidation(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name: "valid basecamp HTML",
-			html: "<div>Test <strong>bold</strong> text</div>",
+			name:        "valid basecamp HTML",
+			html:        "<div>Test <strong>bold</strong> text</div>",
 			shouldError: false,
 		},
 		{
-			name: "valid with links",
-			html: `<div>Visit <a href="https://example.com">here</a></div>`,
+			name:        "valid with links",
+			html:        `<div>Visit <a href="https://example.com">here</a></div>`,
 			shouldError: false,
 		},
 		{
-			name: "valid with lists",
-			html: "<ul><li>Item 1</li><li>Item 2</li></ul>",
+			name:        "valid with lists",
+			html:        "<ul><li>Item 1</li><li>Item 2</li></ul>",
 			shouldError: false,
 		},
 		{
-			name: "invalid tag",
-			html: "<div>Text with <span>invalid</span> tag</div>",
+			name:        "invalid tag",
+			html:        "<div>Text with <span>invalid</span> tag</div>",
 			shouldError: true,
-			errorMsg: "unsupported HTML tag: span",
+			errorMsg:    "unsupported HTML tag: span",
 		},
 		{
-			name: "empty input",
-			html: "",
+			name:        "empty input",
+			html:        "",
 			shouldError: false,
 		},
 		{
-			name: "bc-attachment tag",
-			html: `<bc-attachment sgid="test">@mention</bc-attachment>`,
+			name:        "bc-attachment tag",
+			html:        `<bc-attachment sgid="test">@mention</bc-attachment>`,
 			shouldError: false,
 		},
 	}
@@ -120,7 +120,7 @@ func TestBasecampHTMLValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := converter.ValidateBasecampHTML(tt.html)
-			
+
 			if tt.shouldError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
@@ -138,19 +138,19 @@ func TestComplexNesting(t *testing.T) {
 	converter := NewConverter()
 
 	tests := []struct {
-		name string
+		name  string
 		input string
 	}{
 		{
-			name: "deeply nested lists",
+			name:  "deeply nested lists",
 			input: "- Item 1\n  - Nested 1\n    - Deep nested\n  - Nested 2\n- Item 2",
 		},
 		{
-			name: "mixed formatting in lists",
+			name:  "mixed formatting in lists",
 			input: "- **Bold** item\n- *Italic* item with `code`\n- ~~Strike~~ item",
 		},
 		{
-			name: "blockquote with formatting",
+			name:  "blockquote with formatting",
 			input: "> This is a quote with **bold** and *italic* text",
 		},
 	}

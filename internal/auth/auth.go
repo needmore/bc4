@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	authURL          = "https://launchpad.37signals.com/authorization/new"
-	tokenURL         = "https://launchpad.37signals.com/authorization/token"
-	callbackPort     = "8888"
-	redirectURL      = "http://localhost:" + callbackPort + "/callback"
+	authURL      = "https://launchpad.37signals.com/authorization/new"
+	tokenURL     = "https://launchpad.37signals.com/authorization/token"
+	callbackPort = "8888"
+	redirectURL  = "http://localhost:" + callbackPort + "/callback"
 )
 
 // TokenData represents the stored OAuth token information
