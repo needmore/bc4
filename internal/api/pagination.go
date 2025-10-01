@@ -283,8 +283,25 @@ func extractPathFromURL(absoluteURL string) string {
 
 		// Need at least account_id + resource (e.g., /5624304/projects.json)
 		if len(pathParts) >= 2 {
-			// Skip the account ID (first element) and reconstruct path from the rest
-			relativePath := "/" + strings.Join(pathParts[1:], "/")
+			// Check if the first part looks like an account ID (all numeric)
+			// If so, skip it. Otherwise keep the full path for non-standard URLs.
+			firstPart := pathParts[0]
+			isAccountID := true
+			for _, r := range firstPart {
+				if r < '0' || r > '9' {
+					isAccountID = false
+					break
+				}
+			}
+
+			var relativePath string
+			if isAccountID && firstPart != "" {
+				// Skip the account ID (first element) and reconstruct path from the rest
+				relativePath = "/" + strings.Join(pathParts[1:], "/")
+			} else {
+				// Keep the full path for non-standard URLs
+				relativePath = path
+			}
 
 			// Add query parameters if present
 			if parsedURL.RawQuery != "" {
