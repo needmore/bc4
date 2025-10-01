@@ -29,11 +29,16 @@ type Column struct {
 	Type       string    `json:"type"`
 	Color      string    `json:"color,omitempty"`
 	Status     string    `json:"status"`
-	OnHold     bool      `json:"on_hold"`
+	OnHold     OnHoldStatus `json:"on_hold"`
 	CardsCount int       `json:"cards_count"`
 	CardsURL   string    `json:"cards_url"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+// OnHoldStatus represents the on_hold status of a column
+type OnHoldStatus struct {
+	Enabled bool `json:"enabled"`
 }
 
 // Card represents a card in a card table

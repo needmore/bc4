@@ -57,6 +57,10 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
+		// If there's an error, any key quits
+		if m.err != nil {
+			return m, tea.Quit
+		}
 		if m.loading {
 			return m, nil
 		}
@@ -77,10 +81,11 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case projectsLoadedMsg:
+		m.loading = false
 		if msg.err != nil {
 			m.err = msg.err
-			m.loading = false
-			return m, tea.Quit
+			// Don't quit immediately - let user see the error
+			return m, nil
 		}
 
 		m.projects = msg.projects
@@ -130,7 +135,7 @@ func (m selectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m selectModel) View() string {
 	if m.err != nil {
-		return fmt.Sprintf("\n  Error: %v\n\n", m.err)
+		return fmt.Sprintf("\n  Error: %v\n\n  Press any key to exit.\n", m.err)
 	}
 
 	if m.loading {
@@ -237,8 +242,8 @@ func (i projectItem) Description() string { return i.desc }
 // Custom item delegate for cleaner rendering
 type itemDelegate struct{}
 
-func (d itemDelegate) Height() int                               { return 2 }
-func (d itemDelegate) Spacing() int                              { return 1 }
+func (d itemDelegate) Height() int                               { return 1 }
+func (d itemDelegate) Spacing() int                              { return 0 }
 func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 
 func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
@@ -247,22 +252,21 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		return
 	}
 
-	// Render name
+	// Render name and description on one line
 	name := i.name
-	if index == m.Index() {
-		_, _ = fmt.Fprintln(w, selectedItemStyle.Render("→ "+name))
-	} else {
-		_, _ = fmt.Fprintln(w, normalItemStyle.Render("  "+name))
-	}
-
-	// Render description on second line
 	if i.desc != "" {
 		desc := i.desc
-		if len(desc) > 60 {
-			desc = desc[:57] + "..."
+		if len(desc) > 50 {
+			desc = desc[:47] + "..."
 		}
-		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).PaddingLeft(4)
-		_, _ = fmt.Fprintln(w, descStyle.Render(desc))
+		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		name = name + descStyle.Render(" - "+desc)
+	}
+
+	if index == m.Index() {
+		_, _ = fmt.Fprint(w, selectedItemStyle.Render("→ "+name))
+	} else {
+		_, _ = fmt.Fprint(w, normalItemStyle.Render("  "+name))
 	}
 }
 

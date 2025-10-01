@@ -272,17 +272,18 @@ func extractPathFromURL(absoluteURL string) string {
 	}
 
 	// For Basecamp API URLs, we need to extract the path after the account ID
-	// Format: https://3.basecampapi.com/ACCOUNT_ID/buckets/...
+	// Format: https://3.basecampapi.com/ACCOUNT_ID/resource...
+	// or: https://3.basecampapi.com/ACCOUNT_ID/buckets/...
 	path := parsedURL.Path
 
 	// Check if this looks like a Basecamp API URL
 	if parsedURL.Host != "" && strings.Contains(parsedURL.Host, "basecampapi.com") {
-		// Split the path and look for the pattern /ACCOUNT_ID/buckets/...
+		// Split the path: /ACCOUNT_ID/resource... or /ACCOUNT_ID/buckets/...
 		pathParts := strings.Split(strings.TrimPrefix(path, "/"), "/")
 
-		// Need at least account_id + "buckets" + resource
-		if len(pathParts) >= 3 && pathParts[1] == "buckets" {
-			// Reconstruct path starting from /buckets/...
+		// Need at least account_id + resource (e.g., /5624304/projects.json)
+		if len(pathParts) >= 2 {
+			// Skip the account ID (first element) and reconstruct path from the rest
 			relativePath := "/" + strings.Join(pathParts[1:], "/")
 
 			// Add query parameters if present

@@ -31,10 +31,12 @@ var rootCmd = &cobra.Command{
 	Short:   "A CLI tool for interacting with Basecamp 4",
 	Version: version.Get().Version,
 	Long: `bc4 is a command-line interface for Basecamp 4 that allows you to:
-• List and manage projects
-• Create and manage todos
-• Post messages and comments
-• Manage campfires and cards
+• List and manage projects and accounts
+• Create and manage todos and todo lists
+• Post and edit messages and documents
+• Add and manage comments on any resource
+• Work with campfires (team chat)
+• Manage card tables (kanban boards)
 • And much more!
 
 Get started by running 'bc4' to launch the setup wizard.`,

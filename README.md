@@ -231,6 +231,9 @@ bc4 message view 12345
 # Edit an existing message
 bc4 message edit 12345
 
+# List all campfires in the project
+bc4 campfire list
+
 # Post to campfire chat
 bc4 campfire post "Quick update: deployment complete! 🚀"
 
@@ -243,9 +246,6 @@ bc4 campfire post "Shipped!" --campfire https://3.basecamp.com/1234567/buckets/8
 bc4 campfire view 12345
 bc4 campfire view "Engineering"
 bc4 campfire view https://3.basecamp.com/1234567/buckets/89012345/chats/12345
-
-# Post a formatted update to campfire
-bc4 campfire update
 ```
 
 ### Card Management
@@ -325,12 +325,11 @@ bc4 comment delete 67890 --yes
 #### Daily Standup Updates
 
 ```bash
-# Post a formatted standup update to campfire
-bc4 campfire update
-# This opens an interactive editor for a formatted daily update
-
 # Quick status update to team campfire
-bc4 campfire post "Team" "PR #123 is ready for review 👀"
+bc4 campfire post "PR #123 is ready for review 👀"
+
+# Post to a specific campfire
+bc4 campfire post "Team standup: All tests passing ✅" --campfire "Engineering"
 ```
 
 #### Managing Development Tasks

@@ -10,8 +10,16 @@ func NewDocumentCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "document",
 		Short:   "Work with Basecamp documents",
-		Long:    `Create, edit and view documents in Basecamp projects.`,
 		Aliases: []string{"documents", "doc", "docs"},
+		Long: `Create, edit, and view documents in Basecamp projects.
+
+Documents are great for sharing specifications, guidelines, meeting notes,
+or any other long-form content with your team. They support rich text
+formatting and allow for collaborative editing and commenting.`,
+		Example: `  bc4 document list                   # List all documents
+  bc4 document create "Spec"          # Create a new document
+  bc4 document view 123               # View document content
+  bc4 document edit 123               # Edit a document`,
 	}
 
 	// Add subcommands

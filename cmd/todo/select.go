@@ -253,8 +253,8 @@ func (i todoListItem) Description() string { return i.desc }
 // Custom item delegate for cleaner rendering
 type todoListDelegate struct{}
 
-func (d todoListDelegate) Height() int                               { return 2 }
-func (d todoListDelegate) Spacing() int                              { return 1 }
+func (d todoListDelegate) Height() int                               { return 1 }
+func (d todoListDelegate) Spacing() int                              { return 0 }
 func (d todoListDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 
 func (d todoListDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
@@ -263,30 +263,24 @@ func (d todoListDelegate) Render(w io.Writer, m list.Model, index int, listItem 
 		return
 	}
 
-	// Render name with completion ratio
+	// Render name with completion ratio and description on one line
 	name := i.name
 	if i.completed != "" {
 		name = fmt.Sprintf("%s %s", name, completedStyle.Render("("+i.completed+")"))
 	}
-
-	if index == m.Index() {
-		_, _ = fmt.Fprintln(w, selectedItemStyle.Render("→ "+name))
-	} else {
-		_, _ = fmt.Fprintln(w, normalItemStyle.Render("  "+name))
-	}
-
-	// Render description on second line
 	if i.desc != "" {
 		desc := i.desc
-		if len(desc) > 60 {
-			desc = desc[:57] + "..."
+		if len(desc) > 40 {
+			desc = desc[:37] + "..."
 		}
-		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).PaddingLeft(4)
-		_, _ = fmt.Fprintln(w, descStyle.Render(desc))
-	} else if i.completed != "" {
-		// If no description, show last updated time if available
-		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).PaddingLeft(4)
-		_, _ = fmt.Fprintln(w, descStyle.Render("Todo list"))
+		descStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
+		name = name + descStyle.Render(" - "+desc)
+	}
+
+	if index == m.Index() {
+		_, _ = fmt.Fprint(w, selectedItemStyle.Render("→ "+name))
+	} else {
+		_, _ = fmt.Fprint(w, normalItemStyle.Render("  "+name))
 	}
 }
 
