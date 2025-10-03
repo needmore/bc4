@@ -138,7 +138,7 @@ bc4 account select
 bc4 project list
 
 # Search for a project by name
-bc4 project "marketing"
+bc4 project search "marketing"
 
 # View project details by ID or URL
 bc4 project view 12345
@@ -146,6 +146,9 @@ bc4 project view https://3.basecamp.com/1234567/projects/12345
 
 # Interactively select a project
 bc4 project select
+
+# Or set project by ID
+bc4 project set 12345
 ```
 
 ### Todo Management
