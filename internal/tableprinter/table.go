@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/mattn/go-runewidth"
 	"golang.org/x/term"
 )
 
@@ -111,7 +112,7 @@ func stripAnsi(s string) string {
 
 // measureWidth returns the display width of a string, accounting for ANSI codes
 func measureWidth(s string) int {
-	return len(stripAnsi(s))
+	return runewidth.StringWidth(stripAnsi(s))
 }
 
 // defaultTruncate provides the default truncation behavior
@@ -121,18 +122,21 @@ func defaultTruncate(maxWidth int, s string) string {
 	}
 
 	if maxWidth < 4 {
-		return s[:maxWidth]
+		// For very narrow widths, truncate carefully using runes
+		stripped := stripAnsi(s)
+		return runewidth.Truncate(stripped, maxWidth, "")
 	}
 
 	// Strip ANSI for measurement but preserve in output
 	stripped := stripAnsi(s)
-	if len(stripped) <= maxWidth-3 {
+	if runewidth.StringWidth(stripped) <= maxWidth-3 {
 		return s
 	}
 
 	// Truncate the stripped version and add ellipsis
-	runes := []rune(stripped)
-	return string(runes[:maxWidth-3]) + "..."
+	// Use runewidth.Truncate to properly handle multi-byte characters
+	truncated := runewidth.Truncate(stripped, maxWidth-3, "")
+	return truncated + "..."
 }
 
 // defaultPadding provides the default padding behavior
