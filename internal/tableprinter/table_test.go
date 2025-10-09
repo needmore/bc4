@@ -276,3 +276,40 @@ func TestMultiByteCharacterTruncation(t *testing.T) {
 		})
 	}
 }
+
+func TestIssue_PanicWithEmojiInProjectList(t *testing.T) {
+	// Reproduces the exact scenario from the bug report:
+	// Project name: "A - Designers 👩‍🎨👨‍🎨"
+	// This caused: "panic: runtime error: slice bounds out of range [:35] with capacity 32"
+
+	var buf bytes.Buffer
+	printer := New(&buf, true, 120)
+
+	printer.AddHeader([]string{"ID", "NAME", "DESCRIPTION", "UPDATED"})
+
+	// Add the exact project that caused the panic
+	printer.AddField("needmore/bc4#1477...")
+	printer.AddField("A - Designers 👩‍🎨👨‍🎨")
+	printer.AddField("")
+	printer.AddField("2025-08-15T07:4...")
+	printer.EndRow()
+
+	printer.AddField("needmore/bc4#2211...")
+	printer.AddField("A – Account Managers")
+	printer.AddField("PAM c'est par ici !")
+	printer.AddField("2025-10-02T11:2...")
+	printer.EndRow()
+
+	// This should not panic anymore
+	err := printer.Render()
+	if err != nil {
+		t.Fatalf("Failed to render: %v", err)
+	}
+
+	output := buf.String()
+
+	// Verify the emoji project name is in the output
+	if !strings.Contains(output, "Designers") {
+		t.Error("Output should contain project with emoji in name")
+	}
+}
