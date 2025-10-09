@@ -23,17 +23,17 @@ type CardTable struct {
 
 // Column represents a column in a card table
 type Column struct {
-	ID         int64     `json:"id"`
-	Title      string    `json:"title"`
-	Name       string    `json:"name"`
-	Type       string    `json:"type"`
-	Color      string    `json:"color,omitempty"`
-	Status     string    `json:"status"`
+	ID         int64        `json:"id"`
+	Title      string       `json:"title"`
+	Name       string       `json:"name"`
+	Type       string       `json:"type"`
+	Color      string       `json:"color,omitempty"`
+	Status     string       `json:"status"`
 	OnHold     OnHoldStatus `json:"on_hold"`
-	CardsCount int       `json:"cards_count"`
-	CardsURL   string    `json:"cards_url"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	CardsCount int          `json:"cards_count"`
+	CardsURL   string       `json:"cards_url"`
+	CreatedAt  time.Time    `json:"created_at"`
+	UpdatedAt  time.Time    `json:"updated_at"`
 }
 
 // OnHoldStatus represents the on_hold status of a column

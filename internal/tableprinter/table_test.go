@@ -195,3 +195,84 @@ func TestColorScheme(t *testing.T) {
 		t.Error("Should return a color function for 'completed' state")
 	}
 }
+
+func TestEmojiHandling(t *testing.T) {
+	var buf bytes.Buffer
+
+	// Create TTY table printer with narrow width to force truncation
+	printer := New(&buf, true, 60)
+
+	// Add headers
+	printer.AddHeader([]string{"ID", "NAME", "DESCRIPTION"})
+
+	// Add row with emojis that caused the panic
+	// The emoji "👩‍🎨" is actually composed of multiple Unicode code points
+	printer.AddField("1477")
+	printer.AddField("A - Designers 👩‍🎨👨‍🎨")
+	printer.AddField("Design team workspace")
+	printer.EndRow()
+
+	// This should not panic
+	err := printer.Render()
+	if err != nil {
+		t.Fatalf("Failed to render: %v", err)
+	}
+
+	output := buf.String()
+
+	// Should contain some part of the text (may be truncated)
+	if !strings.Contains(output, "Designers") {
+		t.Error("Output should contain 'Designers'")
+	}
+}
+
+func TestMultiByteCharacterTruncation(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		maxWidth int
+		wantLen  int // expected rune count (approximately)
+	}{
+		{
+			name:     "emoji with zero-width joiners",
+			input:    "👩‍🎨👨‍🎨 Test",
+			maxWidth: 10,
+			wantLen:  10,
+		},
+		{
+			name:     "mixed ascii and emoji",
+			input:    "Hello 世界 🌍",
+			maxWidth: 12,
+			wantLen:  12,
+		},
+		{
+			name:     "only emojis",
+			input:    "🎨🎭🎪🎬🎮",
+			maxWidth: 5,
+			wantLen:  5,
+		},
+		{
+			name:     "very narrow width",
+			input:    "A - Designers 👩‍🎨👨‍🎨",
+			maxWidth: 8,
+			wantLen:  8,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := defaultTruncate(tc.maxWidth, tc.input)
+
+			// Should not panic
+			if result == "" {
+				t.Error("Result should not be empty")
+			}
+
+			// Result should not exceed maxWidth in display width
+			width := measureWidth(result)
+			if width > tc.maxWidth {
+				t.Errorf("Result width %d exceeds maxWidth %d", width, tc.maxWidth)
+			}
+		})
+	}
+}
