@@ -15,6 +15,7 @@ import (
 
 func newViewCmd(f *factory.Factory) *cobra.Command {
 	var noPager bool
+	var withComments bool
 
 	cmd := &cobra.Command{
 		Use:   "view [message-id|url]",
@@ -104,6 +105,20 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 
 			fmt.Fprint(&buf, rendered)
 
+			// Fetch and display comments if requested
+			if withComments && message.CommentsCount > 0 {
+				comments, err := client.ListComments(f.Context(), projectID, message.ID)
+				if err != nil {
+					return fmt.Errorf("failed to fetch comments: %w", err)
+				}
+
+				commentsOutput, err := utils.FormatCommentsForDisplay(comments)
+				if err != nil {
+					return fmt.Errorf("failed to format comments: %w", err)
+				}
+				fmt.Fprint(&buf, commentsOutput)
+			}
+
 			// Show in pager
 			pagerOpts := &utils.PagerOptions{
 				Pager:   cfg.Preferences.Pager,
@@ -115,6 +130,7 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 	}
 
 	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Don't use a pager")
+	cmd.Flags().BoolVar(&withComments, "with-comments", false, "Display all comments inline")
 
 	return cmd
 }
