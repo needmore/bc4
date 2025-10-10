@@ -7,7 +7,7 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), strongl
 - 🔐 **OAuth2 Authentication** - Secure authentication with token management
 - 👥 **Multi-Account Support** - Manage multiple Basecamp accounts with ease
 - 📁 **Project Management** - List, search, and select projects
-- ✅ **Todo Management** - Create, list, check/uncheck todos across projects (supports Markdown → rich text and grouping)
+- ✅ **Todo Management** - Create, list, check/uncheck todos across projects (supports Markdown → rich text, grouping, and group management)
 - 💬 **Message Posting** - Post messages to project message boards
 - 💭 **Comment Management** - View, create, edit, and delete comments on todos, messages, documents, and cards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
@@ -205,6 +205,17 @@ bc4 todo create-list "Sprint 1 Tasks"
 
 # Create a todo list with description
 bc4 todo create-list "Bug Fixes" --description "Critical bugs to fix before release"
+
+# Create a new group within a todo list
+bc4 todo create-group "In Progress"
+
+# Create a group in a specific list (by name, ID, or URL)
+bc4 todo create-group "Completed" --list "Sprint 1 Tasks"
+bc4 todo create-group "Backlog" --list 12345
+
+# Reposition a group within a todo list (position is 1-based)
+bc4 todo reposition-group 12345 1  # Move to first position
+bc4 todo reposition-group 12345 3  # Move to third position
 
 # Select a default todo list (interactive - not yet implemented)
 bc4 todo select

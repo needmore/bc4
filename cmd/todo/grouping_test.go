@@ -166,7 +166,7 @@ func TestTodoGroupingCommandHelp(t *testing.T) {
 
 func TestCreateTodoGroupCommand(t *testing.T) {
 	f := &factory.Factory{}
-	
+
 	tests := []struct {
 		name        string
 		projectID   string
@@ -226,7 +226,7 @@ func TestCreateTodoGroupCommand(t *testing.T) {
 
 func TestRepositionTodoGroupCommand(t *testing.T) {
 	f := &factory.Factory{}
-	
+
 	tests := []struct {
 		name        string
 		projectID   string
