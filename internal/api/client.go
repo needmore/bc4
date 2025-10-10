@@ -460,6 +460,42 @@ func (c *Client) CreateTodoList(ctx context.Context, projectID string, todoSetID
 	return &todoList, nil
 }
 
+// TodoGroupCreateRequest represents the payload for creating a new todo group
+type TodoGroupCreateRequest struct {
+	Name string `json:"name"`
+}
+
+// CreateTodoGroup creates a new group within a todo list
+func (c *Client) CreateTodoGroup(ctx context.Context, projectID string, todoListID int64, req TodoGroupCreateRequest) (*TodoGroup, error) {
+	var group TodoGroup
+
+	path := fmt.Sprintf("/buckets/%s/todolists/%d/groups.json", projectID, todoListID)
+	if err := c.Post(path, req, &group); err != nil {
+		return nil, fmt.Errorf("failed to create todo group: %w", err)
+	}
+
+	return &group, nil
+}
+
+// TodoGroupRepositionRequest represents the payload for repositioning a group
+type TodoGroupRepositionRequest struct {
+	Position int `json:"position"`
+}
+
+// RepositionTodoGroup repositions a group within a todo list
+func (c *Client) RepositionTodoGroup(ctx context.Context, projectID string, groupID int64, position int) error {
+	req := TodoGroupRepositionRequest{
+		Position: position,
+	}
+
+	path := fmt.Sprintf("/buckets/%s/todolists/groups/%d/position.json", projectID, groupID)
+	if err := c.Put(path, req, nil); err != nil {
+		return fmt.Errorf("failed to reposition todo group: %w", err)
+	}
+
+	return nil
+}
+
 // GetTodo fetches a single todo by ID
 func (c *Client) GetTodo(ctx context.Context, projectID string, todoID int64) (*Todo, error) {
 	var todo Todo

@@ -189,6 +189,18 @@ func (m *MockClient) CreateTodoList(ctx context.Context, projectID string, todoS
 	return m.CreatedTodoList, nil
 }
 
+// CreateTodoGroup mock implementation
+func (m *MockClient) CreateTodoGroup(ctx context.Context, projectID string, todoListID int64, req api.TodoGroupCreateRequest) (*api.TodoGroup, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("CreateTodoGroup(%s, %d, %+v)", projectID, todoListID, req))
+	return &api.TodoGroup{ID: 1, Name: req.Name}, nil
+}
+
+// RepositionTodoGroup mock implementation
+func (m *MockClient) RepositionTodoGroup(ctx context.Context, projectID string, groupID int64, position int) error {
+	m.Calls = append(m.Calls, fmt.Sprintf("RepositionTodoGroup(%s, %d, %d)", projectID, groupID, position))
+	return nil
+}
+
 // CompleteTodo mock implementation
 func (m *MockClient) CompleteTodo(ctx context.Context, projectID string, todoID int64) error {
 	m.Calls = append(m.Calls, fmt.Sprintf("CompleteTodo(%s, %d)", projectID, todoID))
