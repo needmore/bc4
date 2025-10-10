@@ -71,6 +71,7 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 	var stepsOnly bool
 	var web bool
 	var noPager bool
+	var withComments bool
 
 	cmd := &cobra.Command{
 		Use:   "view [ID or URL]",
@@ -202,6 +203,20 @@ You can specify the card using either:
 				fmt.Fprintf(&buf, "Comments: %d\n", card.CommentsCount)
 			}
 
+			// Fetch and display comments if requested
+			if withComments && card.CommentsCount > 0 {
+				comments, err := client.ListComments(f.Context(), resolvedProjectID, card.ID)
+				if err != nil {
+					return fmt.Errorf("failed to fetch comments: %w", err)
+				}
+
+				commentsOutput, err := utils.FormatCommentsForDisplay(comments)
+				if err != nil {
+					return fmt.Errorf("failed to format comments: %w", err)
+				}
+				fmt.Fprint(&buf, commentsOutput)
+			}
+
 			// Show steps if any
 			if len(card.Steps) > 0 {
 				fmt.Fprintf(&buf, "\nSteps (%d):\n", len(card.Steps))
@@ -282,6 +297,7 @@ You can specify the card using either:
 	cmd.Flags().BoolVar(&stepsOnly, "steps-only", false, "Show only the steps list")
 	cmd.Flags().BoolVarP(&web, "web", "w", false, "Open card in web browser")
 	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Disable pager for output")
+	cmd.Flags().BoolVar(&withComments, "with-comments", false, "Display all comments inline")
 
 	return cmd
 }

@@ -10,11 +10,14 @@ import (
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 func newViewCmd(f *factory.Factory) *cobra.Command {
+	var withComments bool
+
 	cmd := &cobra.Command{
 		Use:   "view [document-id|url]",
 		Short: "View a document",
@@ -88,6 +91,21 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 				} else {
 					fmt.Println(markdownContent)
 				}
+
+				// Fetch and display comments if requested
+				if withComments && document.CommentsCount > 0 {
+					comments, err := client.ListComments(f.Context(), projectID, document.ID)
+					if err != nil {
+						fmt.Printf("\nNote: Failed to fetch comments: %v\n", err)
+					} else {
+						commentsOutput, err := utils.FormatCommentsForDisplay(comments)
+						if err != nil {
+							fmt.Printf("\nNote: Failed to format comments: %v\n", err)
+						} else {
+							fmt.Print(commentsOutput)
+						}
+					}
+				}
 			} else {
 				// Convert to markdown for non-terminal output
 				converter := markdown.NewConverter()
@@ -102,6 +120,8 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 			return nil
 		},
 	}
+
+	cmd.Flags().BoolVar(&withComments, "with-comments", false, "Display all comments inline")
 
 	return cmd
 }
