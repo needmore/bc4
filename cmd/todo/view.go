@@ -25,6 +25,7 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 	var jsonFields string
 	var webView bool
 	var noPager bool
+	var withComments bool
 
 	cmd := &cobra.Command{
 		Use:   "view [todo-id or URL]",
@@ -224,6 +225,23 @@ You can specify the todo using either:
 
 			fmt.Fprintln(&buf)
 
+			// Fetch and display comments if requested
+			if withComments {
+				comments, err := client.ListComments(f.Context(), resolvedProjectID, todo.ID)
+				if err != nil {
+					// Don't fail the whole command if comment fetching fails
+					// Just log a warning
+					fmt.Fprintf(&buf, "\nNote: Failed to fetch comments: %v\n", err)
+				} else if len(comments) > 0 {
+					commentsOutput, err := utils.FormatCommentsForDisplay(comments)
+					if err != nil {
+						fmt.Fprintf(&buf, "\nNote: Failed to format comments: %v\n", err)
+					} else {
+						fmt.Fprint(&buf, commentsOutput)
+					}
+				}
+			}
+
 			// Display using pager
 			cfg, _ := f.Config()
 			pagerOpts := &utils.PagerOptions{
@@ -241,6 +259,7 @@ You can specify the todo using either:
 	cmd.Flags().StringVar(&jsonFields, "json-fields", "", "Comma-separated list of JSON fields to output")
 	cmd.Flags().BoolVarP(&webView, "web", "w", false, "Open in browser")
 	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Disable pager for output")
+	cmd.Flags().BoolVar(&withComments, "with-comments", false, "Display all comments inline")
 
 	return cmd
 }
