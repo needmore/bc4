@@ -163,3 +163,144 @@ func TestTodoGroupingCommandHelp(t *testing.T) {
 	assert.NotNil(t, groupedFlag, "Grouped flag should exist")
 	assert.Contains(t, groupedFlag.Usage, "groups", "Grouped flag should mention groups in help")
 }
+
+func TestCreateTodoGroupCommand(t *testing.T) {
+	f := &factory.Factory{}
+
+	tests := []struct {
+		name        string
+		projectID   string
+		todoListID  int64
+		groupName   string
+		expectError bool
+	}{
+		{
+			name:        "Create simple group",
+			projectID:   "123",
+			todoListID:  456,
+			groupName:   "In Progress",
+			expectError: false,
+		},
+		{
+			name:        "Create group with long name",
+			projectID:   "123",
+			todoListID:  456,
+			groupName:   "Completed Tasks - Ready for Review",
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock client
+			mockClient := mock.NewMockClient()
+
+			// Create the request
+			req := api.TodoGroupCreateRequest{
+				Name: tt.groupName,
+			}
+
+			// Call the API
+			ctx := f.Context()
+			group, err := mockClient.CreateTodoGroup(ctx, tt.projectID, tt.todoListID, req)
+
+			// Check error expectation
+			if tt.expectError && err == nil {
+				t.Errorf("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			// Verify the returned group
+			if !tt.expectError && group != nil {
+				assert.Equal(t, tt.groupName, group.Name, "Group name should match")
+				assert.NotZero(t, group.ID, "Group ID should be non-zero")
+			}
+
+			// Verify API was called
+			assert.Len(t, mockClient.Calls, 1, "Expected 1 API call")
+		})
+	}
+}
+
+func TestRepositionTodoGroupCommand(t *testing.T) {
+	f := &factory.Factory{}
+
+	tests := []struct {
+		name        string
+		projectID   string
+		groupID     int64
+		position    int
+		expectError bool
+	}{
+		{
+			name:        "Reposition to first",
+			projectID:   "123",
+			groupID:     789,
+			position:    1,
+			expectError: false,
+		},
+		{
+			name:        "Reposition to third",
+			projectID:   "123",
+			groupID:     789,
+			position:    3,
+			expectError: false,
+		},
+		{
+			name:        "Reposition to last",
+			projectID:   "123",
+			groupID:     789,
+			position:    10,
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock client
+			mockClient := mock.NewMockClient()
+
+			// Call the API
+			ctx := f.Context()
+			err := mockClient.RepositionTodoGroup(ctx, tt.projectID, tt.groupID, tt.position)
+
+			// Check error expectation
+			if tt.expectError && err == nil {
+				t.Errorf("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			// Verify API was called with correct parameters
+			assert.Len(t, mockClient.Calls, 1, "Expected 1 API call")
+		})
+	}
+}
+
+func TestTodoGroupCommands(t *testing.T) {
+	// Create a factory (doesn't need to be fully functional for help text)
+	f := &factory.Factory{}
+
+	// Test main todo command has group commands
+	todoCmd := NewTodoCmd(f)
+
+	// Test create-group command exists
+	var foundCreateGroup bool
+	var foundRepositionGroup bool
+	for _, cmd := range todoCmd.Commands() {
+		if cmd.Name() == "create-group" {
+			foundCreateGroup = true
+			assert.Contains(t, cmd.Short, "group", "create-group should mention group in short description")
+		}
+		if cmd.Name() == "reposition-group" {
+			foundRepositionGroup = true
+			assert.Contains(t, cmd.Short, "group", "reposition-group should mention group in short description")
+		}
+	}
+
+	assert.True(t, foundCreateGroup, "todo command should have create-group subcommand")
+	assert.True(t, foundRepositionGroup, "todo command should have reposition-group subcommand")
+}

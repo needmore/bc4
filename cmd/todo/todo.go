@@ -33,6 +33,8 @@ Examples:
 	cmd.AddCommand(newCheckCmd(f))
 	cmd.AddCommand(newUncheckCmd(f))
 	cmd.AddCommand(newCreateListCmd(f))
+	cmd.AddCommand(newCreateGroupCmd(f))
+	cmd.AddCommand(newRepositionGroupCmd(f))
 
 	return cmd
 }

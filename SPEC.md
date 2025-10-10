@@ -208,6 +208,8 @@ bc4 todo add "Task"         # Create a new todo (supports --list, --description,
 bc4 todo check [ID|URL]     # Mark todo as complete (accepts ID or Basecamp URL)
 bc4 todo uncheck [ID|URL]   # Mark todo as incomplete (accepts ID or Basecamp URL)
 bc4 todo create-list "Name" # Create a new todo list (supports --description flag)
+bc4 todo create-group "Name" # Create a new group within a todo list (supports --list flag)
+bc4 todo reposition-group [ID] [position] # Reposition a group within a todo list
 ```
 
 **Table Output Features:**
@@ -241,6 +243,11 @@ bc4 todo create-list "Name" # Create a new todo list (supports --description fla
   - Accepts #ID, ID, or Basecamp URL
 - **`todo create-list "Name"`**: Creates a new todo list
   - `--description, -d`: Add a description to the list
+- **`todo create-group "Name"`**: Creates a new group within a todo list
+  - `--list, -l`: Specify todo list by ID, name, or URL (defaults to selected list)
+- **`todo reposition-group [ID] [position]`**: Repositions a group within a todo list
+  - Accepts group ID or Basecamp URL
+  - Position is 1-based (1 = first position)
 
 #### message
 ```bash
