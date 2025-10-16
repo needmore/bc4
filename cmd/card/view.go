@@ -204,7 +204,7 @@ You can specify the card using either:
 			}
 
 			// Fetch and display comments if requested
-			if withComments && card.CommentsCount > 0 {
+			if withComments {
 				comments, err := client.ListComments(f.Context(), resolvedProjectID, card.ID)
 				if err != nil {
 					return fmt.Errorf("failed to fetch comments: %w", err)
