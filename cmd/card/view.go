@@ -207,14 +207,17 @@ You can specify the card using either:
 			if withComments {
 				comments, err := client.ListComments(f.Context(), resolvedProjectID, card.ID)
 				if err != nil {
-					return fmt.Errorf("failed to fetch comments: %w", err)
+					// Don't fail the whole command if comment fetching fails
+					// Just log a warning
+					fmt.Fprintf(&buf, "\nNote: Failed to fetch comments: %v\n", err)
+				} else if len(comments) > 0 {
+					commentsOutput, err := utils.FormatCommentsForDisplay(comments)
+					if err != nil {
+						fmt.Fprintf(&buf, "\nNote: Failed to format comments: %v\n", err)
+					} else {
+						fmt.Fprint(&buf, commentsOutput)
+					}
 				}
-
-				commentsOutput, err := utils.FormatCommentsForDisplay(comments)
-				if err != nil {
-					return fmt.Errorf("failed to format comments: %w", err)
-				}
-				fmt.Fprint(&buf, commentsOutput)
 			}
 
 			// Show steps if any
