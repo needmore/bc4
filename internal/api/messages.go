@@ -57,7 +57,7 @@ type MessageCategory struct {
 type MessageCreateRequest struct {
 	Subject    string `json:"subject"`
 	Content    string `json:"content"`
-	Status     string `json:"status,omitempty"` // draft or active
+	Status     string `json:"status,omitempty"` // must be "active" - Basecamp API does not support draft messages
 	CategoryID *int64 `json:"category_id,omitempty"`
 }
 
