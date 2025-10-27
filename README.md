@@ -9,7 +9,7 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), strongl
 - 📁 **Project Management** - List, search, and select projects
 - ✅ **Todo Management** - Create, list, check/uncheck todos across projects (supports Markdown → rich text, grouping, and group management)
 - 💬 **Message Posting** - Post messages to project message boards
-- 💭 **Comment Management** - View, create, edit, and delete comments on todos, messages, documents, and cards
+- 💭 **Comment Management** - View, create, edit, and delete comments on todos, messages, documents, and cards; view items with all comments in one unified markdown view
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
 - 🎯 **Card Management** - Manage cards with kanban board view
 - 🎨 **Beautiful TUI** - Interactive interface
@@ -174,6 +174,9 @@ bc4 todo list [list-id|name]
 bc4 todo view 12345
 bc4 todo view https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 
+# View a todo with all its comments in one view
+bc4 todo view 12345 --with-comments
+
 # Create a new todo (supports Markdown formatting)
 bc4 todo add "Review **critical** pull request"
 
@@ -242,6 +245,9 @@ cat update.md | bc4 message post --title "Weekly Update"
 # View a specific message
 bc4 message view 12345
 
+# View a message with all its comments in one view
+bc4 message view 12345 --with-comments
+
 # Edit an existing message
 bc4 message edit 12345
 
@@ -274,6 +280,9 @@ bc4 card table [ID]
 # View a specific card (by ID or URL)
 bc4 card view 12345
 bc4 card view https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
+
+# View a card with all its comments in one view
+bc4 card view 12345 --with-comments
 
 # Create a new card in a specific table (by ID or URL)
 bc4 card add "New feature" --table 12345
@@ -405,6 +414,28 @@ bc4 card assign 45678    # Interactive assignee selector
 bc4 todo view https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 bc4 card edit https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
 bc4 campfire view https://3.basecamp.com/1234567/buckets/89012345/chats/12345
+```
+
+#### Viewing Full Context with Comments
+
+```bash
+# Get the full context of a card, todo, or message including all comments
+# Perfect for AI agents or when you need complete information in one view
+
+# View a todo with all its comments
+bc4 todo view 12345 --with-comments
+
+# View a message thread with all comments
+bc4 message view 67890 --with-comments
+
+# View a card with all discussion comments
+bc4 card view 45678 --with-comments
+
+# Combine with --no-pager to get raw output (great for piping or scripting)
+bc4 todo view 12345 --with-comments --no-pager
+
+# Redirect to a file for analysis or sharing
+bc4 message view 67890 --with-comments --no-pager > discussion.md
 ```
 
 ## Configuration
