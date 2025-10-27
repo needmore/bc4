@@ -35,18 +35,13 @@ func TestNewPostCmd(t *testing.T) {
 			expectedError: false,
 		},
 		{
-			name:          "with draft flag",
-			args:          []string{"--draft"},
-			expectedError: false,
-		},
-		{
 			name:          "with category ID",
 			args:          []string{"--category-id", "123"},
 			expectedError: false,
 		},
 		{
 			name:          "with all flags",
-			args:          []string{"--title", "Test", "--content", "Content", "--draft", "--category-id", "123"},
+			args:          []string{"--title", "Test", "--content", "Content", "--category-id", "123"},
 			expectedError: false,
 		},
 		{
@@ -97,12 +92,6 @@ func TestPostCmdFlags(t *testing.T) {
 	assert.NotNil(t, contentFlag)
 	assert.Equal(t, "c", contentFlag.Shorthand)
 	assert.Equal(t, "Message content (markdown supported)", contentFlag.Usage)
-
-	// Test draft flag
-	draftFlag := cmd.Flag("draft")
-	assert.NotNil(t, draftFlag)
-	assert.Equal(t, "d", draftFlag.Shorthand)
-	assert.Equal(t, "Create as draft", draftFlag.Usage)
 
 	// Test category-id flag
 	categoryFlag := cmd.Flag("category-id")
