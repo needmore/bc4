@@ -3,10 +3,24 @@ package utils
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/markdown"
 )
+
+// parseTime attempts to parse a timestamp string in common Basecamp formats
+func parseTime(timeStr string) (time.Time, error) {
+	// Try RFC3339 format first (most common for Basecamp API)
+	if t, err := time.Parse(time.RFC3339, timeStr); err == nil {
+		return t, nil
+	}
+	// Fallback to other common formats
+	if t, err := time.Parse("2006-01-02T15:04:05Z", timeStr); err == nil {
+		return t, nil
+	}
+	return time.Time{}, fmt.Errorf("unable to parse time: %s", timeStr)
+}
 
 // FormatCardAsMarkdown formats a card with all its comments as AI-optimized markdown
 func FormatCardAsMarkdown(card *api.Card, comments []api.Comment) (string, error) {
@@ -121,8 +135,19 @@ func FormatTodoAsMarkdown(todo *api.Todo, comments []api.Comment) (string, error
 	// Metadata
 	fmt.Fprintf(&buf, "**ID:** %d\n", todo.ID)
 	fmt.Fprintf(&buf, "**Completed:** %t\n", todo.Completed)
-	fmt.Fprintf(&buf, "**Created:** %s\n", todo.CreatedAt)
-	fmt.Fprintf(&buf, "**Updated:** %s\n", todo.UpdatedAt)
+
+	// Parse and format timestamps for consistency with other formatters
+	// Todo uses string timestamps while other resources use time.Time
+	createdAt, updatedAt := todo.CreatedAt, todo.UpdatedAt
+	if parsed, err := parseTime(todo.CreatedAt); err == nil {
+		createdAt = parsed.Format("2006-01-02 15:04")
+	}
+	if parsed, err := parseTime(todo.UpdatedAt); err == nil {
+		updatedAt = parsed.Format("2006-01-02 15:04")
+	}
+
+	fmt.Fprintf(&buf, "**Created:** %s\n", createdAt)
+	fmt.Fprintf(&buf, "**Updated:** %s\n", updatedAt)
 
 	if len(todo.Assignees) > 0 {
 		assigneeNames := make([]string, len(todo.Assignees))
