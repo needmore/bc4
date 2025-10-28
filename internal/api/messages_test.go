@@ -266,26 +266,6 @@ func TestCreateMessage(t *testing.T) {
 			expectedError: false,
 		},
 		{
-			name: "draft message",
-			request: MessageCreateRequest{
-				Subject: "Draft Message",
-				Content: "<div>Draft content</div>",
-				Status:  "draft",
-			},
-			responseCode: http.StatusCreated,
-			responseBody: `{
-				"id": 124,
-				"subject": "Draft Message",
-				"content": "<div>Draft content</div>",
-				"status": "draft",
-				"created_at": "2023-01-01T00:00:00Z",
-				"updated_at": "2023-01-01T00:00:00Z",
-				"creator": {"id": 100, "name": "John Doe"}
-			}`,
-			expectedID:    124,
-			expectedError: false,
-		},
-		{
 			name: "validation error",
 			request: MessageCreateRequest{
 				Subject: "",

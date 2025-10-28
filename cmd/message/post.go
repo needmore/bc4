@@ -18,7 +18,6 @@ func newPostCmd(f *factory.Factory) *cobra.Command {
 	var (
 		title      string
 		content    string
-		draft      bool
 		categoryID int64
 	)
 
@@ -115,9 +114,6 @@ You can provide message content in several ways:
 				Status:  "active",
 			}
 
-			if draft {
-				req.Status = "draft"
-			}
 
 			if categoryID > 0 {
 				req.CategoryID = &categoryID
@@ -141,7 +137,6 @@ You can provide message content in several ways:
 
 	cmd.Flags().StringVarP(&title, "title", "t", "", "Message subject")
 	cmd.Flags().StringVarP(&content, "content", "c", "", "Message content (markdown supported)")
-	cmd.Flags().BoolVarP(&draft, "draft", "d", false, "Create as draft")
 	cmd.Flags().Int64Var(&categoryID, "category-id", 0, "Category ID")
 
 	return cmd
