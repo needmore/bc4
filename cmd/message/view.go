@@ -66,6 +66,22 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 				return err
 			}
 
+			// Handle AI-optimized markdown output with comments
+			if withComments {
+				comments, err := client.ListComments(f.Context(), projectID, message.ID)
+				if err != nil {
+					return fmt.Errorf("failed to fetch comments: %w", err)
+				}
+
+				markdown, err := utils.FormatMessageAsMarkdown(message, comments)
+				if err != nil {
+					return fmt.Errorf("failed to format message as markdown: %w", err)
+				}
+
+				fmt.Print(markdown)
+				return nil
+			}
+
 			// Build formatted output
 			var buf bytes.Buffer
 
@@ -104,20 +120,6 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 			}
 
 			fmt.Fprint(&buf, rendered)
-
-			// Fetch and display comments if requested
-			if withComments && message.CommentsCount > 0 {
-				comments, err := client.ListComments(f.Context(), projectID, message.ID)
-				if err != nil {
-					return fmt.Errorf("failed to fetch comments: %w", err)
-				}
-
-				commentsOutput, err := utils.FormatCommentsForDisplay(comments)
-				if err != nil {
-					return fmt.Errorf("failed to format comments: %w", err)
-				}
-				fmt.Fprint(&buf, commentsOutput)
-			}
 
 			// Show in pager
 			pagerOpts := &utils.PagerOptions{

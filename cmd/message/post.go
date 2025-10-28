@@ -114,7 +114,6 @@ You can provide message content in several ways:
 				Status:  "active",
 			}
 
-
 			if categoryID > 0 {
 				req.CategoryID = &categoryID
 			}

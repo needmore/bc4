@@ -125,6 +125,22 @@ You can specify the todo using either:
 				return encoder.Encode(output)
 			}
 
+			// Handle AI-optimized markdown output with comments
+			if withComments {
+				comments, err := client.ListComments(f.Context(), resolvedProjectID, todo.ID)
+				if err != nil {
+					return fmt.Errorf("failed to fetch comments: %w", err)
+				}
+
+				markdown, err := utils.FormatTodoAsMarkdown(todo, comments)
+				if err != nil {
+					return fmt.Errorf("failed to format todo as markdown: %w", err)
+				}
+
+				fmt.Print(markdown)
+				return nil
+			}
+
 			// Prepare output for pager
 			var buf bytes.Buffer
 
@@ -224,23 +240,6 @@ You can specify the todo using either:
 			}
 
 			fmt.Fprintln(&buf)
-
-			// Fetch and display comments if requested
-			if withComments {
-				comments, err := client.ListComments(f.Context(), resolvedProjectID, todo.ID)
-				if err != nil {
-					// Don't fail the whole command if comment fetching fails
-					// Just log a warning
-					fmt.Fprintf(&buf, "\nNote: Failed to fetch comments: %v\n", err)
-				} else if len(comments) > 0 {
-					commentsOutput, err := utils.FormatCommentsForDisplay(comments)
-					if err != nil {
-						fmt.Fprintf(&buf, "\nNote: Failed to format comments: %v\n", err)
-					} else {
-						fmt.Fprint(&buf, commentsOutput)
-					}
-				}
-			}
 
 			// Display using pager
 			cfg, _ := f.Config()

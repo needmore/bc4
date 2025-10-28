@@ -152,6 +152,22 @@ You can specify the card using either:
 				return showStepsTable(card, cfg, noPager)
 			}
 
+			// Handle AI-optimized markdown output with comments
+			if withComments {
+				comments, err := client.ListComments(f.Context(), resolvedProjectID, card.ID)
+				if err != nil {
+					return fmt.Errorf("failed to fetch comments: %w", err)
+				}
+
+				markdown, err := utils.FormatCardAsMarkdown(card, comments)
+				if err != nil {
+					return fmt.Errorf("failed to format card as markdown: %w", err)
+				}
+
+				fmt.Print(markdown)
+				return nil
+			}
+
 			// Prepare output for pager
 			var buf bytes.Buffer
 
@@ -201,23 +217,6 @@ You can specify the card using either:
 			// Comments count
 			if card.CommentsCount > 0 {
 				fmt.Fprintf(&buf, "Comments: %d\n", card.CommentsCount)
-			}
-
-			// Fetch and display comments if requested
-			if withComments {
-				comments, err := client.ListComments(f.Context(), resolvedProjectID, card.ID)
-				if err != nil {
-					// Don't fail the whole command if comment fetching fails
-					// Just log a warning
-					fmt.Fprintf(&buf, "\nNote: Failed to fetch comments: %v\n", err)
-				} else if len(comments) > 0 {
-					commentsOutput, err := utils.FormatCommentsForDisplay(comments)
-					if err != nil {
-						fmt.Fprintf(&buf, "\nNote: Failed to format comments: %v\n", err)
-					} else {
-						fmt.Fprint(&buf, commentsOutput)
-					}
-				}
 			}
 
 			// Show steps if any

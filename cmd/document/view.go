@@ -62,6 +62,22 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 				return err
 			}
 
+			// Handle AI-optimized markdown output with comments
+			if withComments {
+				comments, err := client.ListComments(f.Context(), projectID, document.ID)
+				if err != nil {
+					return fmt.Errorf("failed to fetch comments: %w", err)
+				}
+
+				markdown, err := utils.FormatDocumentAsMarkdown(document, comments)
+				if err != nil {
+					return fmt.Errorf("failed to format document as markdown: %w", err)
+				}
+
+				fmt.Print(markdown)
+				return nil
+			}
+
 			// Output format
 			if viper.GetBool("json") {
 				return json.NewEncoder(os.Stdout).Encode(document)
@@ -90,21 +106,6 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 					fmt.Println(document.Content)
 				} else {
 					fmt.Println(markdownContent)
-				}
-
-				// Fetch and display comments if requested
-				if withComments && document.CommentsCount > 0 {
-					comments, err := client.ListComments(f.Context(), projectID, document.ID)
-					if err != nil {
-						fmt.Printf("\nNote: Failed to fetch comments: %v\n", err)
-					} else {
-						commentsOutput, err := utils.FormatCommentsForDisplay(comments)
-						if err != nil {
-							fmt.Printf("\nNote: Failed to format comments: %v\n", err)
-						} else {
-							fmt.Print(commentsOutput)
-						}
-					}
 				}
 			} else {
 				// Convert to markdown for non-terminal output
