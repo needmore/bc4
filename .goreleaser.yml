@@ -3,6 +3,7 @@
 
 # This is an example .goreleaser.yml file with some sensible defaults.
 # Make sure to check the documentation at https://goreleaser.com
+version: 2
 project_name: bc4
 
 before:
@@ -168,22 +169,22 @@ release:
 # Homebrew tap configuration (same repository)
 brews:
   - name: bc4
-    tap:
+    repository:
       owner: needmore
       name: bc4
       branch: main
-    folder: Formula
+    directory: Formula
     homepage: "https://github.com/needmore/bc4"
     description: "A CLI tool for interacting with Basecamp 4"
     license: "MIT"
-    
+
     # Commit author
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
-    
+
     # Commit message
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
-    
+
     # Skip upload if formula already exists
     skip_upload: auto
