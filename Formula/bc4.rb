@@ -10,7 +10,7 @@ class Bc4 < Formula
 
   on_macos do
     url "https://github.com/needmore/bc4/releases/download/v0.7.2/bc4_0.7.2_Darwin_all.tar.gz"
-    sha256 "4181817f398241aae685ac2a5b7637366940aa011cfbd3c113934a3a2e432f9f"
+    sha256 "b7fee243994da0246bfd0bd6f525d190d0b914c8385794d1719686cba8e7b2b5"
 
     def install
       bin.install "bc4"
@@ -18,24 +18,18 @@ class Bc4 < Formula
   end
 
   on_linux do
-    on_intel do
-      if Hardware::CPU.is_64_bit?
-        url "https://github.com/needmore/bc4/releases/download/v0.7.2/bc4_0.7.2_Linux_x86_64.tar.gz"
-        sha256 "e73ab7845c8855b8181c33d18d3e85f42aff71c2346927c2b0d3898290d8ccaf"
-
-        def install
-          bin.install "bc4"
-        end
+    if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
+      url "https://github.com/needmore/bc4/releases/download/v0.7.2/bc4_0.7.2_Linux_x86_64.tar.gz"
+      sha256 "cc4fefdb6c4666b77768314e386b6ee138c2fb50dbe24e4b899b229b6540abbe"
+      def install
+        bin.install "bc4"
       end
     end
-    on_arm do
-      if Hardware::CPU.is_64_bit?
-        url "https://github.com/needmore/bc4/releases/download/v0.7.2/bc4_0.7.2_Linux_arm64.tar.gz"
-        sha256 "001009abe3520b2f19fb0d613e0bc0af525bdcde33a41aa038b13556165871d0"
-
-        def install
-          bin.install "bc4"
-        end
+    if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
+      url "https://github.com/needmore/bc4/releases/download/v0.7.2/bc4_0.7.2_Linux_arm64.tar.gz"
+      sha256 "e5e658818d90aac611486be56012b8d2b56cc6abae9079a28b1aa63e45d50305"
+      def install
+        bin.install "bc4"
       end
     end
   end
