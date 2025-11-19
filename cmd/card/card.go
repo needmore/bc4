@@ -49,5 +49,8 @@ like software bugs, design requests, or other workflow-oriented tasks.`,
 	// Step management subcommands
 	cmd.AddCommand(newStepCmd(f))
 
+	// Attachments subcommand
+	cmd.AddCommand(newAttachmentsCmd(f))
+
 	return cmd
 }

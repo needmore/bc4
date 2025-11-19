@@ -35,6 +35,7 @@ Examples:
 	cmd.AddCommand(newCreateListCmd(f))
 	cmd.AddCommand(newCreateGroupCmd(f))
 	cmd.AddCommand(newRepositionGroupCmd(f))
+	cmd.AddCommand(newAttachmentsCmd(f))
 
 	return cmd
 }

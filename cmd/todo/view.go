@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
+	attachmentsCmd "github.com/needmore/bc4/cmd/attachments"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
@@ -228,6 +229,14 @@ You can specify the todo using either:
 			if todo.TodolistID > 0 {
 				fmt.Fprintln(&buf)
 				fmt.Fprintf(&buf, "%s %d\n", labelStyle.Render("Todo List ID:"), todo.TodolistID)
+			}
+
+			// Show attachments if present
+			if todo.Description != "" {
+				attachmentInfo := attachmentsCmd.DisplayAttachmentsWithStyle(todo.Description)
+				if attachmentInfo != "" {
+					fmt.Fprint(&buf, attachmentInfo)
+				}
 			}
 
 			// Show timestamps
