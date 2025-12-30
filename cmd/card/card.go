@@ -1,6 +1,7 @@
 package card
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -29,6 +30,9 @@ like software bugs, design requests, or other workflow-oriented tasks.`,
   # Move a card to a different column
   bc4 card move 123 --column "In Progress"`,
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newListCmd(f))

@@ -17,6 +17,7 @@ import (
 	"github.com/needmore/bc4/cmd/message"
 	"github.com/needmore/bc4/cmd/project"
 	"github.com/needmore/bc4/cmd/todo"
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/errors"
 	"github.com/needmore/bc4/internal/factory"
@@ -39,7 +40,17 @@ var rootCmd = &cobra.Command{
 • Manage card tables (kanban boards)
 • And much more!
 
-Get started by running 'bc4' to launch the setup wizard.`,
+Get started by running 'bc4' to launch the setup wizard.
+
+SHELL COMPLETION
+
+  Generate shell completion scripts for tab-completion support:
+    bc4 completion bash    # Bash
+    bc4 completion zsh     # Zsh
+    bc4 completion fish    # Fish
+    bc4 completion powershell  # PowerShell
+
+  See 'bc4 completion --help' for installation instructions.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if this is the first run
 		if config.IsFirstRun() {
@@ -70,17 +81,44 @@ func Execute() {
 		// Don't format cobra's built-in errors (help, version, etc.)
 		// These are displayed properly by cobra itself
 		if err.Error() == "help requested" {
-			os.Exit(0)
+			os.Exit(cmdutil.ExitSuccess)
 		}
 
-		// Format the error for user display
-		fmt.Fprintln(os.Stderr, errors.FormatError(err))
-		os.Exit(1)
+		// Unwrap silent errors to check the underlying type for exit codes
+		unwrappedErr := cmdutil.UnwrapSilent(err)
+
+		// Determine appropriate exit code based on error type
+		exitCode := cmdutil.ExitError
+
+		switch {
+		case cmdutil.IsUsageError(unwrappedErr):
+			exitCode = cmdutil.ExitUsageError
+		case errors.IsAuthenticationError(unwrappedErr), errors.IsConfigurationError(unwrappedErr):
+			exitCode = cmdutil.ExitAuthError
+		case errors.IsNotFoundError(unwrappedErr):
+			exitCode = cmdutil.ExitNotFound
+		}
+
+		// Only format and display error if it's not a silent error
+		// (silent errors have already been displayed by the command)
+		if !cmdutil.IsSilentError(err) {
+			fmt.Fprintln(os.Stderr, errors.FormatError(err))
+		}
+
+		os.Exit(exitCode)
 	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	// Disable Cobra's automatic usage and error printing on error
+	// We handle this ourselves in Execute() for better control
+	rootCmd.SilenceUsage = true
+	rootCmd.SilenceErrors = true
+
+	// Enable command suggestions on typos
+	cmdutil.EnableSuggestions(rootCmd)
 
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/bc4/config.json)")
@@ -88,12 +126,14 @@ func init() {
 	rootCmd.PersistentFlags().StringP("project", "p", "", "Override default project ID")
 	rootCmd.PersistentFlags().Bool("json", false, "Output in JSON format")
 	rootCmd.PersistentFlags().Bool("no-color", false, "Disable color output")
+	rootCmd.PersistentFlags().BoolP("verbose", "V", false, "Enable verbose output for debugging")
 
 	// Bind flags to viper
 	_ = viper.BindPFlag("account", rootCmd.PersistentFlags().Lookup("account"))
 	_ = viper.BindPFlag("project", rootCmd.PersistentFlags().Lookup("project"))
 	_ = viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
 	_ = viper.BindPFlag("no_color", rootCmd.PersistentFlags().Lookup("no-color"))
+	_ = viper.BindPFlag("verbose", rootCmd.PersistentFlags().Lookup("verbose"))
 
 	// Create factory
 	f := factory.New()

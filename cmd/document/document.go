@@ -1,6 +1,7 @@
 package document
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +22,9 @@ formatting and allow for collaborative editing and commenting.`,
   bc4 document view 123               # View document content
   bc4 document edit 123               # Edit a document`,
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newListCmd(f))

@@ -1,6 +1,7 @@
 package account
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -13,6 +14,9 @@ func NewAccountCmd(f *factory.Factory) *cobra.Command {
 		Long:    `Work with Basecamp accounts - list, select, and manage accounts.`,
 		Aliases: []string{"a"},
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newListCmd(f))

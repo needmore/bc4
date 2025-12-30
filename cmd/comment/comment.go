@@ -1,6 +1,7 @@
 package comment
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +22,9 @@ on your team's work.`,
   bc4 comment view 456                # View a specific comment
   bc4 comment edit 456                # Edit a comment`,
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newListCmd(f))
