@@ -28,9 +28,8 @@ func EnableSuggestions(cmd *cobra.Command) {
 }
 
 // DisableAuthCheck marks a command as not requiring authentication.
-// This is a no-op placeholder for documentation purposes.
+// It sets an annotation that can be checked with RequiresAuth.
 func DisableAuthCheck(cmd *cobra.Command) {
-	// Commands can use this annotation to skip auth checks
 	if cmd.Annotations == nil {
 		cmd.Annotations = make(map[string]string)
 	}
@@ -122,8 +121,8 @@ func (e *UsageError) Error() string {
 
 // IsUsageError checks if an error is a usage error
 func IsUsageError(err error) bool {
-	_, ok := err.(*UsageError)
-	return ok
+	var usageErr *UsageError
+	return errors.As(err, &usageErr)
 }
 
 // SilentError wraps an error that has already been displayed to the user.

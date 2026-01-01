@@ -42,15 +42,13 @@ var rootCmd = &cobra.Command{
 
 Get started by running 'bc4' to launch the setup wizard.
 
-SHELL COMPLETION
+Generate shell completion scripts for tab-completion support:
+  bc4 completion bash       # Bash
+  bc4 completion zsh        # Zsh
+  bc4 completion fish       # Fish
+  bc4 completion powershell # PowerShell
 
-  Generate shell completion scripts for tab-completion support:
-    bc4 completion bash    # Bash
-    bc4 completion zsh     # Zsh
-    bc4 completion fish    # Fish
-    bc4 completion powershell  # PowerShell
-
-  See 'bc4 completion --help' for installation instructions.`,
+See 'bc4 completion --help' for installation instructions.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Check if this is the first run
 		if config.IsFirstRun() {

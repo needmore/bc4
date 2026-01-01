@@ -23,8 +23,8 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 		Use:   "view <document-id|url>",
 		Short: "View a document",
 		Long:  `View a specific document by ID or URL.`,
-		Example: `  bc4 document view 12345
-  bc4 document view https://3.basecamp.com/.../documents/12345`,
+		Example: `bc4 document view 12345
+bc4 document view https://3.basecamp.com/.../documents/12345`,
 		Args: cmdutil.ExactArgs(1, "document-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get API client from factory

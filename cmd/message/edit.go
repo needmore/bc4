@@ -33,9 +33,9 @@ You can provide updated content in several ways:
   - Interactively (default)
   - Via --content flag
   - Via stdin: cat updated.md | bc4 message edit <message-id>`,
-		Example: `  bc4 message edit 12345
-  bc4 message edit 12345 --title "New Title"
-  cat updated.md | bc4 message edit 12345`,
+		Example: `bc4 message edit 12345
+bc4 message edit 12345 --title "New Title"
+cat updated.md | bc4 message edit 12345`,
 		Args: cmdutil.ExactArgs(1, "message-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get API client from factory

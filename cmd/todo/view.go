@@ -36,9 +36,9 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 You can specify the todo using either:
 - A numeric ID (e.g., "12345")
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/todos/12345")`,
-		Example: `  bc4 todo view 12345
-  bc4 todo view https://3.basecamp.com/.../todos/12345
-  bc4 todo view 12345 --with-comments`,
+		Example: `bc4 todo view 12345
+bc4 todo view https://3.basecamp.com/.../todos/12345
+bc4 todo view 12345 --with-comments`,
 		Args: cmdutil.ExactArgs(1, "todo-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Apply account override if specified
