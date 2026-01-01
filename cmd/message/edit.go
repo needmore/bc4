@@ -9,6 +9,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/needmore/bc4/internal/api"
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
@@ -24,15 +25,18 @@ func newEditCmd(f *factory.Factory) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "edit [message-id|url]",
+		Use:   "edit <message-id|url>",
 		Short: "Edit an existing message",
 		Long: `Edit an existing message.
 
 You can provide updated content in several ways:
   - Interactively (default)
   - Via --content flag
-  - Via stdin: cat updated.md | bc4 message edit [message-id]`,
-		Args: cobra.ExactArgs(1),
+  - Via stdin: cat updated.md | bc4 message edit <message-id>`,
+		Example: `bc4 message edit 12345
+bc4 message edit 12345 --title "New Title"
+cat updated.md | bc4 message edit 12345`,
+		Args: cmdutil.ExactArgs(1, "message-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get API client from factory
 			client, err := f.ApiClient()

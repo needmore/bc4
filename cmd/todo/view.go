@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
@@ -28,14 +29,17 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 	var withComments bool
 
 	cmd := &cobra.Command{
-		Use:   "view [todo-id or URL]",
+		Use:   "view <todo-id|url>",
 		Short: "View details of a specific todo",
 		Long: `View detailed information about a specific todo item including description, assignees, due date, and completion status.
 
 You can specify the todo using either:
 - A numeric ID (e.g., "12345")
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/todos/12345")`,
-		Args: cobra.ExactArgs(1),
+		Example: `bc4 todo view 12345
+bc4 todo view https://3.basecamp.com/.../todos/12345
+bc4 todo view 12345 --with-comments`,
+		Args: cmdutil.ExactArgs(1, "todo-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Apply account override if specified
 			if accountID != "" {

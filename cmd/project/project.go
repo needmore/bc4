@@ -1,6 +1,7 @@
 package project
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -13,6 +14,9 @@ func NewProjectCmd(f *factory.Factory) *cobra.Command {
 		Long:    `Work with Basecamp projects - list, view, search, and manage projects.`,
 		Aliases: []string{"p"},
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newListCmd(f))

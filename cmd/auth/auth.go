@@ -2,10 +2,12 @@ package auth
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/needmore/bc4/internal/auth"
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/errors"
 	"github.com/needmore/bc4/internal/factory"
@@ -25,6 +27,9 @@ func NewAuthCmd(f *factory.Factory) *cobra.Command {
 		Short: "Manage authentication",
 		Long:  `Authenticate with Basecamp using OAuth2`,
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	cmd.AddCommand(newLoginCmd(f))
 	cmd.AddCommand(newLogoutCmd(f))
@@ -128,7 +133,8 @@ func newStatusCmd(_ *factory.Factory) *cobra.Command {
 			if cfg.ClientID == "" || cfg.ClientSecret == "" {
 				fmt.Println(errorStyle.Render("✗ OAuth credentials not configured"))
 				fmt.Println("\nRun 'bc4' to start the setup wizard")
-				return nil
+				// Use SilentError to avoid double-printing since we already showed a message
+				return cmdutil.NewSilentError(errors.NewConfigurationError("OAuth credentials not configured", nil))
 			}
 
 			// Create auth client
@@ -139,7 +145,8 @@ func newStatusCmd(_ *factory.Factory) *cobra.Command {
 			if len(accounts) == 0 {
 				fmt.Println(errorStyle.Render("✗ Not authenticated"))
 				fmt.Println("\nRun 'bc4 auth login' to authenticate")
-				return nil
+				// Use SilentError to avoid double-printing since we already showed a message
+				return cmdutil.NewSilentError(errors.NewAuthenticationError(stderrors.New("not authenticated")))
 			}
 
 			// Display status

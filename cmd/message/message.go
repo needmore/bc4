@@ -1,6 +1,7 @@
 package message
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -21,6 +22,9 @@ attachments. Team members can comment on messages to continue the conversation.`
   bc4 message view 123                # View message details
   bc4 message edit 123                # Edit an existing message`,
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newListCmd(f))

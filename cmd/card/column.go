@@ -1,6 +1,7 @@
 package card
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,9 @@ func newColumnCmd(f *factory.Factory) *cobra.Command {
 		Short: "Manage card table columns",
 		Long:  `Manage columns within card tables, including creating, editing, and reordering columns.`,
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newColumnListCmd(f))

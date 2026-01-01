@@ -1,6 +1,7 @@
 package todo
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -22,6 +23,9 @@ Examples:
   bc4 todo list "Sprint Tasks"     # List todos in specific list`,
 		Aliases: []string{"todos", "t"},
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newListsCmd(f))

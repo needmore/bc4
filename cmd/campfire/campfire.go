@@ -1,6 +1,7 @@
 package campfire
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -15,6 +16,9 @@ func NewCampfireCmd(f *factory.Factory) *cobra.Command {
 			return cmd.Help()
 		},
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newListCmd(f))

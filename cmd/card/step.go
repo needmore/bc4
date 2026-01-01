@@ -1,6 +1,7 @@
 package card
 
 import (
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,9 @@ func newStepCmd(f *factory.Factory) *cobra.Command {
 		Short: "Manage steps within cards",
 		Long:  `Manage steps (subtasks) within cards, including adding, checking, and editing steps.`,
 	}
+
+	// Enable suggestions for subcommand typos
+	cmdutil.EnableSuggestions(cmd)
 
 	// Add subcommands
 	cmd.AddCommand(newStepAddCmd(f))

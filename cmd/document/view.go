@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
@@ -19,10 +20,12 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 	var withComments bool
 
 	cmd := &cobra.Command{
-		Use:   "view [document-id|url]",
+		Use:   "view <document-id|url>",
 		Short: "View a document",
 		Long:  `View a specific document by ID or URL.`,
-		Args:  cobra.ExactArgs(1),
+		Example: `bc4 document view 12345
+bc4 document view https://3.basecamp.com/.../documents/12345`,
+		Args: cmdutil.ExactArgs(1, "document-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get API client from factory
 			client, err := f.ApiClient()

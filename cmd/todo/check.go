@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
@@ -12,7 +13,7 @@ import (
 
 func newCheckCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "check <todo-id or URL>",
+		Use:   "check <todo-id|url>",
 		Short: "Mark a todo as complete",
 		Long: `Mark a todo as complete.
 
@@ -27,7 +28,7 @@ You can specify the todo using either:
 
   # Using a Basecamp URL
   bc4 todo check "https://3.basecamp.com/1234567/buckets/89012345/todos/12345"`,
-		Args: cobra.ExactArgs(1),
+		Args: cmdutil.ExactArgs(1, "todo-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCheck(f, args[0])
 		},

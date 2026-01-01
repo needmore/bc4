@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
@@ -18,10 +19,12 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 	var withComments bool
 
 	cmd := &cobra.Command{
-		Use:   "view [message-id|url]",
+		Use:   "view <message-id|url>",
 		Short: "View a message",
 		Long:  `View the details of a specific message.`,
-		Args:  cobra.ExactArgs(1),
+		Example: `bc4 message view 12345
+bc4 message view https://3.basecamp.com/.../messages/12345`,
+		Args: cmdutil.ExactArgs(1, "message-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get API client from factory
 			client, err := f.ApiClient()
