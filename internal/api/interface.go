@@ -17,6 +17,7 @@ type APIClient interface {
 	GetTodo(ctx context.Context, projectID string, todoID int64) (*Todo, error)
 	GetTodoGroups(ctx context.Context, projectID string, todoListID int64) ([]TodoGroup, error)
 	CreateTodo(ctx context.Context, projectID string, todoListID int64, req TodoCreateRequest) (*Todo, error)
+	UpdateTodo(ctx context.Context, projectID string, todoID int64, req TodoUpdateRequest) (*Todo, error)
 	CreateTodoList(ctx context.Context, projectID string, todoSetID int64, req TodoListCreateRequest) (*TodoList, error)
 	CreateTodoGroup(ctx context.Context, projectID string, todoListID int64, req TodoGroupCreateRequest) (*TodoGroup, error)
 	RepositionTodoGroup(ctx context.Context, projectID string, groupID int64, position int) error
