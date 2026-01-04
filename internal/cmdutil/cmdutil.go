@@ -18,7 +18,7 @@ const (
 	ExitUsageError    = 2 // Invalid command usage
 	ExitAuthError     = 4 // Authentication failure
 	ExitNotFound      = 5 // Resource not found
-	ExitCancelled     = 130 // User cancelled (Ctrl+C)
+	ExitCanceled      = 130 // User canceled (Ctrl+C)
 )
 
 // EnableSuggestions configures a command to suggest similar commands on typos.

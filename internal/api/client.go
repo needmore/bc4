@@ -410,6 +410,28 @@ type TodoCreateRequest struct {
 	AssigneeIDs []int64 `json:"assignee_ids,omitempty"`
 }
 
+// TodoUpdateRequest represents the payload for updating an existing todo
+type TodoUpdateRequest struct {
+	Content                  string  `json:"content,omitempty"`
+	Description              string  `json:"description,omitempty"`
+	DueOn                    *string `json:"due_on,omitempty"`
+	StartsOn                 *string `json:"starts_on,omitempty"`
+	AssigneeIDs              []int64 `json:"assignee_ids,omitempty"`
+	CompletionSubscriberIDs  []int64 `json:"completion_subscriber_ids,omitempty"`
+}
+
+// UpdateTodo updates an existing todo
+func (c *Client) UpdateTodo(ctx context.Context, projectID string, todoID int64, req TodoUpdateRequest) (*Todo, error) {
+	var todo Todo
+
+	path := fmt.Sprintf("/buckets/%s/todos/%d.json", projectID, todoID)
+	if err := c.Put(path, req, &todo); err != nil {
+		return nil, fmt.Errorf("failed to update todo: %w", err)
+	}
+
+	return &todo, nil
+}
+
 // CreateTodo creates a new todo in a todo list
 func (c *Client) CreateTodo(ctx context.Context, projectID string, todoListID int64, req TodoCreateRequest) (*Todo, error) {
 	var todo Todo
