@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	attachmentsCmd "github.com/needmore/bc4/cmd/attachments"
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/factory"
@@ -217,6 +218,14 @@ You can specify the card using either:
 			// Comments count
 			if card.CommentsCount > 0 {
 				fmt.Fprintf(&buf, "Comments: %d\n", card.CommentsCount)
+			}
+
+			// Show attachments if present
+			if card.Content != "" {
+				attachmentInfo := attachmentsCmd.DisplayAttachmentsWithStyle(card.Content)
+				if attachmentInfo != "" {
+					fmt.Fprint(&buf, attachmentInfo)
+				}
 			}
 
 			// Show steps if any
