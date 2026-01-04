@@ -12,8 +12,6 @@ import (
 
 type moveOptions struct {
 	position int
-	up       bool
-	down     bool
 	top      bool
 	bottom   bool
 }
