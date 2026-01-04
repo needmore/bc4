@@ -16,7 +16,7 @@ func TestExitCodes(t *testing.T) {
 	assert.Equal(t, 2, ExitUsageError)
 	assert.Equal(t, 4, ExitAuthError)
 	assert.Equal(t, 5, ExitNotFound)
-	assert.Equal(t, 130, ExitCancelled)
+	assert.Equal(t, 130, ExitCanceled)
 }
 
 func TestEnableSuggestions(t *testing.T) {

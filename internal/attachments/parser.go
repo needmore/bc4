@@ -19,8 +19,6 @@ type Attachment struct {
 
 // ParseAttachments extracts all bc-attachment elements from HTML content
 func ParseAttachments(htmlContent string) []Attachment {
-	var attachments []Attachment
-
 	// Regular expression to match bc-attachment tags with their attributes
 	// This handles both self-closing and non-self-closing tags
 	// (?s) enables DOTALL mode so . matches newlines
@@ -28,6 +26,7 @@ func ParseAttachments(htmlContent string) []Attachment {
 	re := regexp.MustCompile(bcAttachmentPattern)
 
 	matches := re.FindAllStringSubmatch(htmlContent, -1)
+	attachments := make([]Attachment, 0, len(matches))
 
 	for _, match := range matches {
 		if len(match) < 2 {
