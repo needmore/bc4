@@ -35,6 +35,7 @@ Examples:
 	cmd.AddCommand(newViewCmd(f))
 	cmd.AddCommand(newAddCmd(f))
 	cmd.AddCommand(newEditCmd(f))
+	cmd.AddCommand(newMoveCmd(f))
 	cmd.AddCommand(newCheckCmd(f))
 	cmd.AddCommand(newUncheckCmd(f))
 	cmd.AddCommand(newCreateListCmd(f))
