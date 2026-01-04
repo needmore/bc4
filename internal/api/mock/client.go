@@ -212,6 +212,12 @@ func (m *MockClient) RepositionTodoGroup(ctx context.Context, projectID string, 
 	return nil
 }
 
+// RepositionTodo mock implementation
+func (m *MockClient) RepositionTodo(ctx context.Context, projectID string, todoID int64, position int) error {
+	m.Calls = append(m.Calls, fmt.Sprintf("RepositionTodo(%s, %d, %d)", projectID, todoID, position))
+	return nil
+}
+
 // CompleteTodo mock implementation
 func (m *MockClient) CompleteTodo(ctx context.Context, projectID string, todoID int64) error {
 	m.Calls = append(m.Calls, fmt.Sprintf("CompleteTodo(%s, %d)", projectID, todoID))

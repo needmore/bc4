@@ -518,6 +518,25 @@ func (c *Client) RepositionTodoGroup(ctx context.Context, projectID string, grou
 	return nil
 }
 
+// TodoPositionRequest represents the payload for repositioning a todo
+type TodoPositionRequest struct {
+	Position int `json:"position"`
+}
+
+// RepositionTodo repositions a todo within its list
+func (c *Client) RepositionTodo(ctx context.Context, projectID string, todoID int64, position int) error {
+	req := TodoPositionRequest{
+		Position: position,
+	}
+
+	path := fmt.Sprintf("/buckets/%s/todos/%d/position.json", projectID, todoID)
+	if err := c.Put(path, req, nil); err != nil {
+		return fmt.Errorf("failed to reposition todo: %w", err)
+	}
+
+	return nil
+}
+
 // GetTodo fetches a single todo by ID
 func (c *Client) GetTodo(ctx context.Context, projectID string, todoID int64) (*Todo, error) {
 	var todo Todo
