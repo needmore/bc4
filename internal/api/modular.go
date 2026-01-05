@@ -22,6 +22,7 @@ type TodoOperations interface {
 	CreateTodo(ctx context.Context, projectID string, todoListID int64, req TodoCreateRequest) (*Todo, error)
 	UpdateTodo(ctx context.Context, projectID string, todoID int64, req TodoUpdateRequest) (*Todo, error)
 	CreateTodoList(ctx context.Context, projectID string, todoSetID int64, req TodoListCreateRequest) (*TodoList, error)
+	UpdateTodoList(ctx context.Context, projectID string, todoListID int64, req TodoListUpdateRequest) (*TodoList, error)
 	CreateTodoGroup(ctx context.Context, projectID string, todoListID int64, req TodoGroupCreateRequest) (*TodoGroup, error)
 	RepositionTodoGroup(ctx context.Context, projectID string, groupID int64, position int) error
 	RepositionTodo(ctx context.Context, projectID string, todoID int64, position int) error

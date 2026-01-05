@@ -39,6 +39,7 @@ Examples:
 	cmd.AddCommand(newCheckCmd(f))
 	cmd.AddCommand(newUncheckCmd(f))
 	cmd.AddCommand(newCreateListCmd(f))
+	cmd.AddCommand(newEditListCmd(f))
 	cmd.AddCommand(newCreateGroupCmd(f))
 	cmd.AddCommand(newRepositionGroupCmd(f))
 	cmd.AddCommand(newAttachmentsCmd(f))
