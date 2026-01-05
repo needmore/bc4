@@ -482,6 +482,24 @@ func (c *Client) CreateTodoList(ctx context.Context, projectID string, todoSetID
 	return &todoList, nil
 }
 
+// TodoListUpdateRequest represents the payload for updating an existing todo list
+type TodoListUpdateRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+// UpdateTodoList updates an existing todo list
+func (c *Client) UpdateTodoList(ctx context.Context, projectID string, todoListID int64, req TodoListUpdateRequest) (*TodoList, error) {
+	var todoList TodoList
+
+	path := fmt.Sprintf("/buckets/%s/todolists/%d.json", projectID, todoListID)
+	if err := c.Put(path, req, &todoList); err != nil {
+		return nil, fmt.Errorf("failed to update todo list: %w", err)
+	}
+
+	return &todoList, nil
+}
+
 // TodoGroupCreateRequest represents the payload for creating a new todo group
 type TodoGroupCreateRequest struct {
 	Name string `json:"name"`

@@ -35,6 +35,8 @@ type MockClient struct {
 	UpdateTodoError     error
 	CreatedTodoList     *api.TodoList
 	CreateTodoListError error
+	UpdatedTodoList     *api.TodoList
+	UpdateTodoListError error
 	CompleteTodoError   error
 	UncompleteTodoError error
 
@@ -198,6 +200,15 @@ func (m *MockClient) CreateTodoList(ctx context.Context, projectID string, todoS
 		return nil, m.CreateTodoListError
 	}
 	return m.CreatedTodoList, nil
+}
+
+// UpdateTodoList mock implementation
+func (m *MockClient) UpdateTodoList(ctx context.Context, projectID string, todoListID int64, req api.TodoListUpdateRequest) (*api.TodoList, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("UpdateTodoList(%s, %d, %+v)", projectID, todoListID, req))
+	if m.UpdateTodoListError != nil {
+		return nil, m.UpdateTodoListError
+	}
+	return m.UpdatedTodoList, nil
 }
 
 // CreateTodoGroup mock implementation
