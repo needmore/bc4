@@ -32,7 +32,7 @@ You can specify the todo list using:
 - A partial name match (e.g., "Sprint Tasks")
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/todolists/12345")
 
-At least one of --name or --description must be specified.
+At least one of --name, --description, or --clear-description must be specified.
 The name field is required by the API, so if only updating description, the current name is preserved.`,
 		Example: `  # Rename a todo list
   bc4 todo edit-list 12345 --name "Renamed List"
@@ -65,6 +65,11 @@ func runEditList(f *factory.Factory, opts *editListOptions, args []string) error
 	// Check if any changes were requested
 	if opts.name == "" && opts.description == "" && !opts.clearDescription {
 		return fmt.Errorf("no changes specified. Use --name, --description, or --clear-description")
+	}
+
+	// Check for conflicting flags
+	if opts.description != "" && opts.clearDescription {
+		return fmt.Errorf("cannot use both --description and --clear-description")
 	}
 
 	// Parse list ID (could be numeric ID, name, or URL)
