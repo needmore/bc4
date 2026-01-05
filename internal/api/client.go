@@ -42,6 +42,12 @@ func (c *Client) getBaseURL() string {
 }
 
 func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response, error) {
+	return c.doRequestWithHeaders(method, path, body, map[string]string{
+		"Content-Type": "application/json; charset=utf-8",
+	})
+}
+
+func (c *Client) doRequestWithHeaders(method, path string, body io.Reader, headers map[string]string) (*http.Response, error) {
 	url := fmt.Sprintf("%s%s", c.getBaseURL(), path)
 
 	req, err := http.NewRequest(method, url, body)
@@ -50,8 +56,10 @@ func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response,
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("User-Agent", version.UserAgent())
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -412,12 +420,12 @@ type TodoCreateRequest struct {
 
 // TodoUpdateRequest represents the payload for updating an existing todo
 type TodoUpdateRequest struct {
-	Content                  string  `json:"content,omitempty"`
-	Description              string  `json:"description,omitempty"`
-	DueOn                    *string `json:"due_on,omitempty"`
-	StartsOn                 *string `json:"starts_on,omitempty"`
-	AssigneeIDs              []int64 `json:"assignee_ids,omitempty"`
-	CompletionSubscriberIDs  []int64 `json:"completion_subscriber_ids,omitempty"`
+	Content                 string  `json:"content,omitempty"`
+	Description             string  `json:"description,omitempty"`
+	DueOn                   *string `json:"due_on,omitempty"`
+	StartsOn                *string `json:"starts_on,omitempty"`
+	AssigneeIDs             []int64 `json:"assignee_ids,omitempty"`
+	CompletionSubscriberIDs []int64 `json:"completion_subscriber_ids,omitempty"`
 }
 
 // UpdateTodo updates an existing todo

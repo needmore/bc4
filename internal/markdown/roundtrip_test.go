@@ -115,6 +115,16 @@ func TestBasecampHTMLValidation(t *testing.T) {
 			html:        `<bc-attachment sgid="test">@mention</bc-attachment>`,
 			shouldError: false,
 		},
+		{
+			name:        "figure with image and figcaption",
+			html:        `<figure><img src="https://example.com/image.gif" alt="gif"><figcaption>caption</figcaption></figure>`,
+			shouldError: false,
+		},
+		{
+			name:        "img as self closing",
+			html:        `<img src="https://example.com/image.gif" alt="gif" />`,
+			shouldError: false,
+		},
 	}
 
 	for _, tt := range tests {

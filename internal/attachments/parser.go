@@ -1,6 +1,7 @@
 package attachments
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -77,4 +78,12 @@ func (a *Attachment) GetDisplayName() string {
 		return a.Filename
 	}
 	return "Unnamed attachment"
+}
+
+// BuildTag returns a bc-attachment tag for an sgid.
+func BuildTag(sgid string) string {
+	if sgid == "" {
+		return ""
+	}
+	return fmt.Sprintf(`<bc-attachment sgid="%s"></bc-attachment>`, sgid)
 }

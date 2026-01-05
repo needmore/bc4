@@ -317,6 +317,9 @@ bc4 comment create 12345 --content "Great work on this! **Approved** ✅"
 # Create a comment from stdin
 echo "# Review Notes\n\nLooks good to me!" | bc4 comment create 12345
 
+# Create a comment with an attachment (single file)
+bc4 comment create 12345 --attach ./diagram.png
+
 # Edit a comment (by ID or URL)
 bc4 comment edit 67890
 bc4 comment edit https://3.basecamp.com/1234567/buckets/89012345/comments/67890
@@ -330,6 +333,12 @@ bc4 comment delete https://3.basecamp.com/1234567/buckets/89012345/comments/6789
 
 # Delete without confirmation
 bc4 comment delete 67890 --yes
+
+# Append an attachment to the latest comment on a recording
+bc4 comment attach 12345 --attach ./log.txt
+
+# Append an attachment to a specific comment by ID
+bc4 comment attach 12345 --comment-id 67890 --attach ./screenshot.png
 ```
 
 ## Examples

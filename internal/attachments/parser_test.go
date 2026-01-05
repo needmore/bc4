@@ -62,8 +62,8 @@ func TestParseAttachments(t *testing.T) {
 			},
 		},
 		{
-			name: "self-closing tag",
-			html: `<bc-attachment sgid="TEST123" content-type="application/pdf" filename="document.pdf" url="https://example.com/doc.pdf" />`,
+			name:     "self-closing tag",
+			html:     `<bc-attachment sgid="TEST123" content-type="application/pdf" filename="document.pdf" url="https://example.com/doc.pdf" />`,
 			expected: 1,
 			checkFn: func(t *testing.T, attachments []Attachment) {
 				if len(attachments) != 1 {
@@ -100,6 +100,18 @@ func TestParseAttachments(t *testing.T) {
 				tt.checkFn(t, attachments)
 			}
 		})
+	}
+}
+
+func TestBuildTag(t *testing.T) {
+	tag := BuildTag("SGID123")
+	expected := `<bc-attachment sgid="SGID123"></bc-attachment>`
+	if tag != expected {
+		t.Fatalf("expected %s, got %s", expected, tag)
+	}
+
+	if BuildTag("") != "" {
+		t.Fatalf("expected empty string when sgid is empty")
 	}
 }
 

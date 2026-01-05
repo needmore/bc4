@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/needmore/bc4/internal/api"
+	"github.com/needmore/bc4/internal/attachments"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
@@ -18,6 +20,7 @@ import (
 
 func newCreateCmd(f *factory.Factory) *cobra.Command {
 	var content string
+	var attachmentPath string
 
 	cmd := &cobra.Command{
 		Use:   "create <recording-id|url>",
@@ -81,16 +84,36 @@ You can provide comment content in several ways:
 				}
 			}
 
-			// Validate content
-			if content == "" {
-				return fmt.Errorf("comment content is required")
+			// Validate content (allow empty if attachment is provided)
+			if content == "" && attachmentPath == "" {
+				return fmt.Errorf("comment content or --attach is required")
 			}
 
-			// Convert markdown to rich text
-			converter := markdown.NewConverter()
-			richContent, err := converter.MarkdownToRichText(content)
-			if err != nil {
-				return fmt.Errorf("failed to convert markdown: %w", err)
+			// Convert markdown to rich text when present
+			var richContent string
+			if strings.TrimSpace(content) != "" {
+				converter := markdown.NewConverter()
+				rc, err := converter.MarkdownToRichText(content)
+				if err != nil {
+					return fmt.Errorf("failed to convert markdown: %w", err)
+				}
+				richContent = rc
+			}
+
+			// Attach file if provided
+			if attachmentPath != "" {
+				fileData, err := os.ReadFile(attachmentPath)
+				if err != nil {
+					return fmt.Errorf("failed to read attachment: %w", err)
+				}
+				filename := filepath.Base(attachmentPath)
+				upload, err := client.UploadAttachment(filename, fileData, "")
+				if err != nil {
+					return fmt.Errorf("failed to upload attachment: %w", err)
+				}
+
+				tag := attachments.BuildTag(upload.AttachableSGID)
+				richContent += tag
 			}
 
 			// Create the comment
@@ -115,6 +138,7 @@ You can provide comment content in several ways:
 	}
 
 	cmd.Flags().StringVar(&content, "content", "", "Comment content (Markdown)")
+	cmd.Flags().StringVar(&attachmentPath, "attach", "", "Path to file to attach to the comment")
 
 	return cmd
 }

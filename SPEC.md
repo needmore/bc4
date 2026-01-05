@@ -403,12 +403,12 @@ According to the Basecamp API, the following resources support rich text content
 
 **Currently Implemented:**
 - ✅ **Todo** - `content` (title) and `description` fields support Markdown input
+- ✅ **Comment** - `content` field supports Markdown input and bc-attachment tags
 
 **Future Implementation:**
 - 🔄 **Card** - `title` and `content` fields will support Markdown
 - 🔄 **Message** - `content` field will support Markdown
 - 🔄 **Document** - `content` field will support Markdown
-- 🔄 **Comment** - `content` field will support Markdown
 - 🔄 **Schedule entry** - `description` field will support Markdown
 - 🔄 **Upload** - `description` field will support Markdown
 - 🔄 **To-do list** - `description` field will support Markdown
@@ -445,6 +445,12 @@ The `internal/markdown` package provides bidirectional conversion:
 2. **File input**: `--file` flag to read from .md files
 3. **Stdin**: Pipe markdown content into commands
 4. **Interactive**: Future TUI editor with markdown preview
+
+### Comments and Attachments
+
+- `comment create`: accepts `--attach <path>` to upload a single file and append a `<bc-attachment sgid="...">` tag after Markdown-to-rich-text conversion.
+- `comment attach <recording-id|url>`: uploads a file and appends it to an existing comment (latest by default, or `--comment-id` to target a specific one).
+- Attachment upload flow: `POST /attachments.json?name=<filename>` with raw body and content type, then embed the returned `attachable_sgid` in the comment HTML.
 
 ## API Integration
 

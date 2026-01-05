@@ -75,6 +75,11 @@ type PeopleOperations interface {
 	GetPerson(ctx context.Context, personID int64) (*Person, error)
 }
 
+// AttachmentOperations defines attachment-specific operations
+type AttachmentOperations interface {
+	UploadAttachment(filename string, data []byte, contentType string) (*AttachmentUploadResponse, error)
+}
+
 // CommentOperations defines comment-specific operations
 type CommentOperations interface {
 	ListComments(ctx context.Context, projectID string, recordingID int64) ([]Comment, error)
@@ -127,6 +132,11 @@ func (c *ModularClient) Columns() ColumnOperations {
 
 // People returns the people operations interface
 func (c *ModularClient) People() PeopleOperations {
+	return c.Client
+}
+
+// Attachments returns the attachment operations interface
+func (c *ModularClient) Attachments() AttachmentOperations {
 	return c.Client
 }
 
