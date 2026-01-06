@@ -3,6 +3,7 @@ package message
 import (
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/needmore/bc4/internal/api"
@@ -13,8 +14,9 @@ import (
 
 func newListCmd(f *factory.Factory) *cobra.Command {
 	var (
-		category string
-		limit    int
+		category  string
+		limit     int
+		noPinSort bool
 	)
 
 	cmd := &cobra.Command{
@@ -59,6 +61,13 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 				messages = filtered
 			}
 
+			// Sort pinned messages first (unless disabled)
+			if !noPinSort {
+				sort.SliceStable(messages, func(i, j int) bool {
+					return messages[i].Pinned && !messages[j].Pinned
+				})
+			}
+
 			// Apply limit if specified
 			if limit > 0 && len(messages) > limit {
 				messages = messages[:limit]
@@ -78,13 +87,27 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 			if table.IsTTY() {
 				table.AddHeader("ID", "SUBJECT", "FROM", "REPLIES", "UPDATED")
 			} else {
-				table.AddHeader("ID", "SUBJECT", "FROM", "CATEGORY", "REPLIES", "STATUS", "UPDATED")
+				table.AddHeader("ID", "PINNED", "SUBJECT", "FROM", "CATEGORY", "REPLIES", "STATUS", "UPDATED")
 			}
 
 			// Add rows
 			for _, msg := range messages {
 				table.AddField(fmt.Sprintf("%d", msg.ID))
-				table.AddField(msg.Subject)
+
+				if !table.IsTTY() {
+					if msg.Pinned {
+						table.AddField("true")
+					} else {
+						table.AddField("false")
+					}
+				}
+
+				// Show pinned indicator in subject for TTY mode
+				subject := msg.Subject
+				if table.IsTTY() && msg.Pinned {
+					subject = "* " + msg.Subject
+				}
+				table.AddField(subject)
 				table.AddField(msg.Creator.Name, cs.Muted)
 
 				if !table.IsTTY() {
@@ -117,6 +140,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 
 	cmd.Flags().StringVarP(&category, "category", "c", "", "Filter by category")
 	cmd.Flags().IntVarP(&limit, "limit", "l", 0, "Limit number of messages shown")
+	cmd.Flags().BoolVar(&noPinSort, "no-pin-sort", false, "Don't sort pinned messages first")
 
 	return cmd
 }

@@ -88,4 +88,9 @@ func TestListCmdFlags(t *testing.T) {
 	assert.NotNil(t, limitFlag)
 	assert.Equal(t, "l", limitFlag.Shorthand)
 	assert.Equal(t, "Limit number of messages shown", limitFlag.Usage)
+
+	// Test no-pin-sort flag
+	noPinSortFlag := cmd.Flag("no-pin-sort")
+	assert.NotNil(t, noPinSortFlag)
+	assert.Equal(t, "Don't sort pinned messages first", noPinSortFlag.Usage)
 }
