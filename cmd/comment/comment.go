@@ -31,6 +31,7 @@ on your team's work.`,
 	cmd.AddCommand(newViewCmd(f))
 	cmd.AddCommand(newCreateCmd(f))
 	cmd.AddCommand(newEditCmd(f))
+	cmd.AddCommand(newAttachCmd(f))
 	cmd.AddCommand(newDeleteCmd(f))
 
 	return cmd
