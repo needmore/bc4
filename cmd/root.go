@@ -41,13 +41,25 @@ var rootCmd = &cobra.Command{
 • Manage card tables (kanban boards)
 • And much more!
 
-Get started by running 'bc4' to launch the setup wizard.
+Quick Start:
+  bc4                        Run first-time setup wizard
+  bc4 auth status            Check if authenticated
+  bc4 project list           See your projects
+  bc4 project select         Pick a default project
+  bc4 todo lists             View todo lists
+  bc4 todo list "Tasks"      See todos in a list
+  bc4 todo add "New task"    Create a todo
 
-Generate shell completion scripts for tab-completion support:
-  bc4 completion bash       # Bash
-  bc4 completion zsh        # Zsh
-  bc4 completion fish       # Fish
-  bc4 completion powershell # PowerShell
+Common Workflows:
+  bc4 campfire post "Update" Quick team update
+  bc4 message post           Announce to project
+  bc4 card table "Bugs"      View kanban board
+
+Shell Completions:
+  bc4 completion bash        Bash
+  bc4 completion zsh         Zsh
+  bc4 completion fish        Fish
+  bc4 completion powershell  PowerShell
 
 See 'bc4 completion --help' for installation instructions.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
