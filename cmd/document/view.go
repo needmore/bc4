@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/charmbracelet/glamour"
+
 	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
@@ -18,6 +20,7 @@ import (
 
 func newViewCmd(f *factory.Factory) *cobra.Command {
 	var withComments bool
+	var noPager bool
 
 	cmd := &cobra.Command{
 		Use:   "view <document-id|url>",
@@ -65,20 +68,50 @@ bc4 document view https://3.basecamp.com/.../documents/12345`,
 				return err
 			}
 
-			// Handle AI-optimized markdown output with comments
+			// Handle output with comments
 			if withComments {
 				comments, err := client.ListComments(f.Context(), projectID, document.ID)
 				if err != nil {
 					return fmt.Errorf("failed to fetch comments: %w", err)
 				}
 
-				markdown, err := utils.FormatDocumentAsMarkdown(document, comments)
+				mdContent, err := utils.FormatDocumentAsMarkdown(document, comments)
 				if err != nil {
 					return fmt.Errorf("failed to format document as markdown: %w", err)
 				}
 
-				fmt.Print(markdown)
-				return nil
+				// If piped, output raw markdown for scripting/AI
+				if !ui.IsTerminal(os.Stdout) {
+					fmt.Print(mdContent)
+					return nil
+				}
+
+				// Render with glamour for terminal display
+				r, err := glamour.NewTermRenderer(
+					glamour.WithAutoStyle(),
+					glamour.WithWordWrap(80),
+				)
+				if err != nil {
+					return fmt.Errorf("failed to create renderer: %w", err)
+				}
+
+				rendered, err := r.Render(mdContent)
+				if err != nil {
+					return fmt.Errorf("failed to render content: %w", err)
+				}
+
+				// Get config for pager preferences
+				cfg, err := f.Config()
+				if err != nil {
+					return err
+				}
+
+				// Display using pager
+				pagerOpts := &utils.PagerOptions{
+					Pager:   cfg.Preferences.Pager,
+					NoPager: noPager,
+				}
+				return utils.ShowInPager(rendered, pagerOpts)
 			}
 
 			// Output format
@@ -126,6 +159,7 @@ bc4 document view https://3.basecamp.com/.../documents/12345`,
 	}
 
 	cmd.Flags().BoolVar(&withComments, "with-comments", false, "Display all comments inline")
+	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Don't use a pager")
 
 	return cmd
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/utils"
 )
 
@@ -130,7 +131,7 @@ bc4 todo view 12345 --with-comments`,
 				return encoder.Encode(output)
 			}
 
-			// Handle AI-optimized markdown output with comments
+			// Handle output with comments
 			if withComments {
 				comments, err := client.ListComments(f.Context(), resolvedProjectID, todo.ID)
 				if err != nil {
@@ -142,8 +143,36 @@ bc4 todo view 12345 --with-comments`,
 					return fmt.Errorf("failed to format todo as markdown: %w", err)
 				}
 
-				fmt.Print(markdown)
-				return nil
+				// If piped, output raw markdown for scripting/AI
+				if !ui.IsTerminal(os.Stdout) {
+					fmt.Print(markdown)
+					return nil
+				}
+
+				// Render with glamour for terminal display
+				r, err := glamour.NewTermRenderer(
+					glamour.WithAutoStyle(),
+					glamour.WithWordWrap(80),
+				)
+				if err != nil {
+					return fmt.Errorf("failed to create renderer: %w", err)
+				}
+
+				rendered, err := r.Render(markdown)
+				if err != nil {
+					return fmt.Errorf("failed to render content: %w", err)
+				}
+
+				// Display using pager
+				cfg, err := f.Config()
+				if err != nil {
+					return err
+				}
+				pagerOpts := &utils.PagerOptions{
+					Pager:   cfg.Preferences.Pager,
+					NoPager: noPager,
+				}
+				return utils.ShowInPager(rendered, pagerOpts)
 			}
 
 			// Prepare output for pager
