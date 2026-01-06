@@ -72,8 +72,8 @@ You can provide comment content in several ways:
 					return fmt.Errorf("failed to read from stdin: %w", err)
 				}
 				content = strings.TrimSpace(string(data))
-			} else if content == "" {
-				// No stdin and no content flag, use interactive mode
+			} else if content == "" && attachmentPath == "" {
+				// No stdin, no content flag, and no attachment - use interactive mode
 				if err := huh.NewText().
 					Title("Comment content").
 					Placeholder("Write your comment in Markdown...").
