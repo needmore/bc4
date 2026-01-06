@@ -11,6 +11,9 @@ import (
 )
 
 func newUncheckCmd(f *factory.Factory) *cobra.Command {
+	var accountID string
+	var projectID string
+
 	cmd := &cobra.Command{
 		Use:   "uncheck <todo-id or URL>",
 		Short: "Mark a todo as incomplete",
@@ -29,9 +32,22 @@ You can specify the todo using either:
   bc4 todo uncheck "https://3.basecamp.com/1234567/buckets/89012345/todos/12345"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Apply account override if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+
+			// Apply project override if specified
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
 			return runUncheck(f, args[0])
 		},
 	}
+
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 
 	return cmd
 }
