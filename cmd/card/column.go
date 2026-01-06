@@ -23,6 +23,8 @@ func newColumnCmd(f *factory.Factory) *cobra.Command {
 	cmd.AddCommand(newColumnEditCmd(f))
 	cmd.AddCommand(newColumnMoveCmd(f))
 	cmd.AddCommand(newColumnColorCmd(f))
+	cmd.AddCommand(newColumnHoldCmd(f))
+	cmd.AddCommand(newColumnUnholdCmd(f))
 
 	return cmd
 }

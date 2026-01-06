@@ -399,3 +399,25 @@ func (c *Client) DeleteStep(ctx context.Context, projectID string, stepID int64)
 
 	return nil
 }
+
+// SetColumnOnHold marks a column as on-hold
+func (c *Client) SetColumnOnHold(ctx context.Context, projectID string, columnID int64) error {
+	path := fmt.Sprintf("/buckets/%s/card_tables/columns/%d/on_hold.json", projectID, columnID)
+
+	if err := c.Post(path, nil, nil); err != nil {
+		return fmt.Errorf("failed to set column on-hold: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveColumnOnHold removes the on-hold status from a column
+func (c *Client) RemoveColumnOnHold(ctx context.Context, projectID string, columnID int64) error {
+	path := fmt.Sprintf("/buckets/%s/card_tables/columns/%d/on_hold.json", projectID, columnID)
+
+	if err := c.Delete(path); err != nil {
+		return fmt.Errorf("failed to remove column on-hold: %w", err)
+	}
+
+	return nil
+}

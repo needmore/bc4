@@ -93,16 +93,20 @@ Examples:
 				defer writer.Flush()
 
 				// Write header
-				if err := writer.Write([]string{"ID", "TITLE", "DESCRIPTION", "CARDS_COUNT"}); err != nil {
+				if err := writer.Write([]string{"ID", "TITLE", "ON_HOLD", "CARDS_COUNT"}); err != nil {
 					return fmt.Errorf("failed to write CSV header: %w", err)
 				}
 
 				// Write data rows
 				for _, column := range cardTable.Lists {
+					onHold := "false"
+					if column.OnHold.Enabled {
+						onHold = "true"
+					}
 					record := []string{
 						strconv.FormatInt(column.ID, 10),
 						column.Title,
-						"", // Description
+						onHold,
 						strconv.Itoa(column.CardsCount),
 					}
 					if err := writer.Write(record); err != nil {
@@ -115,16 +119,33 @@ Examples:
 
 				// Add headers
 				if table.IsTTY() {
-					table.AddHeader("ID", "TITLE", "DESCRIPTION", "CARDS")
+					table.AddHeader("ID", "TITLE", "STATUS", "CARDS")
 				} else {
-					table.AddHeader("ID", "TITLE", "DESCRIPTION", "CARDS_COUNT")
+					table.AddHeader("ID", "TITLE", "ON_HOLD", "CARDS_COUNT")
 				}
 
 				// Add rows
 				for _, column := range cardTable.Lists {
 					table.AddIDField(fmt.Sprintf("%d", column.ID), column.Status)
-					table.AddField(column.Title)
-					table.AddField("")
+					title := column.Title
+					if column.OnHold.Enabled {
+						title = "⏸️  " + title
+					}
+					table.AddField(title)
+					// Status column for non-TTY
+					if table.IsTTY() {
+						if column.OnHold.Enabled {
+							table.AddField("On Hold")
+						} else {
+							table.AddField("")
+						}
+					} else {
+						if column.OnHold.Enabled {
+							table.AddField("true")
+						} else {
+							table.AddField("false")
+						}
+					}
 					table.AddField(fmt.Sprintf("%d", column.CardsCount))
 					table.EndRow()
 				}
