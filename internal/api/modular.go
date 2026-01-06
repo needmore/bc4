@@ -67,6 +67,8 @@ type ColumnOperations interface {
 	UpdateColumn(ctx context.Context, projectID string, columnID int64, req ColumnUpdateRequest) (*Column, error)
 	SetColumnColor(ctx context.Context, projectID string, columnID int64, color string) error
 	MoveColumn(ctx context.Context, projectID string, cardTableID int64, sourceID, targetID int64, position string) error
+	SetColumnOnHold(ctx context.Context, projectID string, columnID int64) error
+	RemoveColumnOnHold(ctx context.Context, projectID string, columnID int64) error
 }
 
 // PeopleOperations defines people-specific operations
