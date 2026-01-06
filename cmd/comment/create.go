@@ -62,8 +62,13 @@ You can provide comment content in several ways:
 					return fmt.Errorf("invalid Basecamp URL: %w", err)
 				}
 				recordingID = parsed.ResourceID
-				projectID = strconv.FormatInt(parsed.ProjectID, 10)
-				// Override factory with URL-provided account/project if not already set
+				// Use flag value if provided, otherwise use URL's project ID
+				if projectIDFlag != "" {
+					projectID = projectIDFlag
+				} else {
+					projectID = strconv.FormatInt(parsed.ProjectID, 10)
+				}
+				// Override factory with URL-provided account if flag not set
 				if accountID == "" && parsed.AccountID > 0 {
 					f = f.WithAccount(strconv.FormatInt(parsed.AccountID, 10))
 				}

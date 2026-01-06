@@ -43,7 +43,7 @@ You can specify the todo using either:
 				f = f.WithProject(projectID)
 			}
 
-			return runCheck(f, args[0])
+			return runCheck(f, args[0], accountID, projectID)
 		},
 	}
 
@@ -53,7 +53,7 @@ You can specify the todo using either:
 	return cmd
 }
 
-func runCheck(f *factory.Factory, todoIDStr string) error {
+func runCheck(f *factory.Factory, todoIDStr string, accountIDFlag string, projectIDFlag string) error {
 	// Parse todo ID (handle #123 format and URLs)
 	todoIDStr = strings.TrimPrefix(todoIDStr, "#")
 	todoID, parsedURL, err := parser.ParseArgument(todoIDStr)
@@ -61,15 +61,16 @@ func runCheck(f *factory.Factory, todoIDStr string) error {
 		return fmt.Errorf("invalid todo ID or URL: %s", todoIDStr)
 	}
 
-	// If a URL was parsed, override account and project IDs if provided
+	// If a URL was parsed, use URL values only if flags weren't provided
 	if parsedURL != nil {
 		if parsedURL.ResourceType != parser.ResourceTypeTodo {
 			return fmt.Errorf("URL is not for a todo: %s", todoIDStr)
 		}
-		if parsedURL.AccountID > 0 {
+		// Only use URL values if corresponding flags weren't set
+		if accountIDFlag == "" && parsedURL.AccountID > 0 {
 			f = f.WithAccount(strconv.FormatInt(parsedURL.AccountID, 10))
 		}
-		if parsedURL.ProjectID > 0 {
+		if projectIDFlag == "" && parsedURL.ProjectID > 0 {
 			f = f.WithProject(strconv.FormatInt(parsedURL.ProjectID, 10))
 		}
 	}
