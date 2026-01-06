@@ -164,7 +164,10 @@ bc4 todo view 12345 --with-comments`,
 				}
 
 				// Display using pager
-				cfg, _ := f.Config()
+				cfg, err := f.Config()
+				if err != nil {
+					return err
+				}
 				pagerOpts := &utils.PagerOptions{
 					Pager:   cfg.Preferences.Pager,
 					NoPager: noPager,
