@@ -31,6 +31,7 @@ type Message struct {
 	Subject   string    `json:"subject"`
 	Content   string    `json:"content"`
 	Status    string    `json:"status"`
+	Pinned    bool      `json:"pinned"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Creator   Person    `json:"creator"`
@@ -181,4 +182,26 @@ func (c *Client) ListMessageCategories(ctx context.Context, projectID string, me
 	}
 
 	return categories, nil
+}
+
+// PinMessage pins a message to the top of the message board
+func (c *Client) PinMessage(ctx context.Context, projectID string, messageID int64) error {
+	path := fmt.Sprintf("/buckets/%s/recordings/%d/pin.json", projectID, messageID)
+
+	if err := c.Post(path, nil, nil); err != nil {
+		return fmt.Errorf("failed to pin message: %w", err)
+	}
+
+	return nil
+}
+
+// UnpinMessage unpins a message from the top of the message board
+func (c *Client) UnpinMessage(ctx context.Context, projectID string, messageID int64) error {
+	path := fmt.Sprintf("/buckets/%s/recordings/%d/pin.json", projectID, messageID)
+
+	if err := c.Delete(path); err != nil {
+		return fmt.Errorf("failed to unpin message: %w", err)
+	}
+
+	return nil
 }

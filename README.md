@@ -290,6 +290,14 @@ bc4 message view 12345
 # Edit an existing message
 bc4 message edit 12345
 
+# Pin a message to the top of the message board
+bc4 message pin 12345
+bc4 message pin https://3.basecamp.com/.../messages/12345
+
+# Unpin a message
+bc4 message unpin 12345
+bc4 message unpin https://3.basecamp.com/.../messages/12345
+
 # List all campfires in the project
 bc4 campfire list
 
