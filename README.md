@@ -7,15 +7,18 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), strongl
 - 🔐 **OAuth2 Authentication** - Secure authentication with token management
 - 👥 **Multi-Account Support** - Manage multiple Basecamp accounts with ease
 - 📁 **Project Management** - List, search, and select projects
-- ✅ **Todo Management** - Create, list, check/uncheck todos across projects (supports Markdown → rich text, grouping, and group management)
+- ✅ **Todo Management** - Create, list, edit, check/uncheck todos across projects (supports Markdown → rich text, grouping, and group management)
 - 💬 **Message Posting** - Post messages to project message boards
+- 📄 **Document Management** - Create, edit, and view documents in your projects
 - 💭 **Comment Management** - View, create, edit, and delete comments on todos, messages, documents, and cards
 - 🔥 **Campfire Integration** - Send updates to project campfire chats
-- 🎯 **Card Management** - Manage cards with kanban board view
+- 🎯 **Card Management** - Manage cards, columns, and steps with kanban board view
+- 👤 **Profile Information** - View your Basecamp profile and account details
 - 🎨 **Beautiful TUI** - Interactive interface
 - 🔍 **Smart Search** - Find projects by pattern matching
 - 🔗 **URL Parameter Support** - Use Basecamp URLs directly as command arguments
 - 📝 **Markdown Support** - Write in Markdown, automatically converted to Basecamp's rich text format
+- 🔄 **Shell Completion** - Tab-completion for bash, zsh, fish, and PowerShell
 - 🖥️ **Cross-Platform** - Available for macOS, Linux, and Windows
 
 ## Installation
@@ -119,6 +122,12 @@ bc4 auth login
 
 # Check authentication status
 bc4 auth status
+
+# Refresh authentication token
+bc4 auth refresh
+
+# Log out of Basecamp
+bc4 auth logout
 ```
 
 ### Account Management
@@ -127,8 +136,24 @@ bc4 auth status
 # List all accounts
 bc4 account list
 
-# Select default account
+# Show current account
+bc4 account current
+
+# Select default account interactively
 bc4 account select
+
+# Set default account by ID
+bc4 account set 12345
+```
+
+### Profile
+
+```bash
+# View your Basecamp profile
+bc4 profile
+
+# Output as JSON
+bc4 profile --json
 ```
 
 ### Project Management
@@ -200,6 +225,21 @@ bc4 todo check https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 bc4 todo uncheck 12345
 bc4 todo uncheck https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 
+# Edit an existing todo
+bc4 todo edit 12345 --title "Updated title"
+bc4 todo edit 12345 --description "New description with **markdown**"
+bc4 todo edit 12345 --due 2025-02-15
+bc4 todo edit 12345 --assign user@example.com
+bc4 todo edit 12345 --unassign user@example.com
+
+# Move a todo to a different position within its list
+bc4 todo move 12345 --position 1    # Move to first position
+bc4 todo move 12345 --top           # Move to top of list
+bc4 todo move 12345 --bottom        # Move to bottom of list
+
+# List attachments for a todo
+bc4 todo attachments 12345
+
 # Create a new todo list
 bc4 todo create-list "Sprint 1 Tasks"
 
@@ -217,7 +257,12 @@ bc4 todo create-group "Backlog" --list 12345
 bc4 todo reposition-group 12345 1  # Move to first position
 bc4 todo reposition-group 12345 3  # Move to third position
 
-# Select a default todo list (interactive - not yet implemented)
+# Edit a todo list's name or description
+bc4 todo edit-list 12345 --name "Renamed List"
+bc4 todo edit-list "Sprint Tasks" --description "Updated description"
+bc4 todo edit-list 12345 --clear-description
+
+# Select a default todo list interactively
 bc4 todo select
 
 # Set a default todo list by ID
@@ -260,6 +305,28 @@ bc4 campfire post "Shipped!" --campfire https://3.basecamp.com/1234567/buckets/8
 bc4 campfire view 12345
 bc4 campfire view "Engineering"
 bc4 campfire view https://3.basecamp.com/1234567/buckets/89012345/chats/12345
+
+# Set default campfire for the project
+bc4 campfire set 12345
+```
+
+### Document Management
+
+```bash
+# List all documents in the project
+bc4 document list
+
+# View a specific document
+bc4 document view 12345
+bc4 document view https://3.basecamp.com/1234567/buckets/89012345/documents/12345
+
+# Create a new document
+bc4 document create "Meeting Notes"
+bc4 document create "Spec Document" --content "# Overview\n\nThis is the spec..."
+
+# Edit an existing document
+bc4 document edit 12345
+bc4 document edit 12345 --title "Updated Title"
 ```
 
 ### Card Management
@@ -271,13 +338,19 @@ bc4 card list
 # View cards in a specific table
 bc4 card table [ID]
 
+# Set default card table
+bc4 card set 12345
+
 # View a specific card (by ID or URL)
 bc4 card view 12345
 bc4 card view https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
 
-# Create a new card in a specific table (by ID or URL)
+# Create a new card (quick add)
 bc4 card add "New feature" --table 12345
 bc4 card add "Bug fix" --table https://3.basecamp.com/1234567/buckets/89012345/card_tables/12345
+
+# Create a card interactively
+bc4 card create
 
 # Edit a card (by ID or URL)
 bc4 card edit 12345
@@ -289,11 +362,60 @@ bc4 card move https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/
 
 # Assign users to a card (by ID or URL)
 bc4 card assign 12345
-bc4 card assign https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
 
-# Work with card steps
-bc4 card step check 12345 456  # Card ID and Step ID
-bc4 card step check https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345/steps/456
+# Remove assignees from a card
+bc4 card unassign 12345
+
+# Archive a card
+bc4 card archive 12345
+
+# List attachments for a card
+bc4 card attachments 12345
+```
+
+#### Card Columns
+
+```bash
+# List columns in a card table
+bc4 card column list 12345
+
+# Create a new column
+bc4 card column create 12345 "In Review"
+
+# Edit a column
+bc4 card column edit 12345 --name "Code Review"
+
+# Move a column to a different position
+bc4 card column move 12345 --position 2
+
+# Set column color
+bc4 card column color 12345 blue
+```
+
+#### Card Steps
+
+```bash
+# List steps in a card
+bc4 card step list 12345
+
+# Add a step to a card
+bc4 card step add 12345 "Review the code"
+
+# Check/uncheck a step
+bc4 card step check 12345 456    # Card ID and Step ID
+bc4 card step uncheck 12345 456
+
+# Edit a step
+bc4 card step edit 456 --content "Updated step content"
+
+# Assign a step to a user
+bc4 card step assign 456
+
+# Move a step to a different position
+bc4 card step move 456 --position 1
+
+# Delete a step
+bc4 card step delete 456
 ```
 
 ### Comment Management
@@ -428,6 +550,49 @@ Configuration is stored in:
 2. **Project patterns**: Use partial project names with `bc4 project <pattern>` for quick access
 3. **Multiple accounts**: The tool handles multiple Basecamp accounts seamlessly
 4. **URL shortcuts**: Copy Basecamp URLs from your browser and use them directly in commands - no need to extract IDs manually
+5. **Shell completion**: Enable tab completion for faster command entry (see below)
+
+## Shell Completion
+
+bc4 supports tab-completion for bash, zsh, fish, and PowerShell. This makes it faster to type commands and discover available options.
+
+### Bash
+
+```bash
+# Add to ~/.bashrc
+source <(bc4 completion bash)
+
+# Or install permanently
+bc4 completion bash > /etc/bash_completion.d/bc4
+```
+
+### Zsh
+
+```bash
+# Add to ~/.zshrc (before compinit)
+source <(bc4 completion zsh)
+
+# Or install permanently
+bc4 completion zsh > "${fpath[1]}/_bc4"
+```
+
+### Fish
+
+```bash
+bc4 completion fish | source
+
+# Or install permanently
+bc4 completion fish > ~/.config/fish/completions/bc4.fish
+```
+
+### PowerShell
+
+```powershell
+bc4 completion powershell | Out-String | Invoke-Expression
+
+# Or add to your PowerShell profile
+bc4 completion powershell >> $PROFILE
+```
 
 ## Troubleshooting
 
@@ -510,7 +675,7 @@ bc4 supports Markdown input for creating content that gets automatically convert
 - ✅ **Todos** - Both title and description support Markdown
 - ✅ **Messages** - List, post, view, and edit messages on project message boards
 - ✅ **Comments** - Create and edit comments with Markdown formatting
-- 🔄 **Documents** - Coming soon
+- ✅ **Documents** - Create and edit documents with Markdown formatting
 - ❌ **Campfire** - Plain text only (API limitation)
 
 ### Supported Markdown Elements
