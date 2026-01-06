@@ -20,7 +20,7 @@ func NewProfileCmd(f *factory.Factory) *cobra.Command {
 		Use:     "profile",
 		Short:   "Show current user profile",
 		Long:    `Display your Basecamp profile information including name, email, and account details.`,
-		Aliases: []string{"me", "whoami"},
+		Aliases: []string{"me"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get API client from factory
 			client, err := f.ApiClient()
@@ -53,30 +53,30 @@ func NewProfileCmd(f *factory.Factory) *cobra.Command {
 			fmt.Println()
 
 			if profile.EmailAddress != "" {
-				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Email:"), profile.EmailAddress)
+				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Email:"), ui.ValueStyle.Render(profile.EmailAddress))
 			}
 
 			if profile.Title != "" {
-				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Title:"), profile.Title)
+				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Title:"), ui.ValueStyle.Render(profile.Title))
 			}
 
 			if profile.Company != nil && profile.Company.Name != "" {
-				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Company:"), profile.Company.Name)
+				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Company:"), ui.ValueStyle.Render(profile.Company.Name))
 			}
 
-			fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Account:"), accountID)
+			fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Account:"), ui.ValueStyle.Render(accountID))
 
 			// Show role if admin or owner
 			if profile.Owner {
-				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Role:"), "Owner")
+				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Role:"), ui.ValueStyle.Render("Owner"))
 			} else if profile.Admin {
-				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Role:"), "Admin")
+				fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Role:"), ui.ValueStyle.Render("Admin"))
 			}
 
 			// Parse and display member since date
 			if profile.CreatedAt != "" {
 				if t, err := time.Parse(time.RFC3339, profile.CreatedAt); err == nil {
-					fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Member since:"), t.Format("January 2006"))
+					fmt.Printf("   %s %s\n", ui.LabelStyle.Render("Member since:"), ui.ValueStyle.Render(t.Format("January 2006")))
 				}
 			}
 
