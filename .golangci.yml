@@ -20,17 +20,16 @@ linters:
     - dupl
     - gosec
     - exhaustive
-
-linters-settings:
-  gocyclo:
-    min-complexity: 40
-  dupl:
-    threshold: 150
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-  misspell:
-    locale: US
-    ignore-words:
-      - basecamp
-      - github
+  settings:
+    gocyclo:
+      min-complexity: 40
+    dupl:
+      threshold: 150
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    misspell:
+      locale: US
+      ignore-rules:
+        - basecamp
+        - github
