@@ -26,10 +26,10 @@ jobs:
           cache: true
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
-          # Required: the version of golangci-lint is required and must be specified without patch version
-          version: v2.0
+          # v8+ required for golangci-lint v2 support
+          version: v2.1
           
           # Optional: working directory, useful for monorepos
           # working-directory: somedir
