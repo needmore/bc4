@@ -4,15 +4,19 @@ import (
 	"bytes"
 	"fmt"
 	"html"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/charmbracelet/glamour"
 
 	attachmentsCmd "github.com/needmore/bc4/cmd/attachments"
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
@@ -153,7 +157,7 @@ You can specify the card using either:
 				return showStepsTable(card, cfg, noPager)
 			}
 
-			// Handle AI-optimized markdown output with comments
+			// Handle output with comments
 			if withComments {
 				comments, err := client.ListComments(f.Context(), resolvedProjectID, card.ID)
 				if err != nil {
@@ -165,8 +169,38 @@ You can specify the card using either:
 					return fmt.Errorf("failed to format card as markdown: %w", err)
 				}
 
-				fmt.Print(markdown)
-				return nil
+				// If piped, output raw markdown for scripting/AI
+				if !ui.IsTerminal(os.Stdout) {
+					fmt.Print(markdown)
+					return nil
+				}
+
+				// Render with glamour for terminal display
+				r, err := glamour.NewTermRenderer(
+					glamour.WithAutoStyle(),
+					glamour.WithWordWrap(80),
+				)
+				if err != nil {
+					return fmt.Errorf("failed to create renderer: %w", err)
+				}
+
+				rendered, err := r.Render(markdown)
+				if err != nil {
+					return fmt.Errorf("failed to render content: %w", err)
+				}
+
+				// Get config for pager preferences
+				cfg, err := f.Config()
+				if err != nil {
+					return err
+				}
+
+				// Display using pager
+				pagerOpts := &utils.PagerOptions{
+					Pager:   cfg.Preferences.Pager,
+					NoPager: noPager,
+				}
+				return utils.ShowInPager(rendered, pagerOpts)
 			}
 
 			// Prepare output for pager

@@ -3,6 +3,7 @@ package message
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/charmbracelet/glamour"
@@ -10,6 +11,7 @@ import (
 	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -69,7 +71,7 @@ bc4 message view https://3.basecamp.com/.../messages/12345`,
 				return err
 			}
 
-			// Handle AI-optimized markdown output with comments
+			// Handle output with comments
 			if withComments {
 				comments, err := client.ListComments(f.Context(), projectID, message.ID)
 				if err != nil {
@@ -81,8 +83,33 @@ bc4 message view https://3.basecamp.com/.../messages/12345`,
 					return fmt.Errorf("failed to format message as markdown: %w", err)
 				}
 
-				fmt.Print(markdown)
-				return nil
+				// If piped, output raw markdown for scripting/AI
+				if !ui.IsTerminal(os.Stdout) {
+					fmt.Print(markdown)
+					return nil
+				}
+
+				// Render with glamour for terminal display
+				r, err := glamour.NewTermRenderer(
+					glamour.WithAutoStyle(),
+					glamour.WithWordWrap(80),
+				)
+				if err != nil {
+					return fmt.Errorf("failed to create renderer: %w", err)
+				}
+
+				rendered, err := r.Render(markdown)
+				if err != nil {
+					return fmt.Errorf("failed to render content: %w", err)
+				}
+
+				// Show in pager
+				pagerOpts := &utils.PagerOptions{
+					Pager:   cfg.Preferences.Pager,
+					NoPager: noPager,
+				}
+
+				return utils.ShowInPager(rendered, pagerOpts)
 			}
 
 			// Build formatted output
