@@ -90,6 +90,13 @@ type CommentOperations interface {
 	UpdateComment(ctx context.Context, projectID string, commentID int64, req CommentUpdateRequest) (*Comment, error)
 }
 
+// ActivityOperations defines activity-specific operations
+type ActivityOperations interface {
+	ListEvents(ctx context.Context, projectID string, recordingID int64) ([]Event, error)
+	ListRecordings(ctx context.Context, projectID string, opts *ActivityListOptions) ([]Recording, error)
+	GetRecording(ctx context.Context, projectID string, recordingID int64) (*Recording, error)
+}
+
 // ModularClient provides access to all API operations through focused interfaces
 type ModularClient struct {
 	*Client // Embed the existing client for now
@@ -144,6 +151,11 @@ func (c *ModularClient) Attachments() AttachmentOperations {
 
 // Comments returns the comment operations interface
 func (c *ModularClient) Comments() CommentOperations {
+	return c.Client
+}
+
+// Activity returns the activity operations interface
+func (c *ModularClient) Activity() ActivityOperations {
 	return c.Client
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/needmore/bc4/cmd/account"
+	"github.com/needmore/bc4/cmd/activity"
 	"github.com/needmore/bc4/cmd/auth"
 	"github.com/needmore/bc4/cmd/campfire"
 	"github.com/needmore/bc4/cmd/card"
@@ -152,6 +153,7 @@ func init() {
 	// Add commands with factory
 	rootCmd.AddCommand(auth.NewAuthCmd(f))
 	rootCmd.AddCommand(account.NewAccountCmd(f))
+	rootCmd.AddCommand(activity.NewActivityCmd(f))
 	rootCmd.AddCommand(project.NewProjectCmd(f))
 	rootCmd.AddCommand(todo.NewTodoCmd(f))
 	rootCmd.AddCommand(message.NewMessageCmd(f))
