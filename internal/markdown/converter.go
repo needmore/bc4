@@ -318,8 +318,13 @@ func (c *converter) processLists(html string) string {
 	result := html
 	result = strings.ReplaceAll(result, "<ul>", "")
 	result = strings.ReplaceAll(result, "</ul>", "\n")
-	result = strings.ReplaceAll(result, "<li>", "- ")
-	result = strings.ReplaceAll(result, "</li>", "\n")
+
+	// Handle <li> tags with potential whitespace/newlines inside
+	// Replace <li> followed by whitespace with just "- "
+	result = regexp.MustCompile(`<li>\s*`).ReplaceAllString(result, "- ")
+	// Replace whitespace followed by </li> with just newline
+	result = regexp.MustCompile(`\s*</li>`).ReplaceAllString(result, "\n")
+
 	return result
 }
 
