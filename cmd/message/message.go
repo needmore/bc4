@@ -20,7 +20,9 @@ attachments. Team members can comment on messages to continue the conversation.`
 		Example: `  bc4 message list                    # List recent messages
   bc4 message post "Team Update"      # Post a new message
   bc4 message view 123                # View message details
-  bc4 message edit 123                # Edit an existing message`,
+  bc4 message edit 123                # Edit an existing message
+  bc4 message pin 123                 # Pin a message to the top
+  bc4 message unpin 123               # Unpin a message`,
 	}
 
 	// Enable suggestions for subcommand typos
