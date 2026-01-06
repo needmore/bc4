@@ -11,6 +11,9 @@ import (
 )
 
 func newUncheckCmd(f *factory.Factory) *cobra.Command {
+	var accountID string
+	var projectID string
+
 	cmd := &cobra.Command{
 		Use:   "uncheck <todo-id or URL>",
 		Short: "Mark a todo as incomplete",
@@ -29,14 +32,27 @@ You can specify the todo using either:
   bc4 todo uncheck "https://3.basecamp.com/1234567/buckets/89012345/todos/12345"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runUncheck(f, args[0])
+			// Apply account override if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+
+			// Apply project override if specified
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
+			return runUncheck(f, args[0], accountID, projectID)
 		},
 	}
+
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 
 	return cmd
 }
 
-func runUncheck(f *factory.Factory, todoIDStr string) error {
+func runUncheck(f *factory.Factory, todoIDStr string, accountIDFlag string, projectIDFlag string) error {
 	// Parse todo ID (handle #123 format and URLs)
 	todoIDStr = strings.TrimPrefix(todoIDStr, "#")
 	todoID, parsedURL, err := parser.ParseArgument(todoIDStr)
@@ -44,15 +60,16 @@ func runUncheck(f *factory.Factory, todoIDStr string) error {
 		return fmt.Errorf("invalid todo ID or URL: %s", todoIDStr)
 	}
 
-	// If a URL was parsed, override account and project IDs if provided
+	// If a URL was parsed, use URL values only if flags weren't provided
 	if parsedURL != nil {
 		if parsedURL.ResourceType != parser.ResourceTypeTodo {
 			return fmt.Errorf("URL is not for a todo: %s", todoIDStr)
 		}
-		if parsedURL.AccountID > 0 {
+		// Only use URL values if corresponding flags weren't set
+		if accountIDFlag == "" && parsedURL.AccountID > 0 {
 			f = f.WithAccount(strconv.FormatInt(parsedURL.AccountID, 10))
 		}
-		if parsedURL.ProjectID > 0 {
+		if projectIDFlag == "" && parsedURL.ProjectID > 0 {
 			f = f.WithProject(strconv.FormatInt(parsedURL.ProjectID, 10))
 		}
 	}

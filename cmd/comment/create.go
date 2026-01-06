@@ -21,6 +21,8 @@ import (
 func newCreateCmd(f *factory.Factory) *cobra.Command {
 	var content string
 	var attachmentPath string
+	var accountID string
+	var projectIDFlag string
 
 	cmd := &cobra.Command{
 		Use:   "create <recording-id|url>",
@@ -34,6 +36,16 @@ You can provide comment content in several ways:
   - From file: cat comment.md | bc4 comment create <recording-id|url>`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Apply account override if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+
+			// Apply project override if specified
+			if projectIDFlag != "" {
+				f = f.WithProject(projectIDFlag)
+			}
+
 			// Get API client from factory
 			client, err := f.ApiClient()
 			if err != nil {
@@ -50,7 +62,16 @@ You can provide comment content in several ways:
 					return fmt.Errorf("invalid Basecamp URL: %w", err)
 				}
 				recordingID = parsed.ResourceID
-				projectID = strconv.FormatInt(parsed.ProjectID, 10)
+				// Use flag value if provided, otherwise use URL's project ID
+				if projectIDFlag != "" {
+					projectID = projectIDFlag
+				} else {
+					projectID = strconv.FormatInt(parsed.ProjectID, 10)
+				}
+				// Override factory with URL-provided account if flag not set
+				if accountID == "" && parsed.AccountID > 0 {
+					f = f.WithAccount(strconv.FormatInt(parsed.AccountID, 10))
+				}
 			} else {
 				// It's just an ID, we need the project ID from config
 				recordingID, err = strconv.ParseInt(args[0], 10, 64)
@@ -139,6 +160,8 @@ You can provide comment content in several ways:
 
 	cmd.Flags().StringVar(&content, "content", "", "Comment content (Markdown)")
 	cmd.Flags().StringVar(&attachmentPath, "attach", "", "Path to file to attach to the comment")
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectIDFlag, "project", "p", "", "Specify project ID")
 
 	return cmd
 }
