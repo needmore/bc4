@@ -199,6 +199,9 @@ bc4 todo list [list-id|name]
 bc4 todo view 12345
 bc4 todo view https://3.basecamp.com/1234567/buckets/89012345/todos/12345
 
+# View a todo with its comments inline
+bc4 todo view 12345 --with-comments
+
 # Create a new todo (supports Markdown formatting)
 bc4 todo add "Review **critical** pull request"
 
@@ -287,6 +290,9 @@ cat update.md | bc4 message post --title "Weekly Update"
 # View a specific message
 bc4 message view 12345
 
+# View a message with its comments inline
+bc4 message view 12345 --with-comments
+
 # Edit an existing message
 bc4 message edit 12345
 
@@ -328,6 +334,9 @@ bc4 document list
 bc4 document view 12345
 bc4 document view https://3.basecamp.com/1234567/buckets/89012345/documents/12345
 
+# View a document with its comments inline
+bc4 document view 12345 --with-comments
+
 # Create a new document
 bc4 document create "Meeting Notes"
 bc4 document create "Spec Document" --content "# Overview\n\nThis is the spec..."
@@ -352,6 +361,9 @@ bc4 card set 12345
 # View a specific card (by ID or URL)
 bc4 card view 12345
 bc4 card view https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345
+
+# View a card with its comments inline
+bc4 card view 12345 --with-comments
 
 # Create a new card (quick add)
 bc4 card add "New feature" --table 12345
@@ -555,10 +567,12 @@ Configuration is stored in:
 ## Tips
 
 1. **Set defaults**: Use `bc4 account select` and `bc4 project select` to set defaults and avoid constant selection
-2. **Project patterns**: Use partial project names with `bc4 project <pattern>` for quick access
-3. **Multiple accounts**: The tool handles multiple Basecamp accounts seamlessly
-4. **URL shortcuts**: Copy Basecamp URLs from your browser and use them directly in commands - no need to extract IDs manually
-5. **Shell completion**: Enable tab completion for faster command entry (see below)
+2. **Override defaults**: Use `--account` and `--project` flags on any command to temporarily override your defaults
+3. **Project patterns**: Use partial project names with `bc4 project <pattern>` for quick access
+4. **Multiple accounts**: The tool handles multiple Basecamp accounts seamlessly
+5. **URL shortcuts**: Copy Basecamp URLs from your browser and use them directly in commands - no need to extract IDs manually
+6. **View with comments**: Use `--with-comments` on view commands to see comments inline
+7. **Shell completion**: Enable tab completion for faster command entry (see below)
 
 ## Shell Completion
 
