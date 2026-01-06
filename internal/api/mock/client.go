@@ -75,10 +75,12 @@ type MockClient struct {
 	DeleteStepError        error
 
 	// People
-	People      []api.Person
-	PeopleError error
-	Person      *api.Person
-	PersonError error
+	People       []api.Person
+	PeopleError  error
+	Person       *api.Person
+	PersonError  error
+	Profile      *api.Person
+	ProfileError error
 
 	// Track method calls
 	Calls []string
@@ -410,6 +412,15 @@ func (m *MockClient) GetPerson(ctx context.Context, personID int64) (*api.Person
 		return nil, m.PersonError
 	}
 	return m.Person, nil
+}
+
+// GetMyProfile mock implementation
+func (m *MockClient) GetMyProfile(ctx context.Context) (*api.Person, error) {
+	m.Calls = append(m.Calls, "GetMyProfile()")
+	if m.ProfileError != nil {
+		return nil, m.ProfileError
+	}
+	return m.Profile, nil
 }
 
 // Ensure MockClient implements APIClient interface
