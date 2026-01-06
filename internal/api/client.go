@@ -248,13 +248,23 @@ type TodoGroup struct {
 	Position       int    `json:"position"`
 }
 
+// Company represents a Basecamp company/organization
+type Company struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 // Person represents a Basecamp user
 type Person struct {
-	ID           int64  `json:"id"`
-	Name         string `json:"name"`
-	EmailAddress string `json:"email_address"`
-	Title        string `json:"title"`
-	AvatarURL    string `json:"avatar_url"`
+	ID           int64    `json:"id"`
+	Name         string   `json:"name"`
+	EmailAddress string   `json:"email_address"`
+	Title        string   `json:"title"`
+	AvatarURL    string   `json:"avatar_url"`
+	Company      *Company `json:"company,omitempty"`
+	CreatedAt    string   `json:"created_at,omitempty"`
+	Admin        bool     `json:"admin,omitempty"`
+	Owner        bool     `json:"owner,omitempty"`
 }
 
 // Todo represents a Basecamp todo item
@@ -608,6 +618,24 @@ func (c *Client) GetPerson(ctx context.Context, personID int64) (*Person, error)
 
 	if err := json.NewDecoder(resp.Body).Decode(&person); err != nil {
 		return nil, fmt.Errorf("failed to decode person: %w", err)
+	}
+
+	return &person, nil
+}
+
+// GetMyProfile fetches the current user's profile
+func (c *Client) GetMyProfile(ctx context.Context) (*Person, error) {
+	var person Person
+
+	path := "/my/profile.json"
+	resp, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch profile: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if err := json.NewDecoder(resp.Body).Decode(&person); err != nil {
+		return nil, fmt.Errorf("failed to decode profile: %w", err)
 	}
 
 	return &person, nil

@@ -54,6 +54,7 @@ type APIClient interface {
 	// People methods
 	GetProjectPeople(ctx context.Context, projectID string) ([]Person, error)
 	GetPerson(ctx context.Context, personID int64) (*Person, error)
+	GetMyProfile(ctx context.Context) (*Person, error)
 }
 
 // Ensure Client implements APIClient interface
