@@ -88,9 +88,19 @@ bc4 message view https://3.basecamp.com/.../messages/12345`,
 			// Build formatted output
 			var buf bytes.Buffer
 
+			// Pinned indicator
+			if message.Pinned {
+				pinnedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+				fmt.Fprintf(&buf, "\n%s\n", pinnedStyle.Render("Pinned"))
+			}
+
 			// Title
 			titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("12"))
-			fmt.Fprintf(&buf, "\n%s\n", titleStyle.Render(message.Subject))
+			if message.Pinned {
+				fmt.Fprintf(&buf, "%s\n", titleStyle.Render(message.Subject))
+			} else {
+				fmt.Fprintf(&buf, "\n%s\n", titleStyle.Render(message.Subject))
+			}
 
 			// Metadata
 			metaStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
