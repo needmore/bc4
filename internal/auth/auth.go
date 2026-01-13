@@ -125,16 +125,13 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 		// Browser couldn't open (e.g., remote SSH session)
 		fmt.Println("\nCouldn't open browser automatically.")
 		fmt.Println("Please open the following URL in your browser:")
-		fmt.Println()
-		fmt.Println(authURL)
-		fmt.Println("\nWaiting for authentication (Ctrl+C to cancel)...")
 	} else {
 		fmt.Println("Opening browser for authentication...")
 		fmt.Println("If the browser doesn't open, visit this URL:")
-		fmt.Println()
-		fmt.Println(authURL)
-		fmt.Println("\nWaiting for authentication (Ctrl+C to cancel)...")
 	}
+	fmt.Println()
+	fmt.Println(authURL)
+	fmt.Println("\nWaiting for authentication (Ctrl+C to cancel)...")
 
 	// Create a timeout context (5 minutes should be plenty)
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)

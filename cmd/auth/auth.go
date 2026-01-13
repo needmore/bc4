@@ -74,7 +74,7 @@ func newLoginCmd(f *factory.Factory) *cobra.Command {
 				} else if stderrors.Is(err, auth.ErrAuthTimeout) {
 					fmt.Println("Authentication timed out. Please try again.")
 				} else {
-					fmt.Println(fmt.Sprintf("Error: %v", err))
+					fmt.Println("Error:", err)
 				}
 
 				fmt.Println()
