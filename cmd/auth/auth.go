@@ -69,10 +69,9 @@ func newLoginCmd(f *factory.Factory) *cobra.Command {
 				fmt.Println()
 
 				// Check for specific error types to provide better guidance
-				errMsg := err.Error()
-				if stderrors.Is(err, context.Canceled) || errMsg == "authentication cancelled" {
+				if stderrors.Is(err, auth.ErrAuthCancelled) {
 					fmt.Println("Authentication was cancelled.")
-				} else if errMsg == "authentication timed out after 5 minutes" {
+				} else if stderrors.Is(err, auth.ErrAuthTimeout) {
 					fmt.Println("Authentication timed out. Please try again.")
 				} else {
 					fmt.Println(fmt.Sprintf("Error: %v", err))

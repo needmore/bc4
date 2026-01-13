@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -23,6 +24,14 @@ const (
 	tokenURL     = "https://launchpad.37signals.com/authorization/token"
 	callbackPort = "8888"
 	redirectURL  = "http://localhost:" + callbackPort + "/callback"
+)
+
+// Custom error types for better error handling
+var (
+	// ErrAuthTimeout is returned when authentication times out
+	ErrAuthTimeout = stderrors.New("authentication timed out after 5 minutes")
+	// ErrAuthCancelled is returned when authentication is cancelled by the user
+	ErrAuthCancelled = stderrors.New("authentication cancelled")
 )
 
 // TokenData represents the stored OAuth token information
@@ -162,13 +171,10 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 		return nil, fmt.Errorf("callback error: %w", err)
 
 	case <-timeoutCtx.Done():
-		if timeoutCtx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("authentication timed out after 5 minutes")
-		}
-		return nil, fmt.Errorf("authentication cancelled")
+		return nil, ErrAuthTimeout
 
 	case <-ctx.Done():
-		return nil, fmt.Errorf("authentication cancelled")
+		return nil, ErrAuthCancelled
 	}
 }
 
