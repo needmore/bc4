@@ -24,6 +24,9 @@ const (
 	tokenURL     = "https://launchpad.37signals.com/authorization/token"
 	callbackPort = "8888"
 	redirectURL  = "http://localhost:" + callbackPort + "/callback"
+
+	// authTimeout is the maximum time to wait for authentication to complete
+	authTimeout = 5 * time.Minute
 )
 
 // Custom error types for better error handling
@@ -133,8 +136,8 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	fmt.Println(authURL)
 	fmt.Println("\nWaiting for authentication (Ctrl+C to cancel)...")
 
-	// Create a timeout context (5 minutes should be plenty)
-	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	// Create a timeout context
+	timeoutCtx, cancel := context.WithTimeout(ctx, authTimeout)
 	defer cancel()
 
 	// Wait for callback
