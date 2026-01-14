@@ -47,6 +47,12 @@ type (
 		Message string
 		Err     error
 	}
+
+	// RetryExhaustedError indicates all retry attempts failed
+	RetryExhaustedError struct {
+		Attempts int
+		LastErr  error
+	}
 )
 
 // Error implementations
@@ -104,6 +110,14 @@ func (e *ConfigurationError) Unwrap() error {
 	return e.Err
 }
 
+func (e *RetryExhaustedError) Error() string {
+	return fmt.Sprintf("all %d retry attempts failed: %v", e.Attempts, e.LastErr)
+}
+
+func (e *RetryExhaustedError) Unwrap() error {
+	return e.LastErr
+}
+
 // Helper functions for creating errors
 
 // NewAuthenticationError creates a new authentication error
@@ -151,6 +165,14 @@ func NewConfigurationError(message string, err error) error {
 	}
 }
 
+// NewRetryExhaustedError creates a new retry exhausted error
+func NewRetryExhaustedError(attempts int, lastErr error) error {
+	return &RetryExhaustedError{
+		Attempts: attempts,
+		LastErr:  lastErr,
+	}
+}
+
 // IsAuthenticationError checks if an error is an authentication error
 func IsAuthenticationError(err error) bool {
 	var authErr *AuthenticationError
@@ -185,6 +207,12 @@ func IsNetworkError(err error) bool {
 func IsConfigurationError(err error) bool {
 	var configErr *ConfigurationError
 	return errors.As(err, &configErr)
+}
+
+// IsRetryExhaustedError checks if an error is a retry exhausted error
+func IsRetryExhaustedError(err error) bool {
+	var retryErr *RetryExhaustedError
+	return errors.As(err, &retryErr)
 }
 
 // ErrorStyle defines the style for error messages
