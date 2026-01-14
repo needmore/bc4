@@ -182,7 +182,7 @@ can be attached by using the flag multiple times.`,
 						return fmt.Errorf("failed to read attachment %s: %w", attachPath, err)
 					}
 					filename := filepath.Base(attachPath)
-					upload, err := client.Client.UploadAttachment(filename, fileData, "")
+					upload, err := client.UploadAttachment(filename, fileData, "")
 					if err != nil {
 						return fmt.Errorf("failed to upload attachment %s: %w", filename, err)
 					}
