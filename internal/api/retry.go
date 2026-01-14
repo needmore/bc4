@@ -59,7 +59,7 @@ func (rt *RetryableTransport) RoundTrip(req *http.Request) (*http.Response, erro
 		if err != nil {
 			return nil, fmt.Errorf("failed to read request body: %w", err)
 		}
-		req.Body.Close()
+		_ = req.Body.Close() // Error can be safely ignored after successful read
 	}
 
 	var lastErr error
@@ -92,8 +92,8 @@ func (rt *RetryableTransport) RoundTrip(req *http.Request) (*http.Response, erro
 
 		// Close the response body before retrying
 		if resp.Body != nil {
-			io.Copy(io.Discard, resp.Body)
-			resp.Body.Close()
+			_, _ = io.Copy(io.Discard, resp.Body) // Drain body, errors can be ignored
+			_ = resp.Body.Close()                 // Error can be ignored when draining
 		}
 
 		// If this was the last attempt, break and return the response
