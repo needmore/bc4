@@ -70,7 +70,7 @@ func newLoginCmd(f *factory.Factory) *cobra.Command {
 
 				// Check for specific error types to provide better guidance
 				if stderrors.Is(err, auth.ErrAuthCancelled) {
-					fmt.Println("Authentication was cancelled.")
+					fmt.Println("Authentication was canceled.")
 				} else if stderrors.Is(err, auth.ErrAuthTimeout) {
 					fmt.Println("Authentication timed out. Please try again.")
 				} else {

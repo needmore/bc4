@@ -33,8 +33,8 @@ const (
 var (
 	// ErrAuthTimeout is returned when authentication times out
 	ErrAuthTimeout = stderrors.New("authentication timed out after 5 minutes")
-	// ErrAuthCancelled is returned when authentication is cancelled by the user
-	ErrAuthCancelled = stderrors.New("authentication cancelled")
+	// ErrAuthCancelled is returned when authentication is canceled by the user
+	ErrAuthCancelled = stderrors.New("authentication canceled")
 )
 
 // TokenData represents the stored OAuth token information
