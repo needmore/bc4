@@ -27,12 +27,19 @@ type Client struct {
 // NewClient creates a new API client
 // Deprecated: Use NewModularClient instead for better separation of concerns
 func NewClient(accountID, accessToken string) *Client {
+	return NewClientWithRetryConfig(accountID, accessToken, DefaultRetryConfig())
+}
+
+// NewClientWithRetryConfig creates a new API client with custom retry configuration
+func NewClientWithRetryConfig(accountID, accessToken string, retryConfig RetryConfig) *Client {
+	transport := NewRetryableTransport(http.DefaultTransport, retryConfig)
 	return &Client{
 		accountID:   accountID,
 		accessToken: accessToken,
 		baseURL:     defaultBaseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: transport,
 		},
 	}
 }

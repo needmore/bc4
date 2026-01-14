@@ -13,12 +13,12 @@ import (
 
 // Exit codes following GitHub CLI conventions
 const (
-	ExitSuccess       = 0 // Successful execution
-	ExitError         = 1 // General error
-	ExitUsageError    = 2 // Invalid command usage
-	ExitAuthError     = 4 // Authentication failure
-	ExitNotFound      = 5 // Resource not found
-	ExitCanceled      = 130 // User canceled (Ctrl+C)
+	ExitSuccess    = 0   // Successful execution
+	ExitError      = 1   // General error
+	ExitUsageError = 2   // Invalid command usage
+	ExitAuthError  = 4   // Authentication failure
+	ExitNotFound   = 5   // Resource not found
+	ExitCanceled   = 130 // User canceled (Ctrl+C)
 )
 
 // EnableSuggestions configures a command to suggest similar commands on typos.
