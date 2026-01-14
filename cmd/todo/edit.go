@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
+	"github.com/needmore/bc4/internal/attachments"
 	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
@@ -25,6 +27,7 @@ type editOptions struct {
 	unassign    []string
 	file        string
 	clearDue    bool
+	attach      []string
 }
 
 func newEditCmd(f *factory.Factory) *cobra.Command {
@@ -39,7 +42,11 @@ You can specify the todo using either:
 - A numeric ID (e.g., "12345")
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/todos/12345")
 
-All fields are optional - only specified fields will be updated.`,
+All fields are optional - only specified fields will be updated.
+
+Use --attach to add images or files to the todo description. Attachments are
+appended to the existing description. Multiple files can be attached by using
+the flag multiple times.`,
 		Example: `  # Edit todo title
   bc4 todo edit 12345 --title "Updated title"
 
@@ -62,7 +69,13 @@ All fields are optional - only specified fields will be updated.`,
   bc4 todo edit 12345 --file updated-todo.md
 
   # Edit using a URL
-  bc4 todo edit https://3.basecamp.com/.../todos/12345 --title "New title"`,
+  bc4 todo edit https://3.basecamp.com/.../todos/12345 --title "New title"
+
+  # Add an image attachment to an existing todo
+  bc4 todo edit 12345 --attach ./screenshot.png
+
+  # Add multiple attachments
+  bc4 todo edit 12345 --attach ./photo1.jpg --attach ./photo2.jpg`,
 		Args: cmdutil.ExactArgs(1, "todo-id"),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runEdit(f, opts, args)
@@ -77,6 +90,7 @@ All fields are optional - only specified fields will be updated.`,
 	cmd.Flags().StringSliceVar(&opts.unassign, "unassign", nil, "Remove assignees (by email or name)")
 	cmd.Flags().StringVarP(&opts.file, "file", "f", "", "Read new content from a markdown file")
 	cmd.Flags().BoolVar(&opts.clearDue, "clear-due", false, "Clear the due date")
+	cmd.Flags().StringSliceVar(&opts.attach, "attach", nil, "Attach file(s) to the todo (can be used multiple times)")
 
 	return cmd
 }
@@ -155,10 +169,10 @@ func runEdit(f *factory.Factory, opts *editOptions, args []string) error {
 	// Check if any changes were requested
 	hasChanges := opts.title != "" || opts.description != "" || opts.due != "" ||
 		opts.startsOn != "" || len(opts.assign) > 0 || len(opts.unassign) > 0 ||
-		opts.clearDue
+		opts.clearDue || len(opts.attach) > 0
 
 	if !hasChanges {
-		return fmt.Errorf("no changes specified. Use --title, --description, --due, --assign, --unassign, or --file to specify changes")
+		return fmt.Errorf("no changes specified. Use --title, --description, --due, --assign, --unassign, --attach, or --file to specify changes")
 	}
 
 	// Build update request
@@ -183,6 +197,30 @@ func runEdit(f *factory.Factory, opts *editOptions, args []string) error {
 			return fmt.Errorf("failed to convert description: %w", err)
 		}
 		req.Description = richDescription
+	}
+
+	// Handle attachments - append to existing or new description
+	if len(opts.attach) > 0 {
+		// Start with the description we already have, or the current todo's description
+		baseDescription := req.Description
+		if baseDescription == "" {
+			baseDescription = currentTodo.Description
+		}
+
+		for _, attachPath := range opts.attach {
+			fileData, err := os.ReadFile(attachPath)
+			if err != nil {
+				return fmt.Errorf("failed to read attachment %s: %w", attachPath, err)
+			}
+			filename := filepath.Base(attachPath)
+			upload, err := client.Client.UploadAttachment(filename, fileData, "")
+			if err != nil {
+				return fmt.Errorf("failed to upload attachment %s: %w", filename, err)
+			}
+			tag := attachments.BuildTag(upload.AttachableSGID)
+			baseDescription += tag
+		}
+		req.Description = baseDescription
 	}
 
 	// Handle due date

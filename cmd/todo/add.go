@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
+	"github.com/needmore/bc4/internal/attachments"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
@@ -20,6 +22,7 @@ type addOptions struct {
 	due         string
 	assign      []string
 	file        string
+	attach      []string
 }
 
 func newAddCmd(f *factory.Factory) *cobra.Command {
@@ -31,7 +34,10 @@ func newAddCmd(f *factory.Factory) *cobra.Command {
 		Long: `Create a new todo in the specified todo list.
 
 If no title is provided, you'll be prompted to enter one interactively.
-The todo will be created in the default todo list unless specified with --list.`,
+The todo will be created in the default todo list unless specified with --list.
+
+Use --attach to add images or files to the todo description. Multiple files
+can be attached by using the flag multiple times.`,
 		Example: `  # Add a todo with a title
   bc4 todo add "Review pull request"
 
@@ -45,7 +51,13 @@ The todo will be created in the default todo list unless specified with --list.`
   bc4 todo add "Update documentation" --list "Documentation Tasks"
 
   # Add a todo from a markdown file
-  bc4 todo add --file todo-content.md`,
+  bc4 todo add --file todo-content.md
+
+  # Add a todo with an image attachment
+  bc4 todo add "Review mockups" --attach ./design.png
+
+  # Add a todo with multiple attachments
+  bc4 todo add "Update assets" --attach ./image1.png --attach ./image2.jpg`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runAdd(f, opts, args)
@@ -57,6 +69,7 @@ The todo will be created in the default todo list unless specified with --list.`
 	cmd.Flags().StringVar(&opts.due, "due", "", "Due date (YYYY-MM-DD)")
 	cmd.Flags().StringSliceVar(&opts.assign, "assign", nil, "Assign to team members (by email)")
 	cmd.Flags().StringVarP(&opts.file, "file", "f", "", "Read todo content from a markdown file")
+	cmd.Flags().StringSliceVar(&opts.attach, "attach", nil, "Attach file(s) to the todo (can be used multiple times)")
 
 	return cmd
 }
@@ -210,6 +223,23 @@ func runAdd(f *factory.Factory, opts *addOptions, args []string) error {
 		richDescription, err = converter.MarkdownToRichText(description)
 		if err != nil {
 			return fmt.Errorf("failed to convert description: %w", err)
+		}
+	}
+
+	// Handle attachments
+	if len(opts.attach) > 0 {
+		for _, attachPath := range opts.attach {
+			fileData, err := os.ReadFile(attachPath)
+			if err != nil {
+				return fmt.Errorf("failed to read attachment %s: %w", attachPath, err)
+			}
+			filename := filepath.Base(attachPath)
+			upload, err := client.Client.UploadAttachment(filename, fileData, "")
+			if err != nil {
+				return fmt.Errorf("failed to upload attachment %s: %w", filename, err)
+			}
+			tag := attachments.BuildTag(upload.AttachableSGID)
+			richDescription += tag
 		}
 	}
 

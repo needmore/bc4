@@ -2,11 +2,15 @@ package card
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/needmore/bc4/internal/api"
+	"github.com/needmore/bc4/internal/attachments"
 	"github.com/needmore/bc4/internal/factory"
+	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
@@ -21,13 +25,28 @@ func newAddCmd(f *factory.Factory) *cobra.Command {
 	var steps []string
 	var dueOn string
 	var description string
+	var attach []string
 
 	cmd := &cobra.Command{
 		Use:   "add \"Title\"",
 		Short: "Quick card creation",
 		Long: `Create a new card in the default card table's first column.
-		
-Use flags to specify table, column, assignees, and initial steps.`,
+
+Use flags to specify table, column, assignees, and initial steps.
+
+Use --attach to add images or files to the card content. Multiple files
+can be attached by using the flag multiple times.`,
+		Example: `  # Create a simple card
+  bc4 card add "New feature"
+
+  # Create a card with description
+  bc4 card add "Bug fix" --description "Fix login issue"
+
+  # Create a card with an image attachment
+  bc4 card add "Design review" --attach ./mockup.png
+
+  # Create a card with multiple attachments
+  bc4 card add "Asset update" --attach ./logo.png --attach ./banner.jpg`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			title := args[0]
@@ -144,10 +163,38 @@ Use flags to specify table, column, assignees, and initial steps.`,
 				return fmt.Errorf("no suitable column found in card table")
 			}
 
+			// Convert description to rich text if provided
+			var richContent string
+			if description != "" {
+				converter := markdown.NewConverter()
+				rc, err := converter.MarkdownToRichText(description)
+				if err != nil {
+					return fmt.Errorf("failed to convert description: %w", err)
+				}
+				richContent = rc
+			}
+
+			// Handle attachments
+			if len(attach) > 0 {
+				for _, attachPath := range attach {
+					fileData, err := os.ReadFile(attachPath)
+					if err != nil {
+						return fmt.Errorf("failed to read attachment %s: %w", attachPath, err)
+					}
+					filename := filepath.Base(attachPath)
+					upload, err := client.Client.UploadAttachment(filename, fileData, "")
+					if err != nil {
+						return fmt.Errorf("failed to upload attachment %s: %w", filename, err)
+					}
+					tag := attachments.BuildTag(upload.AttachableSGID)
+					richContent += tag
+				}
+			}
+
 			// Create the card
 			req := api.CardCreateRequest{
 				Title:   title,
-				Content: description,
+				Content: richContent,
 			}
 			if dueOn != "" {
 				req.DueOn = &dueOn
@@ -208,6 +255,7 @@ Use flags to specify table, column, assignees, and initial steps.`,
 	cmd.Flags().StringSliceVar(&steps, "step", []string{}, "Add steps (can be used multiple times)")
 	cmd.Flags().StringVar(&dueOn, "due", "", "Set due date (YYYY-MM-DD)")
 	cmd.Flags().StringVarP(&description, "description", "d", "", "Card description")
+	cmd.Flags().StringSliceVar(&attach, "attach", nil, "Attach file(s) to the card (can be used multiple times)")
 
 	return cmd
 }
