@@ -2,6 +2,8 @@ package card
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -12,6 +14,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/needmore/bc4/internal/api"
+	"github.com/needmore/bc4/internal/attachments"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
@@ -355,7 +358,7 @@ func (m editModel) View() string {
 	return content
 }
 
-func updateCardNonInteractive(f *factory.Factory, client *api.Client, projectID string, cardID int64, title, content string) error {
+func updateCardNonInteractive(f *factory.Factory, client *api.Client, projectID string, cardID int64, title, content string, attach []string) error {
 	// Get current card
 	card, err := client.GetCard(f.Context(), projectID, cardID)
 	if err != nil {
@@ -383,6 +386,23 @@ func updateCardNonInteractive(f *factory.Factory, client *api.Client, projectID 
 		req.Content = card.Content
 	}
 
+	// Handle attachments - append to existing or new content
+	if len(attach) > 0 {
+		for _, attachPath := range attach {
+			fileData, err := os.ReadFile(attachPath)
+			if err != nil {
+				return fmt.Errorf("failed to read attachment %s: %w", attachPath, err)
+			}
+			filename := filepath.Base(attachPath)
+			upload, err := client.UploadAttachment(filename, fileData, "")
+			if err != nil {
+				return fmt.Errorf("failed to upload attachment %s: %w", filename, err)
+			}
+			tag := attachments.BuildTag(upload.AttachableSGID)
+			req.Content += tag
+		}
+	}
+
 	// Preserve assignees
 	assigneeIDs := make([]int64, 0, len(card.Assignees))
 	for _, a := range card.Assignees {
@@ -403,6 +423,7 @@ func updateCardNonInteractive(f *factory.Factory, client *api.Client, projectID 
 func newEditCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 	var projectID string
+	var attach []string
 
 	cmd := &cobra.Command{
 		Use:   "edit [ID or URL]",
@@ -411,7 +432,22 @@ func newEditCmd(f *factory.Factory) *cobra.Command {
 
 You can specify the card using either:
 - A numeric ID (e.g., "12345")
-- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345")`,
+- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345")
+
+Use --attach to add images or files to the card content. Attachments are
+appended to the existing content. Multiple files can be attached by using
+the flag multiple times.`,
+		Example: `  # Edit card title
+  bc4 card edit 12345 --title "New title"
+
+  # Edit card content
+  bc4 card edit 12345 --content "Updated description"
+
+  # Add an image attachment to an existing card
+  bc4 card edit 12345 --attach ./screenshot.png
+
+  # Add multiple attachments
+  bc4 card edit 12345 --attach ./photo1.jpg --attach ./photo2.jpg`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Parse card ID (could be numeric ID or URL)
@@ -459,8 +495,8 @@ You can specify the card using either:
 			interactive, _ := cmd.Flags().GetBool("interactive")
 
 			// If non-interactive mode with flags
-			if !interactive && (title != "" || content != "") {
-				return updateCardNonInteractive(f, client.Client, resolvedProjectID, cardID, title, content)
+			if !interactive && (title != "" || content != "" || len(attach) > 0) {
+				return updateCardNonInteractive(f, client.Client, resolvedProjectID, cardID, title, content, attach)
 			}
 
 			// Interactive mode
@@ -513,6 +549,7 @@ You can specify the card using either:
 	cmd.Flags().String("title", "", "New title for the card")
 	cmd.Flags().String("content", "", "New content for the card (Markdown supported)")
 	cmd.Flags().Bool("interactive", false, "Use interactive mode (default when no flags)")
+	cmd.Flags().StringSliceVar(&attach, "attach", nil, "Attach file(s) to the card (can be used multiple times)")
 
 	return cmd
 }
