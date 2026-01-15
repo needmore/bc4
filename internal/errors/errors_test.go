@@ -53,6 +53,12 @@ func TestErrorTypes(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "retry exhausted error",
+			err:      NewRetryExhaustedError(3, errors.New("last attempt failed")),
+			checkFn:  IsRetryExhaustedError,
+			expected: true,
+		},
+		{
 			name:     "wrapped error",
 			err:      fmt.Errorf("wrapped: %w", NewAuthenticationError(errors.New("inner"))),
 			checkFn:  IsAuthenticationError,
@@ -258,6 +264,10 @@ func TestErrorUnwrap(t *testing.T) {
 			name: "configuration error unwrap",
 			err:  NewConfigurationError("message", innerErr),
 		},
+		{
+			name: "retry exhausted error unwrap",
+			err:  NewRetryExhaustedError(3, innerErr),
+		},
 	}
 
 	for _, tt := range tests {
@@ -330,6 +340,13 @@ func TestValidationErrorString(t *testing.T) {
 			assert.Equal(t, tt.expected, err.Error())
 		})
 	}
+}
+
+func TestRetryExhaustedErrorString(t *testing.T) {
+	innerErr := errors.New("connection timeout")
+	err := NewRetryExhaustedError(4, innerErr)
+	expected := "all 4 retry attempts failed: connection timeout"
+	assert.Equal(t, expected, err.Error())
 }
 
 func TestFormatErrorStripsStyling(t *testing.T) {

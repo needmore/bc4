@@ -14,6 +14,8 @@ import (
 )
 
 func newViewCmd(f *factory.Factory) *cobra.Command {
+	var accountID string
+	var projectID string
 	var noPager bool
 
 	cmd := &cobra.Command{
@@ -22,6 +24,14 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 		Long:  `View the details of a specific comment.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
 			// Get API client from factory
 			client, err := f.ApiClient()
 			if err != nil {
@@ -110,6 +120,8 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().BoolVar(&noPager, "no-pager", false, "Don't use a pager")
 
 	return cmd

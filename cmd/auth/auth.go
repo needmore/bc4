@@ -63,7 +63,29 @@ func newLoginCmd(f *factory.Factory) *cobra.Command {
 			fmt.Println("Starting authentication flow...")
 			token, err := authClient.Login(context.Background())
 			if err != nil {
-				return fmt.Errorf("authentication failed: %w", err)
+				// Show user-friendly error message with helpful next steps
+				fmt.Println()
+				fmt.Println(errorStyle.Render("✗ Authentication failed"))
+				fmt.Println()
+
+				// Check for specific error types to provide better guidance
+				if stderrors.Is(err, auth.ErrAuthCancelled) {
+					fmt.Println("Authentication was canceled.")
+				} else if stderrors.Is(err, auth.ErrAuthTimeout) {
+					fmt.Println("Authentication timed out. Please try again.")
+				} else {
+					fmt.Println("Error:", err)
+				}
+
+				fmt.Println()
+				fmt.Println("To check authentication status, run:")
+				fmt.Println("  bc4 auth status")
+				fmt.Println()
+				fmt.Println("To try again, run:")
+				fmt.Println("  bc4 auth login")
+
+				// Use SilentError since we already displayed a helpful message
+				return cmdutil.NewSilentError(err)
 			}
 
 			fmt.Println(successStyle.Render(fmt.Sprintf("✓ Successfully authenticated with %s", token.AccountName)))

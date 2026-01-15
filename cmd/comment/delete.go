@@ -13,6 +13,8 @@ import (
 )
 
 func newDeleteCmd(f *factory.Factory) *cobra.Command {
+	var accountID string
+	var projectID string
 	var skipConfirm bool
 
 	cmd := &cobra.Command{
@@ -21,6 +23,14 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 		Long:  `Delete a comment. This operation cannot be undone.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
 			// Get API client from factory
 			client, err := f.ApiClient()
 			if err != nil {
@@ -93,6 +103,8 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "Skip confirmation prompt")
 
 	return cmd

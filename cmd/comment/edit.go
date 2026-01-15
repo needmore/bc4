@@ -17,6 +17,8 @@ import (
 )
 
 func newEditCmd(f *factory.Factory) *cobra.Command {
+	var accountID string
+	var projectID string
 	var content string
 
 	cmd := &cobra.Command{
@@ -30,6 +32,14 @@ You can provide updated content in several ways:
   - Via stdin: cat updated.md | bc4 comment edit <comment-id|url>`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
 			// Get API client from factory
 			client, err := f.ApiClient()
 			if err != nil {
@@ -135,6 +145,8 @@ You can provide updated content in several ways:
 		},
 	}
 
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().StringVarP(&content, "content", "c", "", "New comment content (markdown supported)")
 
 	return cmd

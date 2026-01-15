@@ -12,6 +12,9 @@ import (
 )
 
 func newListCmd(f *factory.Factory) *cobra.Command {
+	var accountID string
+	var projectID string
+
 	cmd := &cobra.Command{
 		Use:     "list <recording-id|url>",
 		Short:   "List comments on a recording",
@@ -19,6 +22,14 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
 			// Get API client from factory
 			client, err := f.ApiClient()
 			if err != nil {
@@ -80,6 +91,9 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 			return table.Render()
 		},
 	}
+
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 
 	return cmd
 }
