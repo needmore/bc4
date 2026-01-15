@@ -70,34 +70,66 @@ func (c *Client) ListEvents(ctx context.Context, projectID string, recordingID i
 
 // ListRecordings returns all recordings (activity items) for a project
 func (c *Client) ListRecordings(ctx context.Context, projectID string, opts *ActivityListOptions) ([]Recording, error) {
+	// Default types to fetch if none specified
+	typesToFetch := []string{"Todo", "Message", "Document", "Comment"}
+
+	if opts != nil && len(opts.RecordingTypes) > 0 {
+		typesToFetch = opts.RecordingTypes
+	}
+
+	var allRecordings []Recording
+
+	// Fetch recordings for each type
+	for _, recordingType := range typesToFetch {
+		typeRecordings, err := c.listRecordingsByType(ctx, projectID, recordingType, opts)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list %s recordings: %w", recordingType, err)
+		}
+		allRecordings = append(allRecordings, typeRecordings...)
+	}
+
+	// Sort by updated_at descending
+	sortRecordings(allRecordings)
+
+	// Apply filtering if options provided
+	if opts != nil {
+		allRecordings = filterRecordings(allRecordings, opts)
+	}
+
+	return allRecordings, nil
+}
+
+// listRecordingsByType fetches recordings of a specific type for a project
+func (c *Client) listRecordingsByType(ctx context.Context, projectID string, recordingType string, opts *ActivityListOptions) ([]Recording, error) {
 	var recordings []Recording
 
 	// Build query params
 	params := url.Values{}
+	params.Set("bucket", projectID)
+	params.Set("type", recordingType)
 	params.Set("sort", "updated_at")
 	params.Set("direction", "desc")
 
-	if opts != nil {
-		if len(opts.RecordingTypes) > 0 {
-			for _, t := range opts.RecordingTypes {
-				params.Add("type[]", t)
-			}
-		}
-	}
-
-	path := fmt.Sprintf("/buckets/%s/recordings.json?%s", projectID, params.Encode())
+	path := fmt.Sprintf("/projects/recordings.json?%s", params.Encode())
 
 	pr := NewPaginatedRequest(c)
 	if err := pr.GetAll(path, &recordings); err != nil {
-		return nil, fmt.Errorf("failed to list recordings: %w", err)
-	}
-
-	// Apply filtering if options provided
-	if opts != nil {
-		recordings = filterRecordings(recordings, opts)
+		return nil, err
 	}
 
 	return recordings, nil
+}
+
+// sortRecordings sorts recordings by updated_at in descending order
+func sortRecordings(recordings []Recording) {
+	// Sort by updated_at descending (most recent first)
+	for i := 0; i < len(recordings); i++ {
+		for j := i + 1; j < len(recordings); j++ {
+			if recordings[j].UpdatedAt.After(recordings[i].UpdatedAt) {
+				recordings[i], recordings[j] = recordings[j], recordings[i]
+			}
+		}
+	}
 }
 
 // filterRecordings applies filtering options to recordings

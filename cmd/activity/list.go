@@ -16,6 +16,8 @@ import (
 
 func newListCmd(f *factory.Factory) *cobra.Command {
 	var (
+		accountID     string
+		projectID     string
 		sinceStr      string
 		recordingType string
 		formatStr     string
@@ -29,6 +31,14 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
 			// Get API client from factory
 			client, err := f.ApiClient()
 			if err != nil {
@@ -95,6 +105,8 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().StringVar(&sinceStr, "since", "", "Show activity since time (e.g., '24h', '7d', '2024-01-01')")
 	cmd.Flags().StringVarP(&recordingType, "type", "t", "", "Filter by type: todo, message, document, comment, upload")
 	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table or json")
