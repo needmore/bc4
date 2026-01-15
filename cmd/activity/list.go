@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
+	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 	"github.com/spf13/cobra"
@@ -31,7 +33,30 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 		Aliases: []string{"ls"},
 		Args:    cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			// Apply overrides if specified
+			// Parse project argument if provided (could be URL or ID)
+			if len(args) > 0 {
+				if parser.IsBasecampURL(args[0]) {
+					parsed, err := parser.ParseBasecampURL(args[0])
+					if err != nil {
+						return fmt.Errorf("invalid Basecamp URL: %w", err)
+					}
+					if parsed.ResourceType != parser.ResourceTypeProject {
+						return fmt.Errorf("URL is not for a project: %s", args[0])
+					}
+					// Override factory with URL-provided values
+					if parsed.AccountID > 0 {
+						f = f.WithAccount(strconv.FormatInt(parsed.AccountID, 10))
+					}
+					if parsed.ProjectID > 0 {
+						f = f.WithProject(strconv.FormatInt(parsed.ProjectID, 10))
+					}
+				} else {
+					// Treat as project ID
+					f = f.WithProject(args[0])
+				}
+			}
+
+			// Apply flag overrides (flags take precedence over URL)
 			if accountID != "" {
 				f = f.WithAccount(accountID)
 			}
@@ -46,13 +71,13 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 			}
 
 			// Get resolved project ID
-			projectID, err := f.ProjectID()
+			resolvedProjectID, err := f.ProjectID()
 			if err != nil {
 				return err
 			}
 
 			// Get project name for display
-			project, err := client.GetProject(cmd.Context(), projectID)
+			project, err := client.GetProject(cmd.Context(), resolvedProjectID)
 			if err != nil {
 				return err
 			}
@@ -80,7 +105,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 			}
 
 			// Get recordings (activity)
-			recordings, err := client.ListRecordings(cmd.Context(), projectID, opts)
+			recordings, err := client.ListRecordings(cmd.Context(), resolvedProjectID, opts)
 			if err != nil {
 				return err
 			}
