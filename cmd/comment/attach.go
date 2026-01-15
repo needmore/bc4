@@ -16,6 +16,8 @@ import (
 )
 
 func newAttachCmd(f *factory.Factory) *cobra.Command {
+	var accountID string
+	var projectID string
 	var attachmentPath string
 	var commentIDFlag int64
 
@@ -29,6 +31,14 @@ If no comment ID is provided, the latest comment on the recording is used.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if attachmentPath == "" {
 				return fmt.Errorf("--attach is required")
+			}
+
+			// Apply overrides if specified
+			if accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID != "" {
+				f = f.WithProject(projectID)
 			}
 
 			client, err := f.ApiClient()
@@ -123,6 +133,8 @@ If no comment ID is provided, the latest comment on the recording is used.`,
 		},
 	}
 
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().StringVar(&attachmentPath, "attach", "", "Path to file to attach")
 	cmd.Flags().Int64Var(&commentIDFlag, "comment-id", 0, "Append to a specific comment ID instead of the latest")
 
