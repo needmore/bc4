@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -23,6 +24,17 @@ const (
 	tokenURL     = "https://launchpad.37signals.com/authorization/token"
 	callbackPort = "8888"
 	redirectURL  = "http://localhost:" + callbackPort + "/callback"
+
+	// authTimeout is the maximum time to wait for authentication to complete
+	authTimeout = 5 * time.Minute
+)
+
+// Custom error types for better error handling
+var (
+	// ErrAuthTimeout is returned when authentication times out
+	ErrAuthTimeout = stderrors.New("authentication timed out after 5 minutes")
+	// ErrAuthCancelled is returned when authentication is canceled by the user
+	ErrAuthCancelled = stderrors.New("authentication canceled")
 )
 
 // TokenData represents the stored OAuth token information
@@ -110,8 +122,23 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 	// Add the required 'type' parameter for Basecamp
 	authURL = authURL + "&type=web_server"
 
-	// Silently open browser
-	_ = browser.OpenURL(authURL)
+	// Try to open browser and provide fallback instructions
+	browserErr := browser.OpenURL(authURL)
+	if browserErr != nil {
+		// Browser couldn't open (e.g., remote SSH session)
+		fmt.Println("\nCouldn't open browser automatically.")
+		fmt.Println("Please open the following URL in your browser:")
+	} else {
+		fmt.Println("Opening browser for authentication...")
+		fmt.Println("If the browser doesn't open, visit this URL:")
+	}
+	fmt.Println()
+	fmt.Println(authURL)
+	fmt.Println("\nWaiting for authentication (Ctrl+C to cancel)...")
+
+	// Create a timeout context
+	timeoutCtx, cancel := context.WithTimeout(ctx, authTimeout)
+	defer cancel()
 
 	// Wait for callback
 	select {
@@ -141,10 +168,13 @@ func (c *Client) Login(ctx context.Context) (*AccountToken, error) {
 		return accountToken, nil
 
 	case err := <-errorChan:
-		return nil, err
+		return nil, fmt.Errorf("callback error: %w", err)
+
+	case <-timeoutCtx.Done():
+		return nil, ErrAuthTimeout
 
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, ErrAuthCancelled
 	}
 }
 
