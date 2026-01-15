@@ -82,6 +82,14 @@ type MockClient struct {
 	Profile      *api.Person
 	ProfileError error
 
+	// Activity
+	Events          []api.Event
+	EventsError     error
+	Recordings      []api.Recording
+	RecordingsError error
+	Recording       *api.Recording
+	RecordingError  error
+
 	// Track method calls
 	Calls []string
 }
@@ -421,6 +429,33 @@ func (m *MockClient) GetMyProfile(ctx context.Context) (*api.Person, error) {
 		return nil, m.ProfileError
 	}
 	return m.Profile, nil
+}
+
+// ListEvents mock implementation
+func (m *MockClient) ListEvents(ctx context.Context, projectID string, recordingID int64) ([]api.Event, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("ListEvents(%s, %d)", projectID, recordingID))
+	if m.EventsError != nil {
+		return nil, m.EventsError
+	}
+	return m.Events, nil
+}
+
+// ListRecordings mock implementation
+func (m *MockClient) ListRecordings(ctx context.Context, projectID string, opts *api.ActivityListOptions) ([]api.Recording, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("ListRecordings(%s, %+v)", projectID, opts))
+	if m.RecordingsError != nil {
+		return nil, m.RecordingsError
+	}
+	return m.Recordings, nil
+}
+
+// GetRecording mock implementation
+func (m *MockClient) GetRecording(ctx context.Context, projectID string, recordingID int64) (*api.Recording, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetRecording(%s, %d)", projectID, recordingID))
+	if m.RecordingError != nil {
+		return nil, m.RecordingError
+	}
+	return m.Recording, nil
 }
 
 // Ensure MockClient implements APIClient interface
