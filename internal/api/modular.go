@@ -42,6 +42,7 @@ type CampfireOperations interface {
 
 // CardOperations defines card table-specific operations
 type CardOperations interface {
+	GetAllProjectCardTables(ctx context.Context, projectID string) ([]*CardTable, error)
 	GetProjectCardTable(ctx context.Context, projectID string) (*CardTable, error)
 	GetCardTable(ctx context.Context, projectID string, cardTableID int64) (*CardTable, error)
 	GetCardsInColumn(ctx context.Context, projectID string, columnID int64) ([]Card, error)

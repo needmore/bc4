@@ -302,6 +302,18 @@ func (m *MockClient) DeleteCampfireLine(ctx context.Context, projectID string, c
 	return m.DeleteCampfireLineError
 }
 
+// GetAllProjectCardTables mock implementation
+func (m *MockClient) GetAllProjectCardTables(ctx context.Context, projectID string) ([]*api.CardTable, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetAllProjectCardTables(%s)", projectID))
+	if m.CardTableError != nil {
+		return nil, m.CardTableError
+	}
+	if m.CardTable != nil {
+		return []*api.CardTable{m.CardTable}, nil
+	}
+	return []*api.CardTable{}, nil
+}
+
 // GetProjectCardTable mock implementation
 func (m *MockClient) GetProjectCardTable(ctx context.Context, projectID string) (*api.CardTable, error) {
 	m.Calls = append(m.Calls, fmt.Sprintf("GetProjectCardTable(%s)", projectID))
