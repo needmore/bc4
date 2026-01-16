@@ -117,7 +117,18 @@ Examples:
 
 			// Try to parse as ID first
 			if id, err := strconv.ParseInt(columnName, 10, 64); err == nil {
-				targetColumnID = id
+				// Validate that the column ID exists in the current card table
+				found := false
+				for _, column := range currentCardTable.Lists {
+					if column.ID == id {
+						targetColumnID = id
+						found = true
+						break
+					}
+				}
+				if !found {
+					return fmt.Errorf("column ID %d not found in card table '%s'", id, currentCardTable.Title)
+				}
 			} else {
 				// Search by name in the same card table
 				columnNameLower := strings.ToLower(columnName)

@@ -198,6 +198,9 @@ func (c *Client) GetProjectCardTable(ctx context.Context, projectID string) (*Ca
 	if err != nil {
 		return nil, err
 	}
+	if len(cardTables) == 0 {
+		return nil, fmt.Errorf("no card tables found for project")
+	}
 	return cardTables[0], nil
 }
 
