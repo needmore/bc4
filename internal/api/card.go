@@ -142,9 +142,9 @@ type StepPositionRequest struct {
 	Position int   `json:"position"` // zero-indexed
 }
 
-// GetProjectCardTable fetches the card table for a project
-func (c *Client) GetProjectCardTable(ctx context.Context, projectID string) (*CardTable, error) {
-	// First get the project to find its card table
+// GetAllProjectCardTables fetches all card tables for a project
+func (c *Client) GetAllProjectCardTables(ctx context.Context, projectID string) ([]*CardTable, error) {
+	// First get the project to find its card tables
 	project, err := c.GetProject(ctx, projectID)
 	if err != nil {
 		return nil, err
@@ -172,15 +172,33 @@ func (c *Client) GetProjectCardTable(ctx context.Context, projectID string) (*Ca
 		return nil, fmt.Errorf("failed to decode project data: %w", err)
 	}
 
-	// Find the card table in the dock
+	// Find all card tables in the dock
+	var cardTables []*CardTable
 	for _, tool := range projectData.Dock {
 		if tool.Name == "kanban_board" {
 			// Fetch the full card table details
-			return c.GetCardTable(ctx, projectID, tool.ID)
+			cardTable, err := c.GetCardTable(ctx, projectID, tool.ID)
+			if err != nil {
+				return nil, fmt.Errorf("failed to fetch card table %d: %w", tool.ID, err)
+			}
+			cardTables = append(cardTables, cardTable)
 		}
 	}
 
-	return nil, fmt.Errorf("card table not found for project")
+	if len(cardTables) == 0 {
+		return nil, fmt.Errorf("no card tables found for project")
+	}
+
+	return cardTables, nil
+}
+
+// GetProjectCardTable fetches the default (first) card table for a project
+func (c *Client) GetProjectCardTable(ctx context.Context, projectID string) (*CardTable, error) {
+	cardTables, err := c.GetAllProjectCardTables(ctx, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return cardTables[0], nil
 }
 
 // GetCardTable fetches a card table by ID

@@ -35,6 +35,7 @@ type APIClient interface {
 	DeleteCampfireLine(ctx context.Context, projectID string, campfireID int64, lineID int64) error
 
 	// Card table methods
+	GetAllProjectCardTables(ctx context.Context, projectID string) ([]*CardTable, error)
 	GetProjectCardTable(ctx context.Context, projectID string) (*CardTable, error)
 	GetCardTable(ctx context.Context, projectID string, cardTableID int64) (*CardTable, error)
 	GetCardsInColumn(ctx context.Context, projectID string, columnID int64) ([]Card, error)
