@@ -7,11 +7,13 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 type createGroupOptions struct {
-	list string
+	list  string
+	color string
 }
 
 func newCreateGroupCmd(f *factory.Factory) *cobra.Command {
@@ -23,7 +25,10 @@ func newCreateGroupCmd(f *factory.Factory) *cobra.Command {
 		Long: `Create a new group (section) within a todo list to organize todos.
 
 If no name is provided, you'll be prompted to enter one interactively.
-Groups allow you to organize todos into sections within a list.`,
+Groups allow you to organize todos into sections within a list.
+
+Available colors:
+  white, red, orange, yellow, green, blue, aqua, purple, gray, pink, brown`,
 		Example: `  # Create a new group in the default todo list
   bc4 todo create-group "In Progress"
 
@@ -31,7 +36,12 @@ Groups allow you to organize todos into sections within a list.`,
   bc4 todo create-group "Completed" --list "Sprint 1 Tasks"
 
   # Create a group using list ID
-  bc4 todo create-group "Backlog" --list 12345`,
+  bc4 todo create-group "Backlog" --list 12345
+
+  # Create a colored group
+  bc4 todo create-group "WCAG 2.1 Level A" --list "Accessibility Issues" --color red
+  bc4 todo create-group "In Progress" --color yellow
+  bc4 todo create-group "Done" --color green`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCreateGroup(f, opts, args)
@@ -39,6 +49,7 @@ Groups allow you to organize todos into sections within a list.`,
 	}
 
 	cmd.Flags().StringVarP(&opts.list, "list", "l", "", "Todo list ID, name, or URL (defaults to selected list)")
+	cmd.Flags().StringVarP(&opts.color, "color", "c", "", "Color for the group (white, red, orange, yellow, green, blue, aqua, purple, gray, pink, brown)")
 
 	return cmd
 }
@@ -141,9 +152,20 @@ func runCreateGroup(f *factory.Factory, opts *createGroupOptions, args []string)
 		}
 	}
 
+	// Validate color if provided
+	var validatedColor string
+	if opts.color != "" {
+		validated, err := utils.ValidateColor(opts.color)
+		if err != nil {
+			return err
+		}
+		validatedColor = validated
+	}
+
 	// Create the todo group
 	req := api.TodoGroupCreateRequest{
-		Name: name,
+		Name:  name,
+		Color: validatedColor,
 	}
 
 	group, err := todoOps.CreateTodoGroup(f.Context(), projectID, todoListID, req)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -17,10 +18,10 @@ func newColumnColorCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "color [COLUMN_ID or URL] COLOR",
 		Short: "Set the color of a column",
-		Long: `Set the color of a column.
+		Long: fmt.Sprintf(`Set the color of a column.
 
 Available colors:
-  white, red, orange, yellow, green, blue, aqua, purple, gray, pink, brown
+  %s
 
 You can specify the column using either:
 - A numeric ID (e.g., "12345")
@@ -29,7 +30,7 @@ You can specify the column using either:
 Examples:
   bc4 card column color 123 blue
   bc4 card column color 123 green
-  bc4 card column color https://3.basecamp.com/1234567/buckets/89012345/card_tables/columns/12345 red`,
+  bc4 card column color https://3.basecamp.com/1234567/buckets/89012345/card_tables/columns/12345 red`, strings.Join(utils.ValidBasecampColors, ", ")),
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Parse column ID (could be numeric ID or URL)
@@ -39,17 +40,9 @@ Examples:
 			}
 
 			// Validate color
-			color := strings.ToLower(args[1])
-			validColors := []string{"white", "red", "orange", "yellow", "green", "blue", "aqua", "purple", "gray", "pink", "brown"}
-			isValid := false
-			for _, vc := range validColors {
-				if color == vc {
-					isValid = true
-					break
-				}
-			}
-			if !isValid {
-				return fmt.Errorf("invalid color: %s. Available colors: %s", args[1], strings.Join(validColors, ", "))
+			color, err := utils.ValidateColor(args[1])
+			if err != nil {
+				return err
 			}
 
 			// Apply overrides if specified

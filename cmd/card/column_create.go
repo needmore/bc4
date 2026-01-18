@@ -7,6 +7,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -23,10 +24,14 @@ You can specify the card table using either:
 - A numeric ID (e.g., "12345")
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/card_tables/12345")
 
+Available colors:
+  white, red, orange, yellow, green, blue, aqua, purple, gray, pink, brown
+
 Examples:
   bc4 card column create 123 "In Progress"
   bc4 card column create 123 "Done" --description "Completed items"
-  bc4 card column create https://3.basecamp.com/1234567/buckets/89012345/card_tables/12345 "Review"`,
+  bc4 card column create 123 "In Progress" --color orange
+  bc4 card column create https://3.basecamp.com/1234567/buckets/89012345/card_tables/12345 "Review" --color blue`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Parse card table ID (could be numeric ID or URL)
@@ -71,10 +76,22 @@ Examples:
 			// Get description from flag
 			description, _ := cmd.Flags().GetString("description")
 
+			// Get and validate color from flag
+			color, _ := cmd.Flags().GetString("color")
+			var validatedColor string
+			if color != "" {
+				validated, err := utils.ValidateColor(color)
+				if err != nil {
+					return err
+				}
+				validatedColor = validated
+			}
+
 			// Create the column request
 			req := api.ColumnCreateRequest{
 				Title:       args[1],
 				Description: description,
+				Color:       validatedColor,
 			}
 
 			// Create the column
@@ -90,6 +107,7 @@ Examples:
 	}
 
 	cmd.Flags().String("description", "", "Description for the column")
+	cmd.Flags().String("color", "", "Color for the column (white, red, orange, yellow, green, blue, aqua, purple, gray, pink, brown)")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 
