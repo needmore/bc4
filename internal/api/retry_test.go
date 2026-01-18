@@ -117,7 +117,7 @@ func TestRetryableTransport_Retry5xxErrors(t *testing.T) {
 				responses: []*http.Response{
 					newMockResponse(tt.statusCode, "error", nil), //nolint:bodyclose // closed by caller or retry logic
 					newMockResponse(tt.statusCode, "error", nil), //nolint:bodyclose // closed by caller or retry logic
-					newMockResponse(200, "success", nil), //nolint:bodyclose // closed by caller or retry logic
+					newMockResponse(200, "success", nil),         //nolint:bodyclose // closed by caller or retry logic
 				},
 			}
 
@@ -141,7 +141,7 @@ func TestRetryableTransport_RetryAfterHeader(t *testing.T) {
 	mock := &mockTransport{
 		responses: []*http.Response{
 			newMockResponse(429, "rate limited", map[string]string{"Retry-After": "1"}), //nolint:bodyclose // closed by retry logic
-			newMockResponse(200, "success", nil), //nolint:bodyclose // closed by caller or retry logic
+			newMockResponse(200, "success", nil),                                        //nolint:bodyclose // closed by caller or retry logic
 		},
 	}
 
@@ -218,9 +218,9 @@ func TestRetryableTransport_NonRetryableStatusCodes(t *testing.T) {
 func TestRetryableTransport_ExponentialBackoff(t *testing.T) {
 	mock := &mockTransport{
 		responses: []*http.Response{
-			newMockResponse(500, "error", nil), //nolint:bodyclose // closed by caller or retry logic
-			newMockResponse(500, "error", nil), //nolint:bodyclose // closed by caller or retry logic
-			newMockResponse(500, "error", nil), //nolint:bodyclose // closed by caller or retry logic
+			newMockResponse(500, "error", nil),   //nolint:bodyclose // closed by caller or retry logic
+			newMockResponse(500, "error", nil),   //nolint:bodyclose // closed by caller or retry logic
+			newMockResponse(500, "error", nil),   //nolint:bodyclose // closed by caller or retry logic
 			newMockResponse(200, "success", nil), //nolint:bodyclose // closed by caller or retry logic
 		},
 	}
@@ -252,7 +252,7 @@ func TestRetryableTransport_MaxBackoffCap(t *testing.T) {
 	mock := &mockTransport{
 		responses: []*http.Response{
 			newMockResponse(429, "rate limited", map[string]string{"Retry-After": "120"}), //nolint:bodyclose // closed by retry logic
-			newMockResponse(200, "success", nil), //nolint:bodyclose // closed by caller or retry logic
+			newMockResponse(200, "success", nil),                                          //nolint:bodyclose // closed by caller or retry logic
 		},
 	}
 
@@ -279,7 +279,7 @@ func TestRetryableTransport_MaxBackoffCap(t *testing.T) {
 func TestRetryableTransport_RequestBodyBuffering(t *testing.T) {
 	mock := &mockTransport{
 		responses: []*http.Response{
-			newMockResponse(500, "error", nil), //nolint:bodyclose // closed by caller or retry logic
+			newMockResponse(500, "error", nil),   //nolint:bodyclose // closed by caller or retry logic
 			newMockResponse(200, "success", nil), //nolint:bodyclose // closed by caller or retry logic
 		},
 	}
@@ -384,7 +384,7 @@ func TestRetryableTransport_CalculateBackoff(t *testing.T) {
 			name:     "Retry-After exceeds max",
 			attempt:  0,
 			resp:     newMockResponse(429, "", map[string]string{"Retry-After": "120"}), //nolint:bodyclose // test data
-			expected: 60 * time.Second, // Capped at MaxBackoff
+			expected: 60 * time.Second,                                                  // Capped at MaxBackoff
 		},
 	}
 

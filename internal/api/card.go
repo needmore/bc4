@@ -97,6 +97,7 @@ type CardMoveRequest struct {
 type ColumnCreateRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
+	Color       string `json:"color,omitempty"`
 }
 
 // ColumnUpdateRequest represents the payload for updating a column

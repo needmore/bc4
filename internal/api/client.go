@@ -527,7 +527,8 @@ func (c *Client) UpdateTodoList(ctx context.Context, projectID string, todoListI
 
 // TodoGroupCreateRequest represents the payload for creating a new todo group
 type TodoGroupCreateRequest struct {
-	Name string `json:"name"`
+	Name  string `json:"name"`
+	Color string `json:"color,omitempty"`
 }
 
 // CreateTodoGroup creates a new group within a todo list

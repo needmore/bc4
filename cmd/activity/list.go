@@ -247,17 +247,17 @@ type ActivityOutput struct {
 
 // ActivityRecord represents a single activity item for JSON output
 type ActivityRecord struct {
-	ID            int64     `json:"id"`
-	Type          string    `json:"type"`
-	Title         string    `json:"title"`
-	Status        string    `json:"status"`
-	Creator       string    `json:"creator"`
-	CreatorEmail  string    `json:"creator_email,omitempty"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	URL           string    `json:"url"`
-	ParentTitle   string    `json:"parent_title,omitempty"`
-	ParentType    string    `json:"parent_type,omitempty"`
+	ID           int64     `json:"id"`
+	Type         string    `json:"type"`
+	Title        string    `json:"title"`
+	Status       string    `json:"status"`
+	Creator      string    `json:"creator"`
+	CreatorEmail string    `json:"creator_email,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	URL          string    `json:"url"`
+	ParentTitle  string    `json:"parent_title,omitempty"`
+	ParentType   string    `json:"parent_type,omitempty"`
 }
 
 func outputActivityJSON(recordings []api.Recording, projectName string) error {
@@ -345,16 +345,16 @@ func renderActivityTable(recordings []api.Recording, projectName string) error {
 // formatRecordingType formats the recording type for display
 func formatRecordingType(t string) string {
 	typeLabels := map[string]string{
-		"Todo":            "todo",
-		"Message":         "message",
-		"Document":        "document",
-		"Comment":         "comment",
-		"Upload":          "upload",
-		"Todolist":        "todolist",
-		"Question":        "question",
+		"Todo":             "todo",
+		"Message":          "message",
+		"Document":         "document",
+		"Comment":          "comment",
+		"Upload":           "upload",
+		"Todolist":         "todolist",
+		"Question":         "question",
 		"Question::Answer": "answer",
-		"Schedule::Entry": "event",
-		"Vault":           "vault",
+		"Schedule::Entry":  "event",
+		"Vault":            "vault",
 	}
 
 	if label, ok := typeLabels[t]; ok {
