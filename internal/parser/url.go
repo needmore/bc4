@@ -16,6 +16,7 @@ const (
 	ResourceTypeTodo          ResourceType = "todo"
 	ResourceTypeTodoSet       ResourceType = "todoset"
 	ResourceTypeTodoList      ResourceType = "todolist"
+	ResourceTypeTodoGroup     ResourceType = "todogroup"
 	ResourceTypeCard          ResourceType = "card"
 	ResourceTypeCardTable     ResourceType = "card_table"
 	ResourceTypeColumn        ResourceType = "column"
@@ -96,7 +97,7 @@ var urlPatterns = []urlPattern{
 	},
 	// Todo list pattern: /1234567/buckets/89012345/todosets/34567890/todolists/45678901
 	{
-		regex:        regexp.MustCompile(`^/(\d+)/buckets/(\d+)/todosets/(\d+)/todolists/(\d+)`),
+		regex:        regexp.MustCompile(`^/(\d+)/buckets/(\d+)/todosets/(\d+)/todolists/(\d+)$`),
 		resourceType: ResourceTypeTodoList,
 		extractor: func(matches []string) (*ParsedURL, error) {
 			accountID, _ := strconv.ParseInt(matches[1], 10, 64)
@@ -109,6 +110,24 @@ var urlPatterns = []urlPattern{
 				ResourceType: ResourceTypeTodoList,
 				ResourceID:   todoListID,
 				ParentID:     todoSetID,
+			}, nil
+		},
+	},
+	// Todo group pattern: /1234567/buckets/89012345/todolists/34567890/groups/45678901
+	{
+		regex:        regexp.MustCompile(`^/(\d+)/buckets/(\d+)/todolists/(\d+)/groups/(\d+)`),
+		resourceType: ResourceTypeTodoGroup,
+		extractor: func(matches []string) (*ParsedURL, error) {
+			accountID, _ := strconv.ParseInt(matches[1], 10, 64)
+			projectID, _ := strconv.ParseInt(matches[2], 10, 64)
+			todoListID, _ := strconv.ParseInt(matches[3], 10, 64)
+			todoGroupID, _ := strconv.ParseInt(matches[4], 10, 64)
+			return &ParsedURL{
+				AccountID:    accountID,
+				ProjectID:    projectID,
+				ResourceType: ResourceTypeTodoGroup,
+				ResourceID:   todoGroupID,
+				ParentID:     todoListID,
 			}, nil
 		},
 	},

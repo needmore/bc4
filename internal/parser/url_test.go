@@ -131,6 +131,25 @@ func TestParseBasecampURL(t *testing.T) {
 			wantType:    ResourceTypeVault,
 			wantID:      34567890,
 		},
+		// Todo group URLs
+		{
+			name:        "todo group URL",
+			url:         "https://3.basecamp.com/1234567/buckets/89012345/todolists/34567890/groups/45678901",
+			wantAccount: 1234567,
+			wantProject: 89012345,
+			wantType:    ResourceTypeTodoGroup,
+			wantID:      45678901,
+			wantParent:  34567890,
+		},
+		{
+			name:        "todo group API URL with .json",
+			url:         "https://3.basecampapi.com/1234567/buckets/89012345/todolists/34567890/groups/45678901.json",
+			wantAccount: 1234567,
+			wantProject: 89012345,
+			wantType:    ResourceTypeTodoGroup,
+			wantID:      45678901,
+			wantParent:  34567890,
+		},
 		// Error cases
 		{
 			name:    "invalid URL",
