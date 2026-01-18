@@ -113,7 +113,7 @@ func (c *converter) isSimplePlainText(input string) bool {
 
 	// Check for common markdown patterns that would require HTML formatting
 	markdownPatterns := []string{
-		"**", "*", "~~", "`", "[", "]", "(", ")", "#", ">", "-", "+",
+		"**", "*", "~~", "`", "[", "]", "(", ")", "#", ">", "+",
 		"<", ">", "&", "@", "http://", "https://", "mailto:",
 	}
 
@@ -121,6 +121,11 @@ func (c *converter) isSimplePlainText(input string) bool {
 		if strings.Contains(input, pattern) {
 			return false
 		}
+	}
+
+	// Check for list patterns at start of line (dash or plus followed by space)
+	if matched, _ := regexp.MatchString(`^[-+]\s`, strings.TrimSpace(input)); matched {
+		return false
 	}
 
 	// Check for numbered list patterns (1. 2. etc.)

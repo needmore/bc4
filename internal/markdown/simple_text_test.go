@@ -20,6 +20,10 @@ func TestSimplePlainTextDetection(t *testing.T) {
 		{"Fix bugs", true, "short task"},
 		{"Update the documentation files", true, "longer but simple text"},
 		{"A very long task description that goes on and on but contains no markdown formatting at all", true, "very long plain text"},
+		{"Test the --color flag functionality", true, "text with double dash"},
+		{"Use the -v flag for verbose output", true, "text with single dash"},
+		{"Run command with --verbose --debug flags", true, "text with multiple flags"},
+		{"Cost is $100-$200", true, "text with dash in range"},
 
 		// Should NOT be simple plain text
 		{"Task with **bold** text", false, "contains bold formatting"},
