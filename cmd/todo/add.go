@@ -18,6 +18,7 @@ import (
 
 type addOptions struct {
 	list        string
+	group       string
 	description string
 	due         string
 	assign      []string
@@ -57,7 +58,11 @@ can be attached by using the flag multiple times.`,
   bc4 todo add "Review mockups" --attach ./design.png
 
   # Add a todo with multiple attachments
-  bc4 todo add "Update assets" --attach ./image1.png --attach ./image2.jpg`,
+  bc4 todo add "Update assets" --attach ./image1.png --attach ./image2.jpg
+
+  # Add a todo to a specific group within a list
+  bc4 todo add "Fix bug" --list "Sprint Tasks" --group "In Progress"
+  bc4 todo add "Review PR" --list 12345 --group 67890`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runAdd(f, opts, args)
@@ -65,6 +70,7 @@ can be attached by using the flag multiple times.`,
 	}
 
 	cmd.Flags().StringVarP(&opts.list, "list", "l", "", "Todo list ID, name, or URL (defaults to selected list)")
+	cmd.Flags().StringVarP(&opts.group, "group", "g", "", "Todo group ID, name, or URL within the list (optional)")
 	cmd.Flags().StringVarP(&opts.description, "description", "d", "", "Description for the todo")
 	cmd.Flags().StringVar(&opts.due, "due", "", "Due date (YYYY-MM-DD)")
 	cmd.Flags().StringSliceVar(&opts.assign, "assign", nil, "Assign to team members (by email)")
@@ -243,6 +249,46 @@ func runAdd(f *factory.Factory, opts *addOptions, args []string) error {
 		}
 	}
 
+	// Determine the target ID for creating the todo
+	// If group is specified, use group ID; otherwise use list ID
+	targetID := todoListID
+
+	if opts.group != "" {
+		// Check if it's a URL
+		if parser.IsBasecampURL(opts.group) {
+			parsed, err := parser.ParseBasecampURL(opts.group)
+			if err != nil {
+				return fmt.Errorf("invalid Basecamp URL: %w", err)
+			}
+			if parsed.ResourceType != parser.ResourceTypeTodoGroup {
+				return fmt.Errorf("URL is not a todo group URL: %s", opts.group)
+			}
+			targetID = parsed.ResourceID
+		} else {
+			// User specified a group - try to find it within the list
+			groups, err := todoOps.GetTodoGroups(f.Context(), resolvedProjectID, todoListID)
+			if err != nil {
+				return fmt.Errorf("failed to fetch todo groups: %w", err)
+			}
+
+			// Try to match by ID or name
+			var foundGroupID int64
+			for _, group := range groups {
+				if fmt.Sprintf("%d", group.ID) == opts.group ||
+					strings.EqualFold(group.Title, opts.group) ||
+					strings.EqualFold(group.Name, opts.group) {
+					foundGroupID = group.ID
+					break
+				}
+			}
+
+			if foundGroupID == 0 {
+				return fmt.Errorf("todo group not found: %s", opts.group)
+			}
+			targetID = foundGroupID
+		}
+	}
+
 	// Create the todo
 	req := api.TodoCreateRequest{
 		Content:     richTitle,
@@ -267,7 +313,8 @@ func runAdd(f *factory.Factory, opts *addOptions, args []string) error {
 		req.AssigneeIDs = personIDs
 	}
 
-	todo, err := todoOps.CreateTodo(f.Context(), resolvedProjectID, todoListID, req)
+	// When posting to a group, the API uses the same endpoint pattern as posting to a list
+	todo, err := todoOps.CreateTodo(f.Context(), resolvedProjectID, targetID, req)
 	if err != nil {
 		return fmt.Errorf("failed to create todo: %w", err)
 	}
