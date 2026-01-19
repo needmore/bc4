@@ -8,6 +8,12 @@ import (
 type ProjectOperations interface {
 	GetProjects(ctx context.Context) ([]Project, error)
 	GetProject(ctx context.Context, projectID string) (*Project, error)
+	CreateProject(ctx context.Context, req ProjectCreateRequest) (*Project, error)
+	UpdateProject(ctx context.Context, projectID string, req ProjectUpdateRequest) (*Project, error)
+	DeleteProject(ctx context.Context, projectID string) error
+	ArchiveProject(ctx context.Context, projectID string) error
+	UnarchiveProject(ctx context.Context, projectID string) error
+	CopyProject(ctx context.Context, sourceProjectID string, name string, description string) (*Project, error)
 }
 
 // TodoOperations defines todo-specific operations
