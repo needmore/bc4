@@ -43,6 +43,7 @@ Examples:
 	cmd.AddCommand(newCreateGroupCmd(f))
 	cmd.AddCommand(newRepositionGroupCmd(f))
 	cmd.AddCommand(newAttachmentsCmd(f))
+	cmd.AddCommand(newDownloadAttachmentsCmd(f))
 
 	return cmd
 }

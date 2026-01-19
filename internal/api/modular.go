@@ -93,6 +93,12 @@ type AttachmentOperations interface {
 	UploadAttachment(filename string, data []byte, contentType string) (*AttachmentUploadResponse, error)
 }
 
+// UploadOperations defines upload-specific operations
+type UploadOperations interface {
+	GetUpload(ctx context.Context, bucketID string, uploadID int64) (*Upload, error)
+	DownloadAttachment(ctx context.Context, downloadURL, destPath string) error
+}
+
 // CommentOperations defines comment-specific operations
 type CommentOperations interface {
 	ListComments(ctx context.Context, projectID string, recordingID int64) ([]Comment, error)
@@ -186,6 +192,11 @@ func (c *ModularClient) Activity() ActivityOperations {
 
 // Schedules returns the schedule operations interface
 func (c *ModularClient) Schedules() ScheduleOperations {
+	return c.Client
+}
+
+// Uploads returns the upload operations interface
+func (c *ModularClient) Uploads() UploadOperations {
 	return c.Client
 }
 

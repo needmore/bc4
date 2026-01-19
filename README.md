@@ -242,6 +242,12 @@ bc4 todo move 12345 --top           # Move to top of list
 bc4 todo move 12345 --bottom        # Move to bottom of list
 
 # List attachments for a todo
+
+# Download all attachments from a todo
+bc4 todo download-attachments 123456
+
+# Download to specific directory
+bc4 todo download-attachments 123456 --output-dir ~/Downloads
 bc4 todo attachments 12345
 
 # Create a new todo list
@@ -296,6 +302,12 @@ bc4 message view 12345 --with-comments
 
 # Edit an existing message
 bc4 message edit 12345
+
+# Download all attachments from a message
+bc4 message download-attachments 123456
+
+# Download to specific directory
+bc4 message download-attachments 123456 --output-dir ~/Downloads
 
 # Pin a message to the top of the message board
 bc4 message pin 12345
@@ -392,6 +404,15 @@ bc4 card archive 12345
 
 # List attachments for a card
 bc4 card attachments 12345
+
+# Download all attachments from a card
+bc4 card download-attachments 123456
+
+# Download to specific directory
+bc4 card download-attachments 123456 --output-dir ~/Downloads
+
+# Download specific attachment only
+bc4 card download-attachments 123456 --attachment 1
 ```
 
 #### Card Columns
@@ -483,6 +504,35 @@ bc4 comment attach 12345 --attach ./log.txt
 # Append an attachment to a specific comment by ID
 bc4 comment attach 12345 --comment-id 67890 --attach ./screenshot.png
 ```
+
+
+### Downloading Attachments
+
+bc4 can download images and files attached to cards, todos, and messages using OAuth authentication:
+
+```bash
+# Download all attachments from a card
+bc4 card download-attachments 123456
+
+# Download from a todo to specific directory
+bc4 todo download-attachments 789012 --output-dir ~/Downloads
+
+# Download from a message (only first attachment)
+bc4 message download-attachments 345678 --attachment 1
+
+# Overwrite existing files
+bc4 card download-attachments 123456 --overwrite
+
+# Works with Basecamp URLs too
+bc4 card download-attachments https://3.basecamp.com/123/buckets/456/card_tables/cards/789
+```
+
+**Common options:**
+- `--output-dir, -o` - Directory to save attachments (default: current directory)
+- `--attachment N` - Download only the Nth attachment (1-based index)
+- `--overwrite` - Replace existing files without prompting
+
+**Note:** Comment attachments use blob storage that requires browser authentication and cannot be downloaded via OAuth. To download comment attachments, access them through your web browser while logged into Basecamp.
 
 ### Activity & Events
 
@@ -770,3 +820,7 @@ bc4 todo add --file detailed-task.md
 
 - Inspired by GitHub's `gh` CLI design
 - Built for the Basecamp community
+
+#### Known Limitations
+
+**Comment Attachments:** Comment attachments use blob storage URLs that require browser session cookies and do not support OAuth Bearer token authentication. The `download-attachments` command works for card body attachments, todo attachments, and message attachments, but not for attachments added in comments. To download comment attachments, use a web browser while authenticated to Basecamp.

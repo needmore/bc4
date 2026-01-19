@@ -451,6 +451,7 @@ The `internal/markdown` package provides bidirectional conversion:
 - `comment create`: accepts `--attach <path>` to upload a single file and append a `<bc-attachment sgid="...">` tag after Markdown-to-rich-text conversion.
 - `comment attach <recording-id|url>`: uploads a file and appends it to an existing comment (latest by default, or `--comment-id` to target a specific one).
 - Attachment upload flow: `POST /attachments.json?name=<filename>` with raw body and content type, then embed the returned `attachable_sgid` in the comment HTML.
+- Attachment download flow: `GET /buckets/{bucket}/uploads/{id}.json` to get metadata including `download_url`, then `GET {download_url}` with OAuth Bearer token to download the file. Supported via `bc4 card download-attachments <card-id>` command.
 
 ## API Integration
 
