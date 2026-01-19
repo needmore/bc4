@@ -43,7 +43,6 @@ Thumbs.db
 
 # AI Assistant files (should not be in repo)
 .claude/
-CLAUDE.md
 GEMINI.md
 *copilot*
 .github/copilot*
