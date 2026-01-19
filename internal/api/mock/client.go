@@ -443,6 +443,36 @@ func (m *MockClient) GetMyProfile(ctx context.Context) (*api.Person, error) {
 	return m.Profile, nil
 }
 
+// GetAllPeople mock implementation
+func (m *MockClient) GetAllPeople(ctx context.Context) ([]api.Person, error) {
+	m.Calls = append(m.Calls, "GetAllPeople()")
+	if m.PeopleError != nil {
+		return nil, m.PeopleError
+	}
+	return m.People, nil
+}
+
+// GetPingablePeople mock implementation
+func (m *MockClient) GetPingablePeople(ctx context.Context) ([]api.Person, error) {
+	m.Calls = append(m.Calls, "GetPingablePeople()")
+	if m.PeopleError != nil {
+		return nil, m.PeopleError
+	}
+	return m.People, nil
+}
+
+// UpdateProjectAccess mock implementation
+func (m *MockClient) UpdateProjectAccess(ctx context.Context, projectID string, req api.ProjectAccessUpdateRequest) (*api.ProjectAccessUpdateResponse, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("UpdateProjectAccess(%s, %+v)", projectID, req))
+	if m.PeopleError != nil {
+		return nil, m.PeopleError
+	}
+	return &api.ProjectAccessUpdateResponse{
+		Granted: m.People,
+		Revoked: []api.Person{},
+	}, nil
+}
+
 // ListEvents mock implementation
 func (m *MockClient) ListEvents(ctx context.Context, projectID string, recordingID int64) ([]api.Event, error) {
 	m.Calls = append(m.Calls, fmt.Sprintf("ListEvents(%s, %d)", projectID, recordingID))

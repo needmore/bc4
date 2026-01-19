@@ -82,6 +82,10 @@ type ColumnOperations interface {
 type PeopleOperations interface {
 	GetProjectPeople(ctx context.Context, projectID string) ([]Person, error)
 	GetPerson(ctx context.Context, personID int64) (*Person, error)
+	GetMyProfile(ctx context.Context) (*Person, error)
+	GetAllPeople(ctx context.Context) ([]Person, error)
+	GetPingablePeople(ctx context.Context) ([]Person, error)
+	UpdateProjectAccess(ctx context.Context, projectID string, req ProjectAccessUpdateRequest) (*ProjectAccessUpdateResponse, error)
 }
 
 // AttachmentOperations defines attachment-specific operations
