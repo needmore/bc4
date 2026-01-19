@@ -779,3 +779,7 @@ bc4 todo add --file detailed-task.md
 
 - Inspired by GitHub's `gh` CLI design
 - Built for the Basecamp community
+
+#### Known Limitations
+
+**Comment Attachments:** Comment attachments use blob storage URLs that require browser session cookies and do not support OAuth Bearer token authentication. The `download-attachments` command works for card body attachments, todo attachments, and message attachments, but not for attachments added in comments. To download comment attachments, use a web browser while authenticated to Basecamp.
