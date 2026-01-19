@@ -200,7 +200,6 @@ func (c *ModularClient) Uploads() UploadOperations {
 	return c.Client
 }
 
-
 // Search returns the search operations interface
 func (c *ModularClient) Search() SearchOperations {
 	return c.Client

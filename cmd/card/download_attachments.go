@@ -1,11 +1,11 @@
 package card
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -110,10 +110,13 @@ You can specify the card using either:
 				return nil
 			}
 
+			// Store original count before filtering
+			originalCount := len(atts)
+
 			// Filter to specific attachment if requested
 			if attachmentIndex > 0 {
-				if attachmentIndex > len(atts) {
-					return fmt.Errorf("attachment index %d out of range (card has %d attachments)", attachmentIndex, len(atts))
+				if attachmentIndex > originalCount {
+					return fmt.Errorf("attachment index %d out of range (card has %d attachments)", attachmentIndex, originalCount)
 				}
 				atts = []attachments.Attachment{atts[attachmentIndex-1]}
 			}
@@ -126,7 +129,7 @@ You can specify the card using either:
 			// Download each attachment
 			successful := 0
 			failed := 0
-			ctx := context.Background()
+			ctx := f.Context()
 
 			for i, att := range atts {
 				displayIndex := i + 1
@@ -134,7 +137,12 @@ You can specify the card using either:
 					displayIndex = attachmentIndex
 				}
 
-				fmt.Printf("Downloading attachment %d/%d: %s\n", displayIndex, len(atts), att.GetDisplayName())
+				// Show appropriate progress message based on whether filtering
+				if attachmentIndex > 0 {
+					fmt.Printf("Downloading attachment %d: %s\n", displayIndex, att.GetDisplayName())
+				} else {
+					fmt.Printf("Downloading attachment %d/%d: %s\n", displayIndex, originalCount, att.GetDisplayName())
+				}
 
 				// Extract upload ID from the URL
 				uploadID, err := attachments.ExtractUploadIDFromURL(att.URL)
@@ -204,10 +212,31 @@ You can specify the card using either:
 }
 
 // sanitizeFilename removes or replaces characters that are unsafe for filenames
+// to prevent path traversal attacks and filesystem errors
 func sanitizeFilename(filename string) string {
-	// For now, just return the filename as-is
-	// In production, you might want to replace invalid characters
-	return filename
+	// Remove path separators to prevent directory traversal
+	cleaned := filepath.Base(filename)
+	
+	// Remove null bytes and other control characters
+	cleaned = strings.Map(func(r rune) rune {
+		if r < 32 || r == 127 {
+			return -1
+		}
+		return r
+	}, cleaned)
+	
+	// Replace filesystem-unsafe characters with underscores
+	unsafe := []string{"<", ">", ":", "\"", "|", "?", "*"}
+	for _, char := range unsafe {
+		cleaned = strings.ReplaceAll(cleaned, char, "_")
+	}
+	
+	// Prevent empty filenames
+	if cleaned == "" || cleaned == "." || cleaned == ".." {
+		cleaned = "attachment"
+	}
+	
+	return cleaned
 }
 
 // formatByteSize formats a byte size in a human-readable format

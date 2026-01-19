@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"time"
 
 	"github.com/needmore/bc4/internal/errors"
@@ -29,6 +28,11 @@ type Upload struct {
 
 // GetUpload fetches upload details by ID
 func (c *Client) GetUpload(ctx context.Context, bucketID string, uploadID int64) (*Upload, error) {
+	// Check if context is already cancelled
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	path := fmt.Sprintf("/buckets/%s/uploads/%d.json", bucketID, uploadID)
 
 	resp, err := c.doRequest("GET", path, nil)
@@ -47,11 +51,19 @@ func (c *Client) GetUpload(ctx context.Context, bucketID string, uploadID int64)
 
 // DownloadAttachment downloads a file from a download URL to the specified path
 func (c *Client) DownloadAttachment(ctx context.Context, downloadURL, destPath string) error {
+	// Check if context is already cancelled
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	// Create the request with OAuth authentication
 	req, err := c.createAuthenticatedRequest("GET", downloadURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create download request: %w", err)
 	}
+
+	// Apply context to request for proper timeout/cancellation support
+	req = req.WithContext(ctx)
 
 	// Execute the request
 	resp, err := c.httpClient.Do(req)
@@ -79,23 +91,43 @@ func (c *Client) DownloadAttachment(ctx context.Context, downloadURL, destPath s
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
-	// Create the destination file
-	outFile, err := os.Create(destPath)
+	// Use temporary file to avoid partial downloads
+	tmpPath := destPath + ".tmp"
+	outFile, err := os.Create(tmpPath)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file: %w", err)
 	}
-	defer func() { _ = outFile.Close() }()
+
+	// Ensure cleanup on error
+	success := false
+	defer func() {
+		_ = outFile.Close()
+		if !success {
+			_ = os.Remove(tmpPath)
+		}
+	}()
 
 	// Copy the response body to the file
 	if _, err := io.Copy(outFile, resp.Body); err != nil {
 		return fmt.Errorf("failed to write attachment to file: %w", err)
 	}
 
+	// Close file before rename
+	if err := outFile.Close(); err != nil {
+		return fmt.Errorf("failed to close file: %w", err)
+	}
+
 	// Set file permissions to 0644
-	if err := outFile.Chmod(0644); err != nil {
+	if err := os.Chmod(tmpPath, 0644); err != nil {
 		return fmt.Errorf("failed to set file permissions: %w", err)
 	}
 
+	// Atomic rename from temp to final destination
+	if err := os.Rename(tmpPath, destPath); err != nil {
+		return fmt.Errorf("failed to move file to destination: %w", err)
+	}
+
+	success = true
 	return nil
 }
 
@@ -110,32 +142,4 @@ func (c *Client) createAuthenticatedRequest(method, url string, body io.Reader) 
 	req.Header.Set("User-Agent", version.UserAgent())
 
 	return req, nil
-}
-
-// ExtractUploadID extracts the upload ID from various URL formats
-// Supports:
-// - https://3.basecampapi.com/{account}/buckets/{bucket}/uploads/{id}/download/{filename}
-// - https://3.basecamp.com/{account}/buckets/{bucket}/uploads/{id}
-func ExtractUploadID(url string) (int64, error) {
-	// Pattern for API download URL
-	apiPattern := regexp.MustCompile(`/uploads/(\d+)/download`)
-	if matches := apiPattern.FindStringSubmatch(url); len(matches) > 1 {
-		var id int64
-		if _, err := fmt.Sscanf(matches[1], "%d", &id); err != nil {
-			return 0, fmt.Errorf("failed to parse upload ID: %w", err)
-		}
-		return id, nil
-	}
-
-	// Pattern for app URL
-	appPattern := regexp.MustCompile(`/uploads/(\d+)`)
-	if matches := appPattern.FindStringSubmatch(url); len(matches) > 1 {
-		var id int64
-		if _, err := fmt.Sscanf(matches[1], "%d", &id); err != nil {
-			return 0, fmt.Errorf("failed to parse upload ID: %w", err)
-		}
-		return id, nil
-	}
-
-	return 0, fmt.Errorf("could not extract upload ID from URL: %s", url)
 }
