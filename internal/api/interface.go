@@ -56,6 +56,9 @@ type APIClient interface {
 	GetProjectPeople(ctx context.Context, projectID string) ([]Person, error)
 	GetPerson(ctx context.Context, personID int64) (*Person, error)
 	GetMyProfile(ctx context.Context) (*Person, error)
+	GetAllPeople(ctx context.Context) ([]Person, error)
+	GetPingablePeople(ctx context.Context) ([]Person, error)
+	UpdateProjectAccess(ctx context.Context, projectID string, req ProjectAccessUpdateRequest) (*ProjectAccessUpdateResponse, error)
 
 	// Activity methods
 	ListEvents(ctx context.Context, projectID string, recordingID int64) ([]Event, error)

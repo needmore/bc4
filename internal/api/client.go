@@ -648,3 +648,69 @@ func (c *Client) GetMyProfile(ctx context.Context) (*Person, error) {
 
 	return &person, nil
 }
+
+// GetAllPeople fetches all people visible to the current user in the account
+func (c *Client) GetAllPeople(ctx context.Context) ([]Person, error) {
+	var people []Person
+	path := "/people.json"
+
+	// Use paginated request to get all people
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &people); err != nil {
+		return nil, fmt.Errorf("failed to fetch people: %w", err)
+	}
+
+	return people, nil
+}
+
+// GetPingablePeople fetches all people who can be pinged in the account
+func (c *Client) GetPingablePeople(ctx context.Context) ([]Person, error) {
+	var people []Person
+	path := "/circles/people.json"
+
+	// Note: This endpoint is not paginated according to Basecamp API docs
+	resp, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch pingable people: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if err := json.NewDecoder(resp.Body).Decode(&people); err != nil {
+		return nil, fmt.Errorf("failed to decode pingable people: %w", err)
+	}
+
+	return people, nil
+}
+
+// ProjectAccessUpdateRequest represents the payload for updating project access
+type ProjectAccessUpdateRequest struct {
+	Grant  []int64                  `json:"grant,omitempty"`
+	Revoke []int64                  `json:"revoke,omitempty"`
+	Create []ProjectAccessNewPerson `json:"create,omitempty"`
+}
+
+// ProjectAccessNewPerson represents a new person to invite to a project
+type ProjectAccessNewPerson struct {
+	Name         string `json:"name"`
+	EmailAddress string `json:"email_address"`
+	Title        string `json:"title,omitempty"`
+	CompanyName  string `json:"company_name,omitempty"`
+}
+
+// ProjectAccessUpdateResponse represents the response from updating project access
+type ProjectAccessUpdateResponse struct {
+	Granted []Person `json:"granted"`
+	Revoked []Person `json:"revoked"`
+}
+
+// UpdateProjectAccess updates who has access to a project (grant, revoke, or create new users)
+func (c *Client) UpdateProjectAccess(ctx context.Context, projectID string, req ProjectAccessUpdateRequest) (*ProjectAccessUpdateResponse, error) {
+	var response ProjectAccessUpdateResponse
+
+	path := fmt.Sprintf("/projects/%s/people/users.json", projectID)
+	if err := c.Put(path, req, &response); err != nil {
+		return nil, fmt.Errorf("failed to update project access: %w", err)
+	}
+
+	return &response, nil
+}
