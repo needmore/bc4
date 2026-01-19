@@ -4,11 +4,11 @@
 
 ## Executive Summary
 
-bc4 is a mature, production-ready CLI tool for Basecamp 4 with **62.5% complete API coverage**. It now excels at core productivity workflows (todos, messages, cards, documents) AND includes comprehensive calendar/schedule support, project administration, people management, and global search functionality.
+bc4 is a mature, production-ready CLI tool for Basecamp 4 with **65% complete API coverage**. It now excels at core productivity workflows (todos, messages, cards, documents) AND includes comprehensive calendar/schedule support, project administration, people management, global search functionality, and enhanced activity/events monitoring.
 
 ### Quick Stats
-- ✅ **25/40 resources fully implemented** (100% of operations)
-- 🟨 **1/40 resources partially implemented** (50-70% of operations)
+- ✅ **26/40 resources fully implemented** (100% of operations)
+- 🟨 **0/40 resources partially implemented** (0%)
 - ❌ **14/40 resources not implemented** (0% coverage)
 - 📝 **~20 TODO comments** in existing code
 - 🧪 **5 disabled test files** needing fixes
@@ -39,7 +39,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **62.5% complete 
 | **Schedule entries** | ✅ Complete | 100% | list, view, create, edit, delete calendar events |
 | **Search** | ✅ Complete | 100% | global search across all resources |
 | **Message types** | ✅ Complete | 100% | list, create, edit, delete categories |
-| **Activity/Events** | 🟨 Partial | 70% | list events with filtering |
+| **Activity/Events** | ✅ Complete | 100% | list, watch, filter by type/person/time |
 | **Questionnaires** (Check-ins) | ❌ Missing | 0% | Not implemented |
 | **Questions** | ❌ Missing | 0% | Not implemented |
 | **Question answers** | ❌ Missing | 0% | Not implemented |
@@ -113,14 +113,14 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **62.5% complete 
 - [x] `bc4 message type list` - List all categories
 - [x] `bc4 message list --category <name>` - Filter by category (already existed)
 
-#### 2. Enhanced Activity/Events
+#### 2. Enhanced Activity/Events ✅ COMPLETED
 **Better visibility into project activity**
 
-- [ ] `bc4 activity list --since <date>` - Time-based filtering
-- [ ] `bc4 activity list --person <id>` - Filter by person
-- [ ] `bc4 activity list --type <event-type>` - Filter by event type
-- [ ] `bc4 activity watch` - Real-time activity stream
-- [ ] Better formatting and event type display
+- [x] `bc4 activity list --since <date>` - Time-based filtering
+- [x] `bc4 activity list --person <id>` - Filter by person
+- [x] `bc4 activity list --type <event-type>` - Filter by event type
+- [x] `bc4 activity watch` - Real-time activity stream
+- [x] Better formatting and event type display (icons, colors, context)
 
 #### 3. Recordings Management
 **Core Basecamp organizational concept**
@@ -375,8 +375,8 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **62.5% complete 
 ### Summary Metrics
 
 **Current State (v0.13.0+):**
-- ✅ 25/40 resources fully implemented (62.5%)
-- 🟨 1/40 resources partially implemented (2.5%)
+- ✅ 26/40 resources fully implemented (65%)
+- 🟨 0/40 resources partially implemented (0%)
 - ❌ 14/40 resources not implemented (35%)
 - 📝 ~20 TODO comments in code
 - 🧪 5 disabled test files
@@ -386,6 +386,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **62.5% complete 
 - ✅ Complete project administration
 - ✅ Comprehensive people management
 - ✅ Global search functionality
+- ✅ Enhanced activity/events monitoring with real-time watch
 
 **Path to 100% Coverage:**
 - **20 remaining feature areas** to implement

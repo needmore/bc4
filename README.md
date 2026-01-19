@@ -18,6 +18,7 @@ A powerful command-line interface for [Basecamp](https://basecamp.com/), strongl
 - 🔍 **Smart Search** - Find projects by pattern matching
 - 🔗 **URL Parameter Support** - Use Basecamp URLs directly as command arguments
 - 📝 **Markdown Support** - Write in Markdown, automatically converted to Basecamp's rich text format
+- 📊 **Activity Monitoring** - Track project activity with real-time watch mode and advanced filtering
 - 🔄 **Shell Completion** - Tab-completion for bash, zsh, fish, and PowerShell
 - 🖥️ **Cross-Platform** - Available for macOS, Linux, and Windows
 
@@ -481,6 +482,52 @@ bc4 comment attach 12345 --attach ./log.txt
 
 # Append an attachment to a specific comment by ID
 bc4 comment attach 12345 --comment-id 67890 --attach ./screenshot.png
+```
+
+### Activity & Events
+
+```bash
+# List recent activity in the current project
+bc4 activity list
+
+# List activity from the last 24 hours
+bc4 activity list --since "24h"
+
+# List activity from the last 7 days
+bc4 activity list --since "7d"
+
+# List activity since a specific date
+bc4 activity list --since "2025-01-01"
+bc4 activity list --since "yesterday"
+bc4 activity list --since "this week"
+
+# Filter activity by type
+bc4 activity list --type todo
+bc4 activity list --type message
+bc4 activity list --type "todo,message,document"
+
+# Filter activity by person (by name, email, or ID)
+bc4 activity list --person "John Doe"
+bc4 activity list --person john@example.com
+bc4 activity list --person 12345
+
+# Combine filters
+bc4 activity list --since "24h" --type todo --person "John Doe"
+
+# Limit the number of results
+bc4 activity list --limit 50
+
+# Output as JSON
+bc4 activity list --format json
+
+# Watch for real-time activity (polls every 30 seconds)
+bc4 activity watch
+
+# Watch with custom polling interval (in seconds)
+bc4 activity watch --interval 10
+
+# Watch with filters
+bc4 activity watch --type todo --person "John Doe"
 ```
 
 ## Examples

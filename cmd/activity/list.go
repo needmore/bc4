@@ -1,6 +1,7 @@
 package activity
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
+	coretableprinter "github.com/needmore/bc4/internal/tableprinter"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 	"github.com/spf13/cobra"
@@ -22,6 +24,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 		projectID     string
 		sinceStr      string
 		recordingType string
+		personStr     string
 		formatStr     string
 		limit         int
 	)
@@ -99,6 +102,15 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 				opts.RecordingTypes = parseTypes(recordingType)
 			}
 
+			// Parse person filter
+			if personStr != "" {
+				personID, err := parsePersonIdentifier(client, cmd.Context(), personStr)
+				if err != nil {
+					return fmt.Errorf("invalid --person value: %w", err)
+				}
+				opts.PersonID = personID
+			}
+
 			// Set limit
 			if limit > 0 {
 				opts.Limit = limit
@@ -134,6 +146,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().StringVar(&sinceStr, "since", "", "Show activity since time (e.g., '24h', '7d', '2024-01-01')")
 	cmd.Flags().StringVarP(&recordingType, "type", "t", "", "Filter by type: todo, message, document, comment, upload")
+	cmd.Flags().StringVar(&personStr, "person", "", "Filter by person (ID, name, or email)")
 	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table or json")
 	cmd.Flags().IntVarP(&limit, "limit", "l", 25, "Limit number of items shown")
 
@@ -144,41 +157,42 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 func parseSince(s string) (time.Time, error) {
 	now := time.Now()
 
-	// Try parsing duration shorthand (e.g., "24h", "7d", "2w")
-	s = strings.TrimSpace(strings.ToLower(s))
+	// Trim spaces but preserve case for RFC3339 parsing
+	s = strings.TrimSpace(s)
+	sLower := strings.ToLower(s)
 
 	// Handle human-friendly durations
-	if strings.HasSuffix(s, "h") {
-		hours, err := parseDurationValue(strings.TrimSuffix(s, "h"))
+	if strings.HasSuffix(sLower, "h") {
+		hours, err := parseDurationValue(strings.TrimSuffix(sLower, "h"))
 		if err == nil {
 			return now.Add(-time.Duration(hours) * time.Hour), nil
 		}
 	}
-	if strings.HasSuffix(s, "d") {
-		days, err := parseDurationValue(strings.TrimSuffix(s, "d"))
+	if strings.HasSuffix(sLower, "d") {
+		days, err := parseDurationValue(strings.TrimSuffix(sLower, "d"))
 		if err == nil {
 			return now.AddDate(0, 0, -days), nil
 		}
 	}
-	if strings.HasSuffix(s, "w") {
-		weeks, err := parseDurationValue(strings.TrimSuffix(s, "w"))
+	if strings.HasSuffix(sLower, "w") {
+		weeks, err := parseDurationValue(strings.TrimSuffix(sLower, "w"))
 		if err == nil {
 			return now.AddDate(0, 0, -weeks*7), nil
 		}
 	}
 
-	// Try parsing as RFC3339
+	// Try parsing as RFC3339 (preserve original case)
 	if t, err := time.Parse(time.RFC3339, s); err == nil {
 		return t, nil
 	}
 
-	// Try parsing as date only
+	// Try parsing as date only (preserve original case)
 	if t, err := time.Parse("2006-01-02", s); err == nil {
 		return t, nil
 	}
 
-	// Try parsing relative phrases
-	switch s {
+	// Try parsing relative phrases (use lowercase)
+	switch sLower {
 	case "today":
 		y, m, d := now.Date()
 		return time.Date(y, m, d, 0, 0, 0, 0, now.Location()), nil
@@ -302,9 +316,9 @@ func renderActivityTable(recordings []api.Recording, projectName string) error {
 
 	// Add headers dynamically based on TTY mode
 	if table.IsTTY() {
-		table.AddHeader("TYPE", "TITLE", "BY", "UPDATED")
+		table.AddHeader("TYPE", "TITLE", "CONTEXT", "BY", "UPDATED")
 	} else {
-		table.AddHeader("ID", "TYPE", "TITLE", "STATUS", "BY", "CREATED", "UPDATED")
+		table.AddHeader("ID", "TYPE", "TITLE", "STATUS", "PARENT_TYPE", "PARENT_TITLE", "BY", "CREATED", "UPDATED")
 	}
 
 	now := time.Now()
@@ -315,15 +329,39 @@ func renderActivityTable(recordings []api.Recording, projectName string) error {
 			table.AddField(fmt.Sprintf("%d", r.ID))
 		}
 
-		// Type with color
-		typeLabel := formatRecordingType(r.Type)
-		table.AddField(typeLabel, cs.Muted)
+		// Type with color and icon
+		typeLabel, typeColor := formatRecordingTypeWithStyle(r.Type, cs)
+		table.AddField(typeLabel, typeColor)
 
-		// Title
-		table.AddField(r.Title)
+		// Title with truncation for long titles
+		title := r.Title
+		if table.IsTTY() && len(title) > 60 {
+			title = title[:57] + "..."
+		}
+		table.AddField(title)
 
 		if !table.IsTTY() {
 			table.AddField(r.Status, cs.Muted)
+
+			// Parent info for non-TTY
+			if r.Parent != nil {
+				table.AddField(r.Parent.Type, cs.Muted)
+				table.AddField(r.Parent.Title, cs.Muted)
+			} else {
+				table.AddField("", cs.Muted)
+				table.AddField("", cs.Muted)
+			}
+		} else {
+			// Context column for TTY (shows parent if exists)
+			if r.Parent != nil {
+				contextLabel := fmt.Sprintf("in %s", r.Parent.Title)
+				if len(contextLabel) > 40 {
+					contextLabel = contextLabel[:37] + "..."
+				}
+				table.AddField(contextLabel, cs.Muted)
+			} else {
+				table.AddField("", cs.Muted)
+			}
 		}
 
 		// Creator
@@ -355,10 +393,80 @@ func formatRecordingType(t string) string {
 		"Question::Answer": "answer",
 		"Schedule::Entry":  "event",
 		"Vault":            "vault",
+		"Card":             "card",
+		"Card::Table":      "card_table",
+		"Campfire":         "campfire",
 	}
 
 	if label, ok := typeLabels[t]; ok {
 		return label
 	}
 	return strings.ToLower(t)
+}
+
+// formatRecordingTypeWithStyle returns the formatted type label and color function
+func formatRecordingTypeWithStyle(t string, cs *coretableprinter.ColorScheme) (string, func(string) string) {
+	type typeInfo struct {
+		label string
+		icon  string
+		color func(string) string
+	}
+
+	typeMap := map[string]typeInfo{
+		"Todo":             {label: "todo", icon: "✓", color: cs.Green},
+		"Message":          {label: "message", icon: "💬", color: cs.Cyan},
+		"Document":         {label: "document", icon: "📄", color: cs.Gray},
+		"Comment":          {label: "comment", icon: "💭", color: cs.Muted},
+		"Upload":           {label: "upload", icon: "📎", color: cs.Gray},
+		"Todolist":         {label: "list", icon: "📋", color: cs.Green},
+		"Question":         {label: "question", icon: "❓", color: cs.Cyan},
+		"Question::Answer": {label: "answer", icon: "✏️", color: cs.Gray},
+		"Schedule::Entry":  {label: "event", icon: "📅", color: cs.Cyan},
+		"Vault":            {label: "vault", icon: "📁", color: cs.Gray},
+		"Card":             {label: "card", icon: "🎴", color: cs.Cyan},
+		"Card::Table":      {label: "board", icon: "📊", color: cs.Gray},
+		"Campfire":         {label: "chat", icon: "🔥", color: cs.Gray},
+	}
+
+	if info, ok := typeMap[t]; ok {
+		return fmt.Sprintf("%s %s", info.icon, info.label), info.color
+	}
+
+	// Default formatting
+	return strings.ToLower(t), cs.Muted
+}
+
+// parsePersonIdentifier parses a person identifier (ID, name, or email) into a person ID
+func parsePersonIdentifier(client *api.ModularClient, ctx context.Context, identifier string) (int64, error) {
+	// Try parsing as ID first
+	if id, err := strconv.ParseInt(identifier, 10, 64); err == nil {
+		return id, nil
+	}
+
+	// Otherwise, fetch all people and search by name or email
+	people, err := client.GetAllPeople(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to list people: %w", err)
+	}
+
+	// Search for matching person by name or email
+	identifier = strings.ToLower(strings.TrimSpace(identifier))
+	var matches []api.Person
+	for _, person := range people {
+		nameMatch := strings.Contains(strings.ToLower(person.Name), identifier)
+		emailMatch := strings.Contains(strings.ToLower(person.EmailAddress), identifier)
+		if nameMatch || emailMatch {
+			matches = append(matches, person)
+		}
+	}
+
+	if len(matches) == 0 {
+		return 0, fmt.Errorf("no person found matching '%s'", identifier)
+	}
+
+	if len(matches) > 1 {
+		return 0, fmt.Errorf("multiple people found matching '%s' - please be more specific or use person ID", identifier)
+	}
+
+	return matches[0].ID, nil
 }

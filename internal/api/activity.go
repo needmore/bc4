@@ -53,6 +53,7 @@ type Parent struct {
 type ActivityListOptions struct {
 	Since          *time.Time // Filter events since this time
 	RecordingTypes []string   // Filter by recording types (todo, message, document, etc.)
+	PersonID       int64      // Filter by person ID (creator)
 	Limit          int        // Maximum number of events to return
 }
 
@@ -140,6 +141,11 @@ func filterRecordings(recordings []Recording, opts *ActivityListOptions) []Recor
 	for _, r := range recordings {
 		// Filter by since time
 		if opts.Since != nil && r.UpdatedAt.Before(*opts.Since) {
+			continue
+		}
+
+		// Filter by person ID
+		if opts.PersonID > 0 && r.Creator.ID != opts.PersonID {
 			continue
 		}
 
