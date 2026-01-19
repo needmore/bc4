@@ -392,6 +392,15 @@ bc4 card archive 12345
 
 # List attachments for a card
 bc4 card attachments 12345
+
+# Download all attachments from a card
+bc4 card download-attachments 123456
+
+# Download to specific directory
+bc4 card download-attachments 123456 --output-dir ~/Downloads
+
+# Download specific attachment only
+bc4 card download-attachments 123456 --attachment 1
 ```
 
 #### Card Columns

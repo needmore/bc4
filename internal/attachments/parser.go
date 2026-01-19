@@ -87,3 +87,28 @@ func BuildTag(sgid string) string {
 	}
 	return fmt.Sprintf(`<bc-attachment sgid="%s"></bc-attachment>`, sgid)
 }
+
+// ExtractBucketID extracts the bucket ID from a Basecamp URL
+func ExtractBucketID(url string) (string, error) {
+	re := regexp.MustCompile(`/buckets/(\d+)`)
+	matches := re.FindStringSubmatch(url)
+	if len(matches) > 1 {
+		return matches[1], nil
+	}
+	return "", fmt.Errorf("could not extract bucket ID from URL: %s", url)
+}
+
+// ExtractUploadIDFromURL extracts the upload ID from a download or app URL
+func ExtractUploadIDFromURL(url string) (int64, error) {
+	// Pattern for download URL with /uploads/{id}/
+	re := regexp.MustCompile(`/uploads/(\d+)(/|$)`)
+	matches := re.FindStringSubmatch(url)
+	if len(matches) > 1 {
+		var id int64
+		if _, err := fmt.Sscanf(matches[1], "%d", &id); err != nil {
+			return 0, fmt.Errorf("failed to parse upload ID: %w", err)
+		}
+		return id, nil
+	}
+	return 0, fmt.Errorf("could not extract upload ID from URL: %s", url)
+}

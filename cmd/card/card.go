@@ -55,6 +55,7 @@ like software bugs, design requests, or other workflow-oriented tasks.`,
 
 	// Attachments subcommand
 	cmd.AddCommand(newAttachmentsCmd(f))
+	cmd.AddCommand(newDownloadAttachmentsCmd(f))
 
 	return cmd
 }
