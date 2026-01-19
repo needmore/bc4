@@ -21,7 +21,10 @@ your team and stay up to date on project progress.`,
   bc4 activity list                   # List recent activity (explicit)
   bc4 activity list --since "24h"     # Activity in last 24 hours
   bc4 activity list --type todo       # Only todo activity
-  bc4 activity list --format json     # Output as JSON`,
+  bc4 activity list --person "john"   # Activity by person
+  bc4 activity list --format json     # Output as JSON
+  bc4 activity watch                  # Watch for real-time activity
+  bc4 activity watch --interval 10    # Poll every 10 seconds`,
 	}
 
 	// Enable suggestions for subcommand typos
@@ -29,6 +32,7 @@ your team and stay up to date on project progress.`,
 
 	// Add subcommands
 	cmd.AddCommand(newListCmd(f))
+	cmd.AddCommand(newWatchCmd(f))
 
 	return cmd
 }
