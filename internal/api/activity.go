@@ -42,10 +42,11 @@ type Bucket struct {
 
 // Parent represents a parent recording
 type Parent struct {
-	ID    int64  `json:"id"`
-	Title string `json:"title"`
-	Type  string `json:"type"`
-	URL   string `json:"url"`
+	ID     int64  `json:"id"`
+	Title  string `json:"title"`
+	Type   string `json:"type"`
+	URL    string `json:"url"`
+	AppURL string `json:"app_url"`
 }
 
 // ActivityListOptions contains options for listing activity
