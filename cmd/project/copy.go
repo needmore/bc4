@@ -20,14 +20,17 @@ func newCopyCmd(f *factory.Factory) *cobra.Command {
 	var jsonOutput bool
 
 	cmd := &cobra.Command{
-		Use:   "copy <project-id|url>",
-		Short: "Duplicate a project from a template",
-		Long: `Create a new project by duplicating an existing project template.
+		Use:   "copy <template-id|url>",
+		Short: "Create a new project from a template",
+		Long: `Create a new project by duplicating a Basecamp template.
 
-The source project should be a template project. The new project will include
-the same structure and tools as the template.
+Note: The source project MUST be a template project. Only projects that have been
+marked as templates in Basecamp can be used as a source. Regular projects cannot
+be copied using this command.
 
-You can specify the source project using either:
+The new project will include the same structure and tools as the template.
+
+You can specify the template project using either:
 - A numeric ID (e.g., "12345")
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/projects/89012345")
 

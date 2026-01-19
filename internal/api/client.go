@@ -281,7 +281,9 @@ func (c *Client) UnarchiveProject(ctx context.Context, projectID string) error {
 	return nil
 }
 
-// CopyProject duplicates a project from a template
+// CopyProject creates a new project from a template.
+// Note: sourceProjectID must be the ID of a template project.
+// Regular projects cannot be used as a source - they must be marked as templates in Basecamp.
 func (c *Client) CopyProject(ctx context.Context, sourceProjectID string, name string, description string) (*Project, error) {
 	var project Project
 

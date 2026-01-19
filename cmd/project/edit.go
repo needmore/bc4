@@ -31,9 +31,12 @@ You can specify the project using either:
 
 If no flags are provided, interactive mode will be used with current values pre-filled.
 
+To clear the description, use --description with an empty string: --description ""
+
 Examples:
   bc4 project edit 12345 --name "New Name"
   bc4 project edit 12345 --description "New description"
+  bc4 project edit 12345 --description ""       # Clear the description
   bc4 project edit 12345                        # Interactive mode`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
