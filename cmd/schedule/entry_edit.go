@@ -12,12 +12,12 @@ import (
 )
 
 type entryEditOptions struct {
-	title        string
-	description  string
-	startsAt     string
-	endsAt       string
-	allDay       *bool
-	participants []string
+	title             string
+	description       string
+	startsAt          string
+	endsAt            string
+	allDay            *bool
+	participants      []string
 	clearParticipants bool
 }
 

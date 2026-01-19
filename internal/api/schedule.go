@@ -9,49 +9,49 @@ import (
 
 // Schedule represents a Basecamp schedule (calendar)
 type Schedule struct {
-	ID            int64   `json:"id"`
-	Status        string  `json:"status"`
-	VisibleToClients bool `json:"visible_to_clients"`
-	CreatedAt     string  `json:"created_at"`
-	UpdatedAt     string  `json:"updated_at"`
-	Title         string  `json:"title"`
-	InheritsStatus bool   `json:"inherits_status"`
-	Type          string  `json:"type"`
-	URL           string  `json:"url"`
-	AppURL        string  `json:"app_url"`
-	BookmarkURL   string  `json:"bookmark_url"`
-	Position      int     `json:"position"`
-	Bucket        *Bucket `json:"bucket,omitempty"`
-	Creator       *Person `json:"creator,omitempty"`
-	EntriesCount  int     `json:"entries_count"`
-	EntriesURL    string  `json:"entries_url"`
+	ID               int64   `json:"id"`
+	Status           string  `json:"status"`
+	VisibleToClients bool    `json:"visible_to_clients"`
+	CreatedAt        string  `json:"created_at"`
+	UpdatedAt        string  `json:"updated_at"`
+	Title            string  `json:"title"`
+	InheritsStatus   bool    `json:"inherits_status"`
+	Type             string  `json:"type"`
+	URL              string  `json:"url"`
+	AppURL           string  `json:"app_url"`
+	BookmarkURL      string  `json:"bookmark_url"`
+	Position         int     `json:"position"`
+	Bucket           *Bucket `json:"bucket,omitempty"`
+	Creator          *Person `json:"creator,omitempty"`
+	EntriesCount     int     `json:"entries_count"`
+	EntriesURL       string  `json:"entries_url"`
 }
 
 // ScheduleEntry represents a calendar event in Basecamp
 type ScheduleEntry struct {
-	ID               int64    `json:"id"`
-	Status           string   `json:"status"`
-	VisibleToClients bool     `json:"visible_to_clients"`
-	CreatedAt        string   `json:"created_at"`
-	UpdatedAt        string   `json:"updated_at"`
-	Title            string   `json:"title"`
-	InheritsStatus   bool     `json:"inherits_status"`
-	Type             string   `json:"type"`
-	URL              string   `json:"url"`
-	AppURL           string   `json:"app_url"`
-	BookmarkURL      string   `json:"bookmark_url"`
-	SubscriptionURL  string   `json:"subscription_url"`
-	CommentsCount    int      `json:"comments_count"`
-	CommentsURL      string   `json:"comments_url"`
-	Parent           *Parent  `json:"parent,omitempty"`
-	Bucket           *Bucket  `json:"bucket,omitempty"`
-	Creator          *Person  `json:"creator,omitempty"`
-	Description      string   `json:"description"`
-	Summary          string   `json:"summary"`
-	AllDay           bool     `json:"all_day"`
-	StartsAt         string   `json:"starts_at"`
-	EndsAt           string   `json:"ends_at"`
-	Participants     []Person `json:"participants"`
+	ID               int64       `json:"id"`
+	Status           string      `json:"status"`
+	VisibleToClients bool        `json:"visible_to_clients"`
+	CreatedAt        string      `json:"created_at"`
+	UpdatedAt        string      `json:"updated_at"`
+	Title            string      `json:"title"`
+	InheritsStatus   bool        `json:"inherits_status"`
+	Type             string      `json:"type"`
+	URL              string      `json:"url"`
+	AppURL           string      `json:"app_url"`
+	BookmarkURL      string      `json:"bookmark_url"`
+	SubscriptionURL  string      `json:"subscription_url"`
+	CommentsCount    int         `json:"comments_count"`
+	CommentsURL      string      `json:"comments_url"`
+	Parent           *Parent     `json:"parent,omitempty"`
+	Bucket           *Bucket     `json:"bucket,omitempty"`
+	Creator          *Person     `json:"creator,omitempty"`
+	Description      string      `json:"description"`
+	Summary          string      `json:"summary"`
+	AllDay           bool        `json:"all_day"`
+	StartsAt         string      `json:"starts_at"`
+	EndsAt           string      `json:"ends_at"`
+	Participants     []Person    `json:"participants"`
 	Recurrence       *Recurrence `json:"recurrence_schedule,omitempty"`
 }
 
@@ -59,32 +59,32 @@ type ScheduleEntry struct {
 // TODO: Add command-level support for creating recurring events
 // This struct is currently only used for reading existing recurring events from the API
 type Recurrence struct {
-	Frequency  string   `json:"frequency"`            // "every_day", "every_week", "every_month", "every_year"
-	Days       []int    `json:"days,omitempty"`       // For weekly: [1,2,3,4,5] = Mon-Fri
-	Week       string   `json:"week,omitempty"`       // For monthly: "first", "second", "third", "fourth", "last"
-	StartDate  string   `json:"start_date,omitempty"`
-	EndDate    string   `json:"end_date,omitempty"`
+	Frequency string `json:"frequency"`      // "every_day", "every_week", "every_month", "every_year"
+	Days      []int  `json:"days,omitempty"` // For weekly: [1,2,3,4,5] = Mon-Fri
+	Week      string `json:"week,omitempty"` // For monthly: "first", "second", "third", "fourth", "last"
+	StartDate string `json:"start_date,omitempty"`
+	EndDate   string `json:"end_date,omitempty"`
 }
 
 // ScheduleEntryCreateRequest represents the payload for creating a schedule entry
 type ScheduleEntryCreateRequest struct {
-	Summary     string   `json:"summary"`
-	Description string   `json:"description,omitempty"`
-	StartsAt    string   `json:"starts_at"`
-	EndsAt      string   `json:"ends_at"`
-	AllDay      bool     `json:"all_day,omitempty"`
+	Summary        string  `json:"summary"`
+	Description    string  `json:"description,omitempty"`
+	StartsAt       string  `json:"starts_at"`
+	EndsAt         string  `json:"ends_at"`
+	AllDay         bool    `json:"all_day,omitempty"`
 	ParticipantIDs []int64 `json:"participant_ids,omitempty"`
-	Notify      bool     `json:"notify,omitempty"`
+	Notify         bool    `json:"notify,omitempty"`
 }
 
 // ScheduleEntryUpdateRequest represents the payload for updating a schedule entry
 type ScheduleEntryUpdateRequest struct {
-	Summary        *string  `json:"summary,omitempty"`
-	Description    *string  `json:"description,omitempty"`
-	StartsAt       *string  `json:"starts_at,omitempty"`
-	EndsAt         *string  `json:"ends_at,omitempty"`
-	AllDay         *bool    `json:"all_day,omitempty"`
-	ParticipantIDs []int64  `json:"participant_ids,omitempty"`
+	Summary        *string `json:"summary,omitempty"`
+	Description    *string `json:"description,omitempty"`
+	StartsAt       *string `json:"starts_at,omitempty"`
+	EndsAt         *string `json:"ends_at,omitempty"`
+	AllDay         *bool   `json:"all_day,omitempty"`
+	ParticipantIDs []int64 `json:"participant_ids,omitempty"`
 }
 
 // GetProjectSchedule fetches the schedule (calendar) for a project from its dock

@@ -96,11 +96,11 @@ func TestEntryCreateCmd_Properties(t *testing.T) {
 
 func TestParseDateTime(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		allDay        bool
-		expectError   bool
-		validateFunc  func(t *testing.T, result string)
+		name         string
+		input        string
+		allDay       bool
+		expectError  bool
+		validateFunc func(t *testing.T, result string)
 	}{
 		{
 			name:        "ISO 8601 with time",
