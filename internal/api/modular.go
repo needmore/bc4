@@ -8,6 +8,12 @@ import (
 type ProjectOperations interface {
 	GetProjects(ctx context.Context) ([]Project, error)
 	GetProject(ctx context.Context, projectID string) (*Project, error)
+	CreateProject(ctx context.Context, req ProjectCreateRequest) (*Project, error)
+	UpdateProject(ctx context.Context, projectID string, req ProjectUpdateRequest) (*Project, error)
+	DeleteProject(ctx context.Context, projectID string) error
+	ArchiveProject(ctx context.Context, projectID string) error
+	UnarchiveProject(ctx context.Context, projectID string) error
+	CopyProject(ctx context.Context, sourceProjectID string, name string, description string) (*Project, error)
 }
 
 // TodoOperations defines todo-specific operations
@@ -76,6 +82,10 @@ type ColumnOperations interface {
 type PeopleOperations interface {
 	GetProjectPeople(ctx context.Context, projectID string) ([]Person, error)
 	GetPerson(ctx context.Context, personID int64) (*Person, error)
+	GetMyProfile(ctx context.Context) (*Person, error)
+	GetAllPeople(ctx context.Context) ([]Person, error)
+	GetPingablePeople(ctx context.Context) ([]Person, error)
+	UpdateProjectAccess(ctx context.Context, projectID string, req ProjectAccessUpdateRequest) (*ProjectAccessUpdateResponse, error)
 }
 
 // AttachmentOperations defines attachment-specific operations
@@ -96,6 +106,20 @@ type ActivityOperations interface {
 	ListEvents(ctx context.Context, projectID string, recordingID int64) ([]Event, error)
 	ListRecordings(ctx context.Context, projectID string, opts *ActivityListOptions) ([]Recording, error)
 	GetRecording(ctx context.Context, projectID string, recordingID int64) (*Recording, error)
+}
+
+// ScheduleOperations defines schedule-specific operations
+type ScheduleOperations interface {
+	GetProjectSchedule(ctx context.Context, projectID string) (*Schedule, error)
+	GetSchedule(ctx context.Context, projectID string, scheduleID int64) (*Schedule, error)
+	GetScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]ScheduleEntry, error)
+	GetScheduleEntriesInRange(ctx context.Context, projectID string, scheduleID int64, startDate, endDate string) ([]ScheduleEntry, error)
+	GetUpcomingScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]ScheduleEntry, error)
+	GetPastScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]ScheduleEntry, error)
+	GetScheduleEntry(ctx context.Context, projectID string, entryID int64) (*ScheduleEntry, error)
+	CreateScheduleEntry(ctx context.Context, projectID string, scheduleID int64, req ScheduleEntryCreateRequest) (*ScheduleEntry, error)
+	UpdateScheduleEntry(ctx context.Context, projectID string, entryID int64, req ScheduleEntryUpdateRequest) (*ScheduleEntry, error)
+	DeleteScheduleEntry(ctx context.Context, projectID string, entryID int64) error
 }
 
 // ModularClient provides access to all API operations through focused interfaces
@@ -157,6 +181,11 @@ func (c *ModularClient) Comments() CommentOperations {
 
 // Activity returns the activity operations interface
 func (c *ModularClient) Activity() ActivityOperations {
+	return c.Client
+}
+
+// Schedules returns the schedule operations interface
+func (c *ModularClient) Schedules() ScheduleOperations {
 	return c.Client
 }
 

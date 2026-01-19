@@ -16,9 +16,14 @@ import (
 	"github.com/needmore/bc4/cmd/comment"
 	"github.com/needmore/bc4/cmd/document"
 	"github.com/needmore/bc4/cmd/message"
+	"github.com/needmore/bc4/cmd/people"
 	"github.com/needmore/bc4/cmd/profile"
 	"github.com/needmore/bc4/cmd/project"
+<<<<<<< HEAD
 	"github.com/needmore/bc4/cmd/search"
+=======
+	"github.com/needmore/bc4/cmd/schedule"
+>>>>>>> origin/main
 	"github.com/needmore/bc4/cmd/todo"
 	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/config"
@@ -162,7 +167,9 @@ func init() {
 	rootCmd.AddCommand(campfire.NewCampfireCmd(f))
 	rootCmd.AddCommand(card.NewCardCmd(f))
 	rootCmd.AddCommand(comment.NewCommentCmd(f))
+	rootCmd.AddCommand(people.NewPeopleCmd(f))
 	rootCmd.AddCommand(profile.NewProfileCmd(f))
+	rootCmd.AddCommand(schedule.NewScheduleCmd(f))
 	rootCmd.AddCommand(search.NewSearchCmd(f))
 
 	// Add version command (doesn't need factory)

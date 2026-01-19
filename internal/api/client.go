@@ -215,6 +215,90 @@ func (c *Client) GetProject(ctx context.Context, projectID string) (*Project, er
 	return &project, nil
 }
 
+// ProjectCreateRequest represents the payload for creating a new project
+type ProjectCreateRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+// ProjectUpdateRequest represents the payload for updating a project
+type ProjectUpdateRequest struct {
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// CreateProject creates a new project
+func (c *Client) CreateProject(ctx context.Context, req ProjectCreateRequest) (*Project, error) {
+	var project Project
+
+	path := "/projects.json"
+	if err := c.Post(path, req, &project); err != nil {
+		return nil, fmt.Errorf("failed to create project: %w", err)
+	}
+
+	return &project, nil
+}
+
+// UpdateProject updates an existing project
+func (c *Client) UpdateProject(ctx context.Context, projectID string, req ProjectUpdateRequest) (*Project, error) {
+	var project Project
+
+	path := fmt.Sprintf("/projects/%s.json", projectID)
+	if err := c.Put(path, req, &project); err != nil {
+		return nil, fmt.Errorf("failed to update project: %w", err)
+	}
+
+	return &project, nil
+}
+
+// DeleteProject trashes a project
+func (c *Client) DeleteProject(ctx context.Context, projectID string) error {
+	path := fmt.Sprintf("/projects/%s.json", projectID)
+	if err := c.Delete(path); err != nil {
+		return fmt.Errorf("failed to delete project: %w", err)
+	}
+
+	return nil
+}
+
+// ArchiveProject archives a project
+func (c *Client) ArchiveProject(ctx context.Context, projectID string) error {
+	path := fmt.Sprintf("/projects/%s/status/archived.json", projectID)
+	if err := c.Put(path, nil, nil); err != nil {
+		return fmt.Errorf("failed to archive project: %w", err)
+	}
+
+	return nil
+}
+
+// UnarchiveProject restores an archived project to active status
+func (c *Client) UnarchiveProject(ctx context.Context, projectID string) error {
+	path := fmt.Sprintf("/projects/%s/status/active.json", projectID)
+	if err := c.Put(path, nil, nil); err != nil {
+		return fmt.Errorf("failed to unarchive project: %w", err)
+	}
+
+	return nil
+}
+
+// CopyProject creates a new project from a template.
+// Note: sourceProjectID must be the ID of a template project.
+// Regular projects cannot be used as a source - they must be marked as templates in Basecamp.
+func (c *Client) CopyProject(ctx context.Context, sourceProjectID string, name string, description string) (*Project, error) {
+	var project Project
+
+	path := fmt.Sprintf("/templates/%s/project_constructions.json", sourceProjectID)
+	req := ProjectCreateRequest{
+		Name:        name,
+		Description: description,
+	}
+	if err := c.Post(path, req, &project); err != nil {
+		return nil, fmt.Errorf("failed to copy project: %w", err)
+	}
+
+	return &project, nil
+}
+
 // TodoSet represents a Basecamp todo set (container for todo lists)
 type TodoSet struct {
 	ID           int64  `json:"id"`
@@ -647,4 +731,70 @@ func (c *Client) GetMyProfile(ctx context.Context) (*Person, error) {
 	}
 
 	return &person, nil
+}
+
+// GetAllPeople fetches all people visible to the current user in the account
+func (c *Client) GetAllPeople(ctx context.Context) ([]Person, error) {
+	var people []Person
+	path := "/people.json"
+
+	// Use paginated request to get all people
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(path, &people); err != nil {
+		return nil, fmt.Errorf("failed to fetch people: %w", err)
+	}
+
+	return people, nil
+}
+
+// GetPingablePeople fetches all people who can be pinged in the account
+func (c *Client) GetPingablePeople(ctx context.Context) ([]Person, error) {
+	var people []Person
+	path := "/circles/people.json"
+
+	// Note: This endpoint is not paginated according to Basecamp API docs
+	resp, err := c.doRequest("GET", path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch pingable people: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if err := json.NewDecoder(resp.Body).Decode(&people); err != nil {
+		return nil, fmt.Errorf("failed to decode pingable people: %w", err)
+	}
+
+	return people, nil
+}
+
+// ProjectAccessUpdateRequest represents the payload for updating project access
+type ProjectAccessUpdateRequest struct {
+	Grant  []int64                  `json:"grant,omitempty"`
+	Revoke []int64                  `json:"revoke,omitempty"`
+	Create []ProjectAccessNewPerson `json:"create,omitempty"`
+}
+
+// ProjectAccessNewPerson represents a new person to invite to a project
+type ProjectAccessNewPerson struct {
+	Name         string `json:"name"`
+	EmailAddress string `json:"email_address"`
+	Title        string `json:"title,omitempty"`
+	CompanyName  string `json:"company_name,omitempty"`
+}
+
+// ProjectAccessUpdateResponse represents the response from updating project access
+type ProjectAccessUpdateResponse struct {
+	Granted []Person `json:"granted"`
+	Revoked []Person `json:"revoked"`
+}
+
+// UpdateProjectAccess updates who has access to a project (grant, revoke, or create new users)
+func (c *Client) UpdateProjectAccess(ctx context.Context, projectID string, req ProjectAccessUpdateRequest) (*ProjectAccessUpdateResponse, error) {
+	var response ProjectAccessUpdateResponse
+
+	path := fmt.Sprintf("/projects/%s/people/users.json", projectID)
+	if err := c.Put(path, req, &response); err != nil {
+		return nil, fmt.Errorf("failed to update project access: %w", err)
+	}
+
+	return &response, nil
 }
