@@ -19,11 +19,8 @@ import (
 	"github.com/needmore/bc4/cmd/people"
 	"github.com/needmore/bc4/cmd/profile"
 	"github.com/needmore/bc4/cmd/project"
-<<<<<<< HEAD
-	"github.com/needmore/bc4/cmd/search"
-=======
 	"github.com/needmore/bc4/cmd/schedule"
->>>>>>> origin/main
+	"github.com/needmore/bc4/cmd/search"
 	"github.com/needmore/bc4/cmd/todo"
 	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/config"
