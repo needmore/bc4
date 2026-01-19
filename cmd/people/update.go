@@ -29,8 +29,11 @@ func newUpdateCmd(f *factory.Factory) *cobra.Command {
 		Short: "Update project access for people",
 		Long: `Update who has access to a Basecamp project.
 
-Use --grant to give existing account members access to a project.
+Use --grant to give EXISTING account members access to a project.
 Use --revoke to remove access from people currently in the project.
+
+Note: This command only works with people who already have Basecamp accounts.
+To invite new users who don't have accounts yet, use 'bc4 people invite' instead.
 
 Multiple person IDs can be specified by using the flag multiple times
 or by comma-separating the IDs.`,

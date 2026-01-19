@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,7 +12,6 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
-	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
 func newListCmd(f *factory.Factory) *cobra.Command {
@@ -100,62 +98,8 @@ Use --project to list only people with access to a specific project.`,
 				return nil
 			}
 
-			// Create new GitHub CLI-style table
-			table := tableprinter.New(os.Stdout)
-
-			// Add headers dynamically based on TTY mode
-			if table.IsTTY() {
-				table.AddHeader("ID", "NAME", "EMAIL", "TITLE", "ROLE")
-			} else {
-				table.AddHeader("ID", "NAME", "EMAIL", "TITLE", "ROLE", "COMPANY")
-			}
-
-			// Add people to table
-			for _, person := range people {
-				// Determine role
-				role := "member"
-				if person.Owner {
-					role = "owner"
-				} else if person.Admin {
-					role = "admin"
-				}
-
-				// Add ID field
-				table.AddIDField(strconv.FormatInt(person.ID, 10), role)
-
-				// Add name
-				cs := table.GetColorScheme()
-				table.AddField(person.Name, cs.Bold)
-
-				// Add email
-				table.AddField(person.EmailAddress)
-
-				// Add title
-				table.AddField(person.Title, cs.Muted)
-
-				// Add role with color
-				switch role {
-				case "owner":
-					table.AddField(role, cs.Magenta)
-				case "admin":
-					table.AddField(role, cs.Cyan)
-				default:
-					table.AddField(role, cs.Muted)
-				}
-
-				// Add company only for non-TTY
-				if !table.IsTTY() {
-					companyName := ""
-					if person.Company != nil {
-						companyName = person.Company.Name
-					}
-					table.AddField(companyName)
-				}
-
-				table.EndRow()
-			}
-
-			return table.Render()
+			// Render the people table with role column
+			return renderPeopleTable(people, true)
 		},
 	}
 

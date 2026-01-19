@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -13,7 +12,6 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/ui"
-	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
 func newPingCmd(f *factory.Factory) *cobra.Command {
@@ -78,44 +76,8 @@ members who are available to receive pings from you.`,
 				return nil
 			}
 
-			// Create new GitHub CLI-style table
-			table := tableprinter.New(os.Stdout)
-
-			// Add headers dynamically based on TTY mode
-			if table.IsTTY() {
-				table.AddHeader("ID", "NAME", "EMAIL", "TITLE")
-			} else {
-				table.AddHeader("ID", "NAME", "EMAIL", "TITLE", "COMPANY")
-			}
-
-			// Add people to table
-			for _, person := range people {
-				// Add ID field
-				table.AddIDField(strconv.FormatInt(person.ID, 10), "active")
-
-				// Add name
-				cs := table.GetColorScheme()
-				table.AddField(person.Name, cs.Bold)
-
-				// Add email
-				table.AddField(person.EmailAddress)
-
-				// Add title
-				table.AddField(person.Title, cs.Muted)
-
-				// Add company only for non-TTY
-				if !table.IsTTY() {
-					companyName := ""
-					if person.Company != nil {
-						companyName = person.Company.Name
-					}
-					table.AddField(companyName)
-				}
-
-				table.EndRow()
-			}
-
-			return table.Render()
+			// Render the people table without role column
+			return renderPeopleTable(people, false)
 		},
 	}
 

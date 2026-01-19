@@ -29,8 +29,12 @@ func newInviteCmd(f *factory.Factory) *cobra.Command {
 		Short: "Invite a new person to a project",
 		Long: `Invite a new person to a Basecamp project.
 
-Creates a new user and grants them access to the specified project.
-The person will receive an email invitation to join the project.
+This command creates a NEW user account and grants them access to the specified
+project. The person will receive an email invitation to join Basecamp and the project.
+
+Note: Use this command to invite people who don't yet have a Basecamp account.
+If the person already has an account, use 'bc4 people update --grant' instead
+to grant them access to the project.
 
 You must specify both the name and email of the person to invite.
 A project must be specified either via --project flag or default project.`,
@@ -49,7 +53,7 @@ A project must be specified either via --project flag or default project.`,
 	cmd.Flags().StringVarP(&opts.email, "email", "e", "", "Email address of the person to invite (required)")
 	cmd.Flags().StringVarP(&opts.title, "title", "t", "", "Job title of the person")
 	cmd.Flags().StringVar(&opts.companyName, "company", "", "Company name of the person")
-	cmd.Flags().StringVarP(&opts.projectID, "project", "p", "", "Project ID to invite the person to (required)")
+	cmd.Flags().StringVarP(&opts.projectID, "project", "p", "", "Project ID to invite the person to (defaults to selected project)")
 	cmd.Flags().StringVarP(&opts.accountID, "account", "a", "", "Specify account ID (overrides default)")
 	cmd.Flags().BoolVar(&opts.jsonOutput, "json", false, "Output as JSON")
 
