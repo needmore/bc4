@@ -24,6 +24,12 @@ func NewProjectCmd(f *factory.Factory) *cobra.Command {
 	cmd.AddCommand(newSetCmd(f))
 	cmd.AddCommand(newViewCmd(f))
 	cmd.AddCommand(newSearchCmd(f))
+	cmd.AddCommand(newCreateCmd(f))
+	cmd.AddCommand(newEditCmd(f))
+	cmd.AddCommand(newDeleteCmd(f))
+	cmd.AddCommand(newArchiveCmd(f))
+	cmd.AddCommand(newUnarchiveCmd(f))
+	cmd.AddCommand(newCopyCmd(f))
 
 	return cmd
 }

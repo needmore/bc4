@@ -1,4 +1,4 @@
-package project
+package people
 
 import (
 	"testing"
@@ -7,16 +7,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewCmdProject(t *testing.T) {
+func TestNewPeopleCmd(t *testing.T) {
 	// Create factory
 	f := factory.New()
 
-	// Create project command
-	cmd := NewProjectCmd(f)
+	// Create people command
+	cmd := NewPeopleCmd(f)
 
 	// Test basic properties
-	assert.Equal(t, "project", cmd.Use)
-	assert.Contains(t, cmd.Aliases, "p")
+	assert.Equal(t, "people", cmd.Use)
+	assert.Contains(t, cmd.Aliases, "person")
+	assert.Contains(t, cmd.Aliases, "users")
+	assert.Contains(t, cmd.Aliases, "user")
 	assert.NotEmpty(t, cmd.Short)
 	assert.NotEmpty(t, cmd.Long)
 
@@ -30,15 +32,10 @@ func TestNewCmdProject(t *testing.T) {
 	expectedCommands := []string{
 		"list",
 		"view",
-		"set",
-		"select",
-		"search",
-		"create",
-		"edit",
-		"delete",
-		"archive",
-		"unarchive",
-		"copy",
+		"invite",
+		"remove",
+		"update",
+		"ping",
 	}
 
 	for _, expected := range expectedCommands {
@@ -49,29 +46,19 @@ func TestNewCmdProject(t *testing.T) {
 	assert.Len(t, cmd.Commands(), len(expectedCommands))
 }
 
-func TestProjectCommand_Examples(t *testing.T) {
+func TestPeopleCommand_Aliases(t *testing.T) {
 	f := factory.New()
-	cmd := NewProjectCmd(f)
-
-	// Verify the command has a long description
-	assert.NotEmpty(t, cmd.Long)
-	assert.Contains(t, cmd.Long, "projects")
-}
-
-func TestProjectCommand_Aliases(t *testing.T) {
-	f := factory.New()
-	cmd := NewProjectCmd(f)
+	cmd := NewPeopleCmd(f)
 
 	// Test command aliases
-	assert.Equal(t, []string{"p"}, cmd.Aliases)
-
-	// The alias is in the command itself, not necessarily in the Long description
+	expectedAliases := []string{"person", "users", "user"}
+	assert.Equal(t, expectedAliases, cmd.Aliases)
 }
 
-func TestProjectCommand_SubcommandFactories(t *testing.T) {
+func TestPeopleCommand_SubcommandFactories(t *testing.T) {
 	// Test that factory is properly passed to all subcommands
 	f := factory.New()
-	cmd := NewProjectCmd(f)
+	cmd := NewPeopleCmd(f)
 
 	// Each subcommand should be properly initialized
 	for _, subcmd := range cmd.Commands() {
