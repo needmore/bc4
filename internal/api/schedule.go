@@ -56,6 +56,8 @@ type ScheduleEntry struct {
 }
 
 // Recurrence represents recurrence schedule for an event
+// TODO: Add command-level support for creating recurring events
+// This struct is currently only used for reading existing recurring events from the API
 type Recurrence struct {
 	Frequency  string   `json:"frequency"`            // "every_day", "every_week", "every_month", "every_year"
 	Days       []int    `json:"days,omitempty"`       // For weekly: [1,2,3,4,5] = Mon-Fri

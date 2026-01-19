@@ -142,6 +142,10 @@ func runEntryCreate(f *factory.Factory, opts *entryCreateOptions, args []string)
 		req.ParticipantIDs = personIDs
 	}
 
+	// TODO: Add support for recurring events via --recurrence flag
+	// This would populate the recurrence_schedule field in the request
+	// Example: --recurrence "every_week" --days 1,2,3,4,5
+
 	// Create the entry
 	entry, err := scheduleOps.CreateScheduleEntry(f.Context(), projectID, schedule.ID, req)
 	if err != nil {
