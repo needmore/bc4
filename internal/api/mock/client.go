@@ -470,5 +470,65 @@ func (m *MockClient) GetRecording(ctx context.Context, projectID string, recordi
 	return m.Recording, nil
 }
 
+// GetProjectSchedule mock implementation
+func (m *MockClient) GetProjectSchedule(ctx context.Context, projectID string) (*api.Schedule, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetProjectSchedule(%s)", projectID))
+	return &api.Schedule{ID: 1, Title: "Schedule"}, nil
+}
+
+// GetSchedule mock implementation
+func (m *MockClient) GetSchedule(ctx context.Context, projectID string, scheduleID int64) (*api.Schedule, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetSchedule(%s, %d)", projectID, scheduleID))
+	return &api.Schedule{ID: scheduleID, Title: "Schedule"}, nil
+}
+
+// GetScheduleEntries mock implementation
+func (m *MockClient) GetScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]api.ScheduleEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetScheduleEntries(%s, %d)", projectID, scheduleID))
+	return []api.ScheduleEntry{}, nil
+}
+
+// GetScheduleEntriesInRange mock implementation
+func (m *MockClient) GetScheduleEntriesInRange(ctx context.Context, projectID string, scheduleID int64, startDate, endDate string) ([]api.ScheduleEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetScheduleEntriesInRange(%s, %d, %s, %s)", projectID, scheduleID, startDate, endDate))
+	return []api.ScheduleEntry{}, nil
+}
+
+// GetUpcomingScheduleEntries mock implementation
+func (m *MockClient) GetUpcomingScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]api.ScheduleEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetUpcomingScheduleEntries(%s, %d)", projectID, scheduleID))
+	return []api.ScheduleEntry{}, nil
+}
+
+// GetPastScheduleEntries mock implementation
+func (m *MockClient) GetPastScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]api.ScheduleEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetPastScheduleEntries(%s, %d)", projectID, scheduleID))
+	return []api.ScheduleEntry{}, nil
+}
+
+// GetScheduleEntry mock implementation
+func (m *MockClient) GetScheduleEntry(ctx context.Context, projectID string, entryID int64) (*api.ScheduleEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetScheduleEntry(%s, %d)", projectID, entryID))
+	return &api.ScheduleEntry{ID: entryID, Title: "Event"}, nil
+}
+
+// CreateScheduleEntry mock implementation
+func (m *MockClient) CreateScheduleEntry(ctx context.Context, projectID string, scheduleID int64, req api.ScheduleEntryCreateRequest) (*api.ScheduleEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("CreateScheduleEntry(%s, %d, %+v)", projectID, scheduleID, req))
+	return &api.ScheduleEntry{ID: 1, Title: req.Summary}, nil
+}
+
+// UpdateScheduleEntry mock implementation
+func (m *MockClient) UpdateScheduleEntry(ctx context.Context, projectID string, entryID int64, req api.ScheduleEntryUpdateRequest) (*api.ScheduleEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("UpdateScheduleEntry(%s, %d, %+v)", projectID, entryID, req))
+	return &api.ScheduleEntry{ID: entryID}, nil
+}
+
+// DeleteScheduleEntry mock implementation
+func (m *MockClient) DeleteScheduleEntry(ctx context.Context, projectID string, entryID int64) error {
+	m.Calls = append(m.Calls, fmt.Sprintf("DeleteScheduleEntry(%s, %d)", projectID, entryID))
+	return nil
+}
+
 // Ensure MockClient implements APIClient interface
 var _ api.APIClient = (*MockClient)(nil)

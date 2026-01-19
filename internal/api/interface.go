@@ -61,6 +61,18 @@ type APIClient interface {
 	ListEvents(ctx context.Context, projectID string, recordingID int64) ([]Event, error)
 	ListRecordings(ctx context.Context, projectID string, opts *ActivityListOptions) ([]Recording, error)
 	GetRecording(ctx context.Context, projectID string, recordingID int64) (*Recording, error)
+
+	// Schedule methods
+	GetProjectSchedule(ctx context.Context, projectID string) (*Schedule, error)
+	GetSchedule(ctx context.Context, projectID string, scheduleID int64) (*Schedule, error)
+	GetScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]ScheduleEntry, error)
+	GetScheduleEntriesInRange(ctx context.Context, projectID string, scheduleID int64, startDate, endDate string) ([]ScheduleEntry, error)
+	GetUpcomingScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]ScheduleEntry, error)
+	GetPastScheduleEntries(ctx context.Context, projectID string, scheduleID int64) ([]ScheduleEntry, error)
+	GetScheduleEntry(ctx context.Context, projectID string, entryID int64) (*ScheduleEntry, error)
+	CreateScheduleEntry(ctx context.Context, projectID string, scheduleID int64, req ScheduleEntryCreateRequest) (*ScheduleEntry, error)
+	UpdateScheduleEntry(ctx context.Context, projectID string, entryID int64, req ScheduleEntryUpdateRequest) (*ScheduleEntry, error)
+	DeleteScheduleEntry(ctx context.Context, projectID string, entryID int64) error
 }
 
 // Ensure Client implements APIClient interface
