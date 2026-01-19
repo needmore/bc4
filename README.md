@@ -505,6 +505,35 @@ bc4 comment attach 12345 --attach ./log.txt
 bc4 comment attach 12345 --comment-id 67890 --attach ./screenshot.png
 ```
 
+
+### Downloading Attachments
+
+bc4 can download images and files attached to cards, todos, and messages using OAuth authentication:
+
+```bash
+# Download all attachments from a card
+bc4 card download-attachments 123456
+
+# Download from a todo to specific directory
+bc4 todo download-attachments 789012 --output-dir ~/Downloads
+
+# Download from a message (only first attachment)
+bc4 message download-attachments 345678 --attachment 1
+
+# Overwrite existing files
+bc4 card download-attachments 123456 --overwrite
+
+# Works with Basecamp URLs too
+bc4 card download-attachments https://3.basecamp.com/123/buckets/456/card_tables/cards/789
+```
+
+**Common options:**
+- `--output-dir, -o` - Directory to save attachments (default: current directory)
+- `--attachment N` - Download only the Nth attachment (1-based index)
+- `--overwrite` - Replace existing files without prompting
+
+**Note:** Comment attachments use blob storage that requires browser authentication and cannot be downloaded via OAuth. To download comment attachments, access them through your web browser while logged into Basecamp.
+
 ### Activity & Events
 
 ```bash
