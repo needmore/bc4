@@ -33,6 +33,12 @@ func TestNewCmdProject(t *testing.T) {
 		"set",
 		"select",
 		"search",
+		"create",
+		"edit",
+		"delete",
+		"archive",
+		"unarchive",
+		"copy",
 	}
 
 	for _, expected := range expectedCommands {
