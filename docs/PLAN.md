@@ -4,11 +4,11 @@
 
 ## Executive Summary
 
-bc4 is a mature, production-ready CLI tool for Basecamp 4 with **60% complete API coverage**. It now excels at core productivity workflows (todos, messages, cards, documents) AND includes comprehensive calendar/schedule support, project administration, people management, and global search functionality.
+bc4 is a mature, production-ready CLI tool for Basecamp 4 with **62.5% complete API coverage**. It now excels at core productivity workflows (todos, messages, cards, documents) AND includes comprehensive calendar/schedule support, project administration, people management, and global search functionality.
 
 ### Quick Stats
-- ✅ **24/40 resources fully implemented** (100% of operations)
-- 🟨 **2/40 resources partially implemented** (50-70% of operations)
+- ✅ **25/40 resources fully implemented** (100% of operations)
+- 🟨 **1/40 resources partially implemented** (50-70% of operations)
 - ❌ **14/40 resources not implemented** (0% coverage)
 - 📝 **~20 TODO comments** in existing code
 - 🧪 **5 disabled test files** needing fixes
@@ -38,7 +38,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **60% complete AP
 | **Schedules** | ✅ Complete | 100% | list, view schedules in project |
 | **Schedule entries** | ✅ Complete | 100% | list, view, create, edit, delete calendar events |
 | **Search** | ✅ Complete | 100% | global search across all resources |
-| **Message types** | 🟨 Partial | 50% | list categories |
+| **Message types** | ✅ Complete | 100% | list, create, edit, delete categories |
 | **Activity/Events** | 🟨 Partial | 70% | list events with filtering |
 | **Questionnaires** (Check-ins) | ❌ Missing | 0% | Not implemented |
 | **Questions** | ❌ Missing | 0% | Not implemented |
@@ -104,13 +104,14 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **60% complete AP
 ### High-Priority Features ⭐⭐⭐
 *Commonly used features that would significantly improve daily workflows*
 
-#### 1. Message Types & Categories
+#### 1. Message Types & Categories ✅ COMPLETED
 **Better organization of message boards**
 
-- [ ] `bc4 message type create` - Create message category
-- [ ] `bc4 message type edit <id>` - Update category
-- [ ] `bc4 message type delete <id>` - Delete category
-- [ ] `bc4 message list --type <category>` - Filter by category
+- [x] `bc4 message type create` - Create message category
+- [x] `bc4 message type edit <id>` - Update category
+- [x] `bc4 message type delete <id>` - Delete category
+- [x] `bc4 message type list` - List all categories
+- [x] `bc4 message list --category <name>` - Filter by category (already existed)
 
 #### 2. Enhanced Activity/Events
 **Better visibility into project activity**
@@ -329,8 +330,8 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **60% complete AP
 | Test Files | ~50 |
 | Disabled Tests | 5 |
 | Command Categories | 15 |
-| Fully Implemented API Resources | 24 |
-| Partially Implemented Resources | 2 |
+| Fully Implemented API Resources | 25 |
+| Partially Implemented Resources | 1 |
 | Not Implemented Resources | 14 |
 | TODO Comments Found | ~20 |
 | Recent Commits (last 30) | 30+ |
@@ -373,9 +374,9 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **60% complete AP
 
 ### Summary Metrics
 
-**Current State (v0.13.0):**
-- ✅ 24/40 resources fully implemented (60%)
-- 🟨 2/40 resources partially implemented (5%)
+**Current State (v0.13.0+):**
+- ✅ 25/40 resources fully implemented (62.5%)
+- 🟨 1/40 resources partially implemented (2.5%)
 - ❌ 14/40 resources not implemented (35%)
 - 📝 ~20 TODO comments in code
 - 🧪 5 disabled test files
@@ -394,7 +395,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **60% complete AP
 
 ### Recommended Development Sequence
 
-1. **Complete Partial Features** (Message types, Enhanced activity)
+1. **Complete Partial Features** (Enhanced activity)
    - Finish what's already started
    - Brings partial features to 100%
 
@@ -436,7 +437,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **60% complete AP
 - ✅ **Global search functionality** (NEW)
 
 ### Remaining Gaps
-- 🟨 Partial implementation of message types and activity filtering
+- 🟨 Partial implementation of activity filtering
 - ❌ Missing automation features (webhooks, check-ins)
 - ❌ No client portal features (Basecamp Pro)
 - ❌ No time tracking support
@@ -444,7 +445,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **60% complete AP
 
 ### Conclusion
 
-bc4 has achieved **60% API coverage** with **excellent depth** across all core Basecamp workflows. With the recent addition of calendar support, project administration, people management, and global search, bc4 is now **competitive with the Basecamp web UI for daily use**. The remaining 40% consists primarily of specialized features (client portal, automation, time tracking) that are not needed for typical daily workflows.
+bc4 has achieved **62.5% API coverage** with **excellent depth** across all core Basecamp workflows. With the recent addition of calendar support, project administration, people management, and global search, bc4 is now **competitive with the Basecamp web UI for daily use**. The remaining 40% consists primarily of specialized features (client portal, automation, time tracking) that are not needed for typical daily workflows.
 
 **bc4 is now recommended for:**
 - Teams wanting CLI-based Basecamp workflows
