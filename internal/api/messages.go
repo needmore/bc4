@@ -54,6 +54,22 @@ type MessageCategory struct {
 	Color string `json:"color"`
 }
 
+// MessageCategoryCreateRequest represents the payload for creating a message category
+type MessageCategoryCreateRequest struct {
+	Name              string `json:"name"`
+	Icon              string `json:"icon,omitempty"`
+	Color             string `json:"color,omitempty"`
+	CategorizableType string `json:"categorizable_type"`
+	CategorizableID   int64  `json:"categorizable_id"`
+}
+
+// MessageCategoryUpdateRequest represents the payload for updating a message category
+type MessageCategoryUpdateRequest struct {
+	Name  string `json:"name,omitempty"`
+	Icon  string `json:"icon,omitempty"`
+	Color string `json:"color,omitempty"`
+}
+
 // MessageCreateRequest represents the payload for creating a new message
 type MessageCreateRequest struct {
 	Subject    string `json:"subject"`
@@ -182,6 +198,55 @@ func (c *Client) ListMessageCategories(ctx context.Context, projectID string, me
 	}
 
 	return categories, nil
+}
+
+// CreateMessageCategory creates a new message category
+func (c *Client) CreateMessageCategory(ctx context.Context, projectID string, messageBoardID int64, name, icon, color string) (*MessageCategory, error) {
+	var category MessageCategory
+	path := fmt.Sprintf("/buckets/%s/categories.json", projectID)
+
+	req := MessageCategoryCreateRequest{
+		Name:              name,
+		Icon:              icon,
+		Color:             color,
+		CategorizableType: "Message::Board",
+		CategorizableID:   messageBoardID,
+	}
+
+	if err := c.Post(path, req, &category); err != nil {
+		return nil, fmt.Errorf("failed to create message category: %w", err)
+	}
+
+	return &category, nil
+}
+
+// UpdateMessageCategory updates an existing message category
+func (c *Client) UpdateMessageCategory(ctx context.Context, projectID string, categoryID int64, name, icon, color string) (*MessageCategory, error) {
+	var category MessageCategory
+	path := fmt.Sprintf("/buckets/%s/categories/%d.json", projectID, categoryID)
+
+	req := MessageCategoryUpdateRequest{
+		Name:  name,
+		Icon:  icon,
+		Color: color,
+	}
+
+	if err := c.Put(path, req, &category); err != nil {
+		return nil, fmt.Errorf("failed to update message category: %w", err)
+	}
+
+	return &category, nil
+}
+
+// DeleteMessageCategory deletes a message category
+func (c *Client) DeleteMessageCategory(ctx context.Context, projectID string, categoryID int64) error {
+	path := fmt.Sprintf("/buckets/%s/categories/%d.json", projectID, categoryID)
+
+	if err := c.Delete(path); err != nil {
+		return fmt.Errorf("failed to delete message category: %w", err)
+	}
+
+	return nil
 }
 
 // PinMessage pins a message to the top of the message board

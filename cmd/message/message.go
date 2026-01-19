@@ -35,6 +35,7 @@ attachments. Team members can comment on messages to continue the conversation.`
 	cmd.AddCommand(newEditCmd(f))
 	cmd.AddCommand(newPinCmd(f))
 	cmd.AddCommand(newUnpinCmd(f))
+	cmd.AddCommand(newTypeCmd(f))
 
 	return cmd
 }
