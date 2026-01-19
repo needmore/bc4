@@ -5,12 +5,12 @@
 class Bc4 < Formula
   desc "A CLI tool for interacting with Basecamp 4"
   homepage "https://github.com/needmore/bc4"
-  version "0.14.0"
+  version "0.15.0"
   license "MIT"
 
   on_macos do
-    url "https://github.com/needmore/bc4/releases/download/v0.14.0/bc4_0.14.0_Darwin_all.tar.gz"
-    sha256 "a18d8bcf662f24420530c1f807f655d315e508691c01b1dbb574507f9fa3e7c0"
+    url "https://github.com/needmore/bc4/releases/download/v0.15.0/bc4_0.15.0_Darwin_all.tar.gz"
+    sha256 "576e2ff37b864a8cd1670cdc46936a444dbcf391dc2c9a4863f8f60dfecc02d2"
 
     def install
       bin.install "bc4"
@@ -19,15 +19,15 @@ class Bc4 < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/needmore/bc4/releases/download/v0.14.0/bc4_0.14.0_Linux_x86_64.tar.gz"
-      sha256 "a2eb823cbcde197b6aad78dfccf46cebf1a473c57b972f65d2d198144c015247"
+      url "https://github.com/needmore/bc4/releases/download/v0.15.0/bc4_0.15.0_Linux_x86_64.tar.gz"
+      sha256 "af417f0cb84277923a975f7fefc44a66d3d9eb803a3d9668b0037d394bd73514"
       def install
         bin.install "bc4"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/needmore/bc4/releases/download/v0.14.0/bc4_0.14.0_Linux_arm64.tar.gz"
-      sha256 "55281edfbbeeb069909f44786ce7eaa895528f6fad31fa8f0369037ca514e817"
+      url "https://github.com/needmore/bc4/releases/download/v0.15.0/bc4_0.15.0_Linux_arm64.tar.gz"
+      sha256 "9d209e227a949854c5d28f47a0c5b9143483533aeb52ada7752019ac8dbdc7d1"
       def install
         bin.install "bc4"
       end
