@@ -115,9 +115,6 @@ func (c *Client) GetProjectSchedule(ctx context.Context, projectID string) (*Sch
 	// Find the schedule in the dock
 	for _, tool := range projectData.Dock {
 		if tool.Name == "schedule" {
-			if !tool.Enabled {
-				return nil, fmt.Errorf("schedule is not enabled for this project")
-			}
 			return &Schedule{
 				ID:         tool.ID,
 				Title:      tool.Title,
