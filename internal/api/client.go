@@ -80,10 +80,10 @@ func (c *Client) doRequestWithHeaders(method, path string, body io.Reader, heade
 	if rateLimitInfo := ParseRateLimitHeaders(resp.Header); rateLimitInfo != nil {
 		GetRateLimiter().UpdateFromHeaders(rateLimitInfo)
 
-		// Apply proactive delay if remaining requests are low
-		if rateLimitInfo.Remaining > 0 && rateLimitInfo.Remaining <= LowRemainingThreshold {
-			delay := GetRateLimiter().GetProactiveDelay(rateLimitInfo.Remaining)
-			if delay > 0 {
+		// Apply proactive delay if remaining requests are low (including zero)
+		// Skip if RetryAfter is set, as UpdateFromHeaders already handles timing
+		if rateLimitInfo.RetryAfter == 0 && rateLimitInfo.HasRemaining {
+			if delay := GetRateLimiter().GetProactiveDelay(rateLimitInfo.Remaining); delay > 0 {
 				time.Sleep(delay)
 			}
 		}

@@ -13,10 +13,11 @@ const LowRemainingThreshold = 5
 
 // RateLimitInfo contains rate limit information parsed from API response headers
 type RateLimitInfo struct {
-	Limit      int       // Total requests allowed per window
-	Remaining  int       // Requests remaining in current window
-	Reset      time.Time // When the window resets
-	RetryAfter int       // Seconds to wait (from 429 responses)
+	Limit        int       // Total requests allowed per window
+	Remaining    int       // Requests remaining in current window
+	HasRemaining bool      // Whether Remaining was explicitly set (to distinguish 0 from unset)
+	Reset        time.Time // When the window resets
+	RetryAfter   int       // Seconds to wait (from 429 responses)
 }
 
 // ParseRateLimitHeaders extracts rate limit information from HTTP response headers.
@@ -26,40 +27,56 @@ type RateLimitInfo struct {
 //   - X-RateLimit-Remaining: requests remaining in current window
 //   - X-RateLimit-Reset: Unix timestamp when the window resets
 //
-// Returns nil if no rate limit headers are present.
+// Returns nil if no rate limit headers are present or all values are invalid.
+// Negative values are rejected as invalid.
 func ParseRateLimitHeaders(headers http.Header) *RateLimitInfo {
 	info := &RateLimitInfo{}
 	hasData := false
 
 	// Parse Retry-After header (usually on 429 responses)
 	if retryAfter := headers.Get("Retry-After"); retryAfter != "" {
-		if seconds, err := strconv.Atoi(retryAfter); err == nil {
+		if seconds, err := strconv.Atoi(retryAfter); err == nil && seconds >= 0 {
 			info.RetryAfter = seconds
 			hasData = true
+		} else if err != nil {
+			log.Printf("[ratelimit] Warning: could not parse Retry-After header %q: %v", retryAfter, err)
+		} else {
+			log.Printf("[ratelimit] Warning: negative Retry-After value %d, ignoring", seconds)
 		}
 	}
 
 	// Parse X-RateLimit-Limit
 	if limit := headers.Get("X-RateLimit-Limit"); limit != "" {
-		if val, err := strconv.Atoi(limit); err == nil {
+		if val, err := strconv.Atoi(limit); err == nil && val >= 0 {
 			info.Limit = val
 			hasData = true
+		} else if err != nil {
+			log.Printf("[ratelimit] Warning: could not parse X-RateLimit-Limit header %q: %v", limit, err)
+		} else {
+			log.Printf("[ratelimit] Warning: negative X-RateLimit-Limit value %d, ignoring", val)
 		}
 	}
 
 	// Parse X-RateLimit-Remaining
 	if remaining := headers.Get("X-RateLimit-Remaining"); remaining != "" {
-		if val, err := strconv.Atoi(remaining); err == nil {
+		if val, err := strconv.Atoi(remaining); err == nil && val >= 0 {
 			info.Remaining = val
+			info.HasRemaining = true
 			hasData = true
+		} else if err != nil {
+			log.Printf("[ratelimit] Warning: could not parse X-RateLimit-Remaining header %q: %v", remaining, err)
+		} else {
+			log.Printf("[ratelimit] Warning: negative X-RateLimit-Remaining value %d, ignoring", val)
 		}
 	}
 
 	// Parse X-RateLimit-Reset (Unix timestamp)
 	if reset := headers.Get("X-RateLimit-Reset"); reset != "" {
-		if timestamp, err := strconv.ParseInt(reset, 10, 64); err == nil {
+		if timestamp, err := strconv.ParseInt(reset, 10, 64); err == nil && timestamp >= 0 {
 			info.Reset = time.Unix(timestamp, 0)
 			hasData = true
+		} else if err != nil {
+			log.Printf("[ratelimit] Warning: could not parse X-RateLimit-Reset header %q: %v", reset, err)
 		}
 	}
 
@@ -186,16 +203,6 @@ func (rl *RateLimiter) UpdateFromHeaders(info *RateLimitInfo) {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	// Update tokens based on remaining count from headers
-	if info.Remaining > 0 {
-		// Use the actual remaining count from the server
-		rl.tokens = info.Remaining
-
-		if rl.debug && info.Remaining <= LowRemainingThreshold {
-			log.Printf("[ratelimit] Low remaining requests: %d/%d", info.Remaining, info.Limit)
-		}
-	}
-
 	// Update max tokens if limit is provided and different
 	if info.Limit > 0 && info.Limit != rl.maxTokens {
 		rl.maxTokens = info.Limit
@@ -207,17 +214,31 @@ func (rl *RateLimiter) UpdateFromHeaders(info *RateLimitInfo) {
 		}
 	}
 
-	// If reset time is provided and in the future, adjust lastRefill
-	if !info.Reset.IsZero() && info.Reset.After(time.Now()) {
-		// The reset time tells us when tokens will be fully replenished
-		rl.lastRefill = time.Now()
-	}
-
-	// If RetryAfter is set (from a 429), we should have 0 tokens
+	// If RetryAfter is set (from a 429), set tokens to 0 and adjust timing
+	// This takes precedence over Remaining since it's the server's explicit instruction
 	if info.RetryAfter > 0 {
 		rl.tokens = 0
+		// Use the RetryAfter value to inform when we can resume
+		// Set lastRefill to now minus the full refill duration plus RetryAfter
+		// This ensures Wait() will block for approximately RetryAfter seconds
+		rl.lastRefill = time.Now().Add(-time.Duration(rl.maxTokens) * rl.refillRate).Add(time.Duration(info.RetryAfter) * time.Second)
 		if rl.debug {
 			log.Printf("[ratelimit] Rate limited, retry after %d seconds", info.RetryAfter)
+		}
+		return // Don't process Remaining when we have RetryAfter
+	}
+
+	// Update tokens based on remaining count from headers
+	// Use HasRemaining to distinguish between "0 remaining" and "not provided"
+	if info.HasRemaining {
+		rl.tokens = info.Remaining
+
+		if rl.debug {
+			if info.Remaining == 0 {
+				log.Printf("[ratelimit] No requests remaining, waiting for refill")
+			} else if info.Remaining <= LowRemainingThreshold {
+				log.Printf("[ratelimit] Low remaining requests: %d/%d", info.Remaining, info.Limit)
+			}
 		}
 	}
 }
@@ -232,14 +253,24 @@ func (rl *RateLimiter) GetProactiveDelay(remaining int) time.Duration {
 	// When remaining is low, add increasing delays
 	// At 5 remaining: 200ms delay
 	// At 1 remaining: 1s delay
+	// At 0 remaining: 1.2s delay
+	if remaining < 0 {
+		remaining = 0
+	}
 	delayMs := (LowRemainingThreshold - remaining + 1) * 200
 	return time.Duration(delayMs) * time.Millisecond
 }
 
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+// Debug returns whether debug logging is enabled (thread-safe)
+func (rl *RateLimiter) Debug() bool {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	return rl.debug
+}
+
+// Tokens returns the current token count (thread-safe, for testing)
+func (rl *RateLimiter) Tokens() int {
+	rl.mu.Lock()
+	defer rl.mu.Unlock()
+	return rl.tokens
 }

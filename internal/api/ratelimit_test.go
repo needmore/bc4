@@ -30,6 +30,7 @@ func TestParseRateLimitHeaders_AllHeaders(t *testing.T) {
 	require.NotNil(t, info)
 	assert.Equal(t, 50, info.Limit)
 	assert.Equal(t, 45, info.Remaining)
+	assert.True(t, info.HasRemaining)
 	assert.Equal(t, time.Unix(1609459200, 0), info.Reset)
 }
 
@@ -50,6 +51,16 @@ func TestParseRateLimitHeaders_InvalidValues(t *testing.T) {
 	assert.Nil(t, info) // No valid data parsed
 }
 
+func TestParseRateLimitHeaders_NegativeValues(t *testing.T) {
+	headers := http.Header{}
+	headers.Set("X-RateLimit-Remaining", "-5")
+	headers.Set("X-RateLimit-Limit", "-1")
+	headers.Set("Retry-After", "-10")
+
+	info := ParseRateLimitHeaders(headers)
+	assert.Nil(t, info) // Negative values are rejected
+}
+
 func TestParseRateLimitHeaders_PartialHeaders(t *testing.T) {
 	headers := http.Header{}
 	headers.Set("X-RateLimit-Remaining", "10")
@@ -58,39 +69,69 @@ func TestParseRateLimitHeaders_PartialHeaders(t *testing.T) {
 	require.NotNil(t, info)
 	assert.Equal(t, 0, info.Limit)      // Not provided
 	assert.Equal(t, 10, info.Remaining) // Parsed
+	assert.True(t, info.HasRemaining)   // Was explicitly set
 	assert.Equal(t, 0, info.RetryAfter) // Not provided
 	assert.True(t, info.Reset.IsZero()) // Not provided
+}
+
+func TestParseRateLimitHeaders_RemainingZero(t *testing.T) {
+	headers := http.Header{}
+	headers.Set("X-RateLimit-Remaining", "0")
+	headers.Set("X-RateLimit-Limit", "50")
+
+	info := ParseRateLimitHeaders(headers)
+	require.NotNil(t, info)
+	assert.Equal(t, 0, info.Remaining)
+	assert.True(t, info.HasRemaining, "HasRemaining should be true when Remaining is explicitly 0")
+	assert.Equal(t, 50, info.Limit)
 }
 
 func TestRateLimiter_UpdateFromHeaders_Remaining(t *testing.T) {
 	rl := NewRateLimiter(50, 10*time.Second)
 
 	info := &RateLimitInfo{
-		Remaining: 25,
+		Remaining:    25,
+		HasRemaining: true,
 	}
 
 	rl.UpdateFromHeaders(info)
 
-	// Verify tokens were updated
-	rl.mu.Lock()
-	assert.Equal(t, 25, rl.tokens)
-	rl.mu.Unlock()
+	// Verify tokens were updated using thread-safe getter
+	assert.Equal(t, 25, rl.Tokens())
+}
+
+func TestRateLimiter_UpdateFromHeaders_RemainingZero(t *testing.T) {
+	rl := NewRateLimiter(50, 10*time.Second)
+
+	info := &RateLimitInfo{
+		Remaining:    0,
+		HasRemaining: true,
+		Limit:        50,
+	}
+
+	rl.UpdateFromHeaders(info)
+
+	// Verify tokens were set to 0
+	assert.Equal(t, 0, rl.Tokens(), "tokens should be set to 0 when Remaining is 0")
 }
 
 func TestRateLimiter_UpdateFromHeaders_Limit(t *testing.T) {
 	rl := NewRateLimiter(50, 10*time.Second)
 
 	info := &RateLimitInfo{
-		Limit:     100,
-		Remaining: 80,
+		Limit:        100,
+		Remaining:    80,
+		HasRemaining: true,
 	}
 
 	rl.UpdateFromHeaders(info)
 
-	// Verify maxTokens was updated
+	// Verify maxTokens and tokens were updated
 	rl.mu.Lock()
 	assert.Equal(t, 100, rl.maxTokens)
 	assert.Equal(t, 80, rl.tokens)
+	// Verify refill rate was recalculated: 10s / 100 = 100ms
+	assert.Equal(t, 100*time.Millisecond, rl.refillRate)
 	rl.mu.Unlock()
 }
 
@@ -104,21 +145,48 @@ func TestRateLimiter_UpdateFromHeaders_RetryAfter(t *testing.T) {
 	rl.UpdateFromHeaders(info)
 
 	// Verify tokens were set to 0
-	rl.mu.Lock()
-	assert.Equal(t, 0, rl.tokens)
-	rl.mu.Unlock()
+	assert.Equal(t, 0, rl.Tokens())
+}
+
+func TestRateLimiter_UpdateFromHeaders_RetryAfterOverridesRemaining(t *testing.T) {
+	rl := NewRateLimiter(50, 10*time.Second)
+
+	info := &RateLimitInfo{
+		Remaining:    25,
+		HasRemaining: true,
+		RetryAfter:   30,
+	}
+
+	rl.UpdateFromHeaders(info)
+
+	// RetryAfter should take precedence - tokens should be 0
+	assert.Equal(t, 0, rl.Tokens(), "RetryAfter should override Remaining")
 }
 
 func TestRateLimiter_UpdateFromHeaders_Nil(t *testing.T) {
 	rl := NewRateLimiter(50, 10*time.Second)
-	originalTokens := rl.tokens
+	originalTokens := rl.Tokens()
 
 	rl.UpdateFromHeaders(nil)
 
 	// Verify nothing changed
-	rl.mu.Lock()
-	assert.Equal(t, originalTokens, rl.tokens)
-	rl.mu.Unlock()
+	assert.Equal(t, originalTokens, rl.Tokens())
+}
+
+func TestRateLimiter_UpdateFromHeaders_NoHasRemaining(t *testing.T) {
+	rl := NewRateLimiter(50, 10*time.Second)
+
+	// Simulate parsing where Remaining header was not present
+	info := &RateLimitInfo{
+		Remaining:    0, // Zero value, but not explicitly set
+		HasRemaining: false,
+		Limit:        50,
+	}
+
+	rl.UpdateFromHeaders(info)
+
+	// Tokens should NOT be updated to 0 when HasRemaining is false
+	assert.Equal(t, 50, rl.Tokens(), "tokens should not change when HasRemaining is false")
 }
 
 func TestRateLimiter_GetProactiveDelay(t *testing.T) {
@@ -134,6 +202,7 @@ func TestRateLimiter_GetProactiveDelay(t *testing.T) {
 		{remaining: 5, expectDelay: true, minDelay: 200 * time.Millisecond},
 		{remaining: 3, expectDelay: true, minDelay: 600 * time.Millisecond},
 		{remaining: 1, expectDelay: true, minDelay: 1000 * time.Millisecond},
+		{remaining: 0, expectDelay: true, minDelay: 1200 * time.Millisecond},
 	}
 
 	for _, tt := range tests {
@@ -148,6 +217,14 @@ func TestRateLimiter_GetProactiveDelay(t *testing.T) {
 	}
 }
 
+func TestRateLimiter_GetProactiveDelay_NegativeRemaining(t *testing.T) {
+	rl := NewRateLimiter(50, 10*time.Second)
+
+	// Negative values should be treated as 0
+	delay := rl.GetProactiveDelay(-5)
+	assert.Equal(t, 1200*time.Millisecond, delay, "negative remaining should be treated as 0")
+}
+
 func TestRateLimiter_ThreadSafety(t *testing.T) {
 	rl := NewRateLimiter(50, 10*time.Second)
 
@@ -160,8 +237,9 @@ func TestRateLimiter_ThreadSafety(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			info := &RateLimitInfo{
-				Remaining: i % 50,
-				Limit:     50,
+				Remaining:    i % 50,
+				HasRemaining: true,
+				Limit:        50,
 			}
 			rl.UpdateFromHeaders(info)
 		}(i)
@@ -185,6 +263,17 @@ func TestRateLimiter_ThreadSafety(t *testing.T) {
 		}()
 	}
 
+	// Concurrent Debug/SetDebug calls
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rl.SetDebug(true)
+			_ = rl.Debug()
+			rl.SetDebug(false)
+		}()
+	}
+
 	wg.Wait()
 	// If we get here without deadlock or panic, the test passes
 }
@@ -192,13 +281,14 @@ func TestRateLimiter_ThreadSafety(t *testing.T) {
 func TestRateLimiter_SetDebug(t *testing.T) {
 	rl := NewRateLimiter(50, 10*time.Second)
 
-	assert.False(t, rl.debug)
+	// Use thread-safe getter
+	assert.False(t, rl.Debug())
 
 	rl.SetDebug(true)
-	assert.True(t, rl.debug)
+	assert.True(t, rl.Debug())
 
 	rl.SetDebug(false)
-	assert.False(t, rl.debug)
+	assert.False(t, rl.Debug())
 }
 
 func TestRateLimiter_Wait(t *testing.T) {
@@ -240,9 +330,11 @@ func TestGetRateLimiter_Singleton(t *testing.T) {
 func TestNewRateLimiter(t *testing.T) {
 	rl := NewRateLimiter(100, 20*time.Second)
 
+	rl.mu.Lock()
 	assert.Equal(t, 100, rl.maxTokens)
 	assert.Equal(t, 100, rl.tokens)
 	assert.Equal(t, 200*time.Millisecond, rl.refillRate) // 20s / 100 = 200ms per token
+	rl.mu.Unlock()
 }
 
 func TestRateLimiter_Reset(t *testing.T) {
@@ -253,14 +345,19 @@ func TestRateLimiter_Reset(t *testing.T) {
 	rl.TryAcquire()
 	rl.TryAcquire()
 
-	rl.mu.Lock()
-	assert.Equal(t, 47, rl.tokens)
-	rl.mu.Unlock()
+	assert.Equal(t, 47, rl.Tokens())
 
 	// Reset
 	rl.Reset()
 
-	rl.mu.Lock()
-	assert.Equal(t, 50, rl.tokens)
-	rl.mu.Unlock()
+	assert.Equal(t, 50, rl.Tokens())
+}
+
+func TestRateLimiter_Tokens(t *testing.T) {
+	rl := NewRateLimiter(50, 10*time.Second)
+
+	assert.Equal(t, 50, rl.Tokens())
+
+	rl.TryAcquire()
+	assert.Equal(t, 49, rl.Tokens())
 }
