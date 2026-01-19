@@ -76,6 +76,9 @@ type APIClient interface {
 	CreateScheduleEntry(ctx context.Context, projectID string, scheduleID int64, req ScheduleEntryCreateRequest) (*ScheduleEntry, error)
 	UpdateScheduleEntry(ctx context.Context, projectID string, entryID int64, req ScheduleEntryUpdateRequest) (*ScheduleEntry, error)
 	DeleteScheduleEntry(ctx context.Context, projectID string, entryID int64) error
+
+	// Search methods
+	Search(ctx context.Context, opts SearchOptions) ([]SearchResult, error)
 }
 
 // Ensure Client implements APIClient interface
