@@ -17,6 +17,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	// Maximum number of search results to return
+	maxSearchLimit = 1000
+)
+
 // NewSearchCmd creates a new search command
 func NewSearchCmd(f *factory.Factory) *cobra.Command {
 	var (
@@ -43,6 +48,14 @@ respecting rate limits and pagination.`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			query := args[0]
+
+			// Validate limit
+			if limit < 0 {
+				return fmt.Errorf("limit must be non-negative")
+			}
+			if limit > maxSearchLimit {
+				return fmt.Errorf("limit cannot exceed %d", maxSearchLimit)
+			}
 
 			// Handle project argument override from URL
 			if projectID != "" {
@@ -131,7 +144,7 @@ respecting rate limits and pagination.`,
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Scope search to a specific project (ID or URL)")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
 	cmd.Flags().StringVarP(&formatStr, "format", "f", "table", "Output format: table or json")
-	cmd.Flags().IntVarP(&limit, "limit", "l", 50, "Maximum number of results to return")
+	cmd.Flags().IntVarP(&limit, "limit", "l", 50, fmt.Sprintf("Maximum number of results to return (max: %d)", maxSearchLimit))
 
 	return cmd
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 	"time"
 )
 
@@ -122,6 +123,9 @@ func (c *Client) searchByTypes(ctx context.Context, opts SearchOptions) ([]Searc
 		allResults = append(allResults, typeResults...)
 	}
 
+	// Deduplicate results by ID (in case a result matches multiple type filters)
+	allResults = deduplicateSearchResults(allResults)
+
 	// Sort combined results by the specified sort field
 	sortSearchResults(allResults, opts.Sort, opts.Direction)
 
@@ -135,28 +139,35 @@ func (c *Client) searchByTypes(ctx context.Context, opts SearchOptions) ([]Searc
 
 // sortSearchResults sorts search results by the specified field and direction
 func sortSearchResults(results []SearchResult, sortField, direction string) {
-	for i := 0; i < len(results); i++ {
-		for j := i + 1; j < len(results); j++ {
-			var shouldSwap bool
+	sort.Slice(results, func(i, j int) bool {
+		var isBefore bool
 
-			switch sortField {
-			case "created_at":
-				if direction == "desc" {
-					shouldSwap = results[j].CreatedAt.After(results[i].CreatedAt)
-				} else {
-					shouldSwap = results[j].CreatedAt.Before(results[i].CreatedAt)
-				}
-			default: // updated_at
-				if direction == "desc" {
-					shouldSwap = results[j].UpdatedAt.After(results[i].UpdatedAt)
-				} else {
-					shouldSwap = results[j].UpdatedAt.Before(results[i].UpdatedAt)
-				}
-			}
+		switch sortField {
+		case "created_at":
+			isBefore = results[i].CreatedAt.Before(results[j].CreatedAt)
+		default: // updated_at
+			isBefore = results[i].UpdatedAt.Before(results[j].UpdatedAt)
+		}
 
-			if shouldSwap {
-				results[i], results[j] = results[j], results[i]
-			}
+		// Reverse for descending order
+		if direction == "desc" {
+			return !isBefore
+		}
+		return isBefore
+	})
+}
+
+// deduplicateSearchResults removes duplicate search results by ID
+func deduplicateSearchResults(results []SearchResult) []SearchResult {
+	seen := make(map[int64]bool)
+	deduplicated := make([]SearchResult, 0, len(results))
+
+	for _, result := range results {
+		if !seen[result.ID] {
+			seen[result.ID] = true
+			deduplicated = append(deduplicated, result)
 		}
 	}
+
+	return deduplicated
 }
