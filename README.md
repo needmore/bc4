@@ -242,6 +242,12 @@ bc4 todo move 12345 --top           # Move to top of list
 bc4 todo move 12345 --bottom        # Move to bottom of list
 
 # List attachments for a todo
+
+# Download all attachments from a todo
+bc4 todo download-attachments 123456
+
+# Download to specific directory
+bc4 todo download-attachments 123456 --output-dir ~/Downloads
 bc4 todo attachments 12345
 
 # Create a new todo list
@@ -296,6 +302,12 @@ bc4 message view 12345 --with-comments
 
 # Edit an existing message
 bc4 message edit 12345
+
+# Download all attachments from a message
+bc4 message download-attachments 123456
+
+# Download to specific directory
+bc4 message download-attachments 123456 --output-dir ~/Downloads
 
 # Pin a message to the top of the message board
 bc4 message pin 12345
