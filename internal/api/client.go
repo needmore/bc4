@@ -57,6 +57,9 @@ func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response,
 func (c *Client) doRequestWithHeaders(method, path string, body io.Reader, headers map[string]string) (*http.Response, error) {
 	url := fmt.Sprintf("%s%s", c.getBaseURL(), path)
 
+	// Wait for rate limiter before making request
+	GetRateLimiter().Wait()
+
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -71,6 +74,19 @@ func (c *Client) doRequestWithHeaders(method, path string, body io.Reader, heade
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	// Extract and process rate limit headers from response
+	if rateLimitInfo := ParseRateLimitHeaders(resp.Header); rateLimitInfo != nil {
+		GetRateLimiter().UpdateFromHeaders(rateLimitInfo)
+
+		// Apply proactive delay if remaining requests are low
+		if rateLimitInfo.Remaining > 0 && rateLimitInfo.Remaining <= LowRemainingThreshold {
+			delay := GetRateLimiter().GetProactiveDelay(rateLimitInfo.Remaining)
+			if delay > 0 {
+				time.Sleep(delay)
+			}
+		}
 	}
 
 	if resp.StatusCode >= 400 {
