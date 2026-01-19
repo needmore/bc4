@@ -61,6 +61,9 @@ type APIClient interface {
 	ListEvents(ctx context.Context, projectID string, recordingID int64) ([]Event, error)
 	ListRecordings(ctx context.Context, projectID string, opts *ActivityListOptions) ([]Recording, error)
 	GetRecording(ctx context.Context, projectID string, recordingID int64) (*Recording, error)
+
+	// Search methods
+	Search(ctx context.Context, opts SearchOptions) ([]SearchResult, error)
 }
 
 // Ensure Client implements APIClient interface

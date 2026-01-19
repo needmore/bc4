@@ -160,6 +160,11 @@ func (c *ModularClient) Activity() ActivityOperations {
 	return c.Client
 }
 
+// Search returns the search operations interface
+func (c *ModularClient) Search() SearchOperations {
+	return c.Client
+}
+
 // Example of how to extend with new operations without modifying existing code:
 //
 // type MessageOperations interface {

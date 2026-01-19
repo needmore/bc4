@@ -90,6 +90,10 @@ type MockClient struct {
 	Recording       *api.Recording
 	RecordingError  error
 
+	// Search
+	SearchResults []api.SearchResult
+	SearchError   error
+
 	// Track method calls
 	Calls []string
 }
@@ -468,6 +472,15 @@ func (m *MockClient) GetRecording(ctx context.Context, projectID string, recordi
 		return nil, m.RecordingError
 	}
 	return m.Recording, nil
+}
+
+// Search mock implementation
+func (m *MockClient) Search(ctx context.Context, opts api.SearchOptions) ([]api.SearchResult, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("Search(%+v)", opts))
+	if m.SearchError != nil {
+		return nil, m.SearchError
+	}
+	return m.SearchResults, nil
 }
 
 // Ensure MockClient implements APIClient interface
