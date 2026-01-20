@@ -34,7 +34,7 @@ You can specify the entry using either:
 		Aliases: []string{"rm", "remove"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runEntryDelete(f, opts, args)
+			return runEntryDelete(f, args)
 		},
 	}
 
@@ -43,7 +43,7 @@ You can specify the entry using either:
 	return cmd
 }
 
-func runEntryDelete(f *factory.Factory, opts *entryDeleteOptions, args []string) error {
+func runEntryDelete(f *factory.Factory, args []string) error {
 	// Parse entry ID (could be numeric ID or URL)
 	entryID, parsedURL, err := parser.ParseArgument(args[0])
 	if err != nil {

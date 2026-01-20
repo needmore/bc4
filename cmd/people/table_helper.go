@@ -8,6 +8,12 @@ import (
 	"github.com/needmore/bc4/internal/ui/tableprinter"
 )
 
+const (
+	roleOwner  = "owner"
+	roleAdmin  = "admin"
+	roleMember = "member"
+)
+
 // renderPeopleTable renders a list of people in a formatted table
 func renderPeopleTable(people []api.Person, includeRole bool) error {
 	// Create new GitHub CLI-style table
@@ -31,11 +37,11 @@ func renderPeopleTable(people []api.Person, includeRole bool) error {
 	// Add people to table
 	for _, person := range people {
 		// Determine role
-		role := "member"
+		role := roleMember
 		if person.Owner {
-			role = "owner"
+			role = roleOwner
 		} else if person.Admin {
-			role = "admin"
+			role = roleAdmin
 		}
 
 		// Add ID field
@@ -54,9 +60,9 @@ func renderPeopleTable(people []api.Person, includeRole bool) error {
 		// Add role with color (if includeRole is true)
 		if includeRole {
 			switch role {
-			case "owner":
+			case roleOwner:
 				table.AddField(role, cs.Magenta)
-			case "admin":
+			case roleAdmin:
 				table.AddField(role, cs.Cyan)
 			default:
 				table.AddField(role, cs.Muted)

@@ -28,7 +28,7 @@ type Upload struct {
 
 // GetUpload fetches upload details by ID
 func (c *Client) GetUpload(ctx context.Context, bucketID string, uploadID int64) (*Upload, error) {
-	// Check if context is already cancelled
+	// Check if context is already canceled
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *Client) GetUpload(ctx context.Context, bucketID string, uploadID int64)
 
 // DownloadAttachment downloads a file from a download URL to the specified path
 func (c *Client) DownloadAttachment(ctx context.Context, downloadURL, destPath string) error {
-	// Check if context is already cancelled
+	// Check if context is already canceled
 	if err := ctx.Err(); err != nil {
 		return err
 	}

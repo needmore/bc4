@@ -216,7 +216,7 @@ You can specify the card using either:
 func sanitizeFilename(filename string) string {
 	// Remove path separators to prevent directory traversal
 	cleaned := filepath.Base(filename)
-	
+
 	// Remove null bytes and other control characters
 	cleaned = strings.Map(func(r rune) rune {
 		if r < 32 || r == 127 {
@@ -224,18 +224,18 @@ func sanitizeFilename(filename string) string {
 		}
 		return r
 	}, cleaned)
-	
+
 	// Replace filesystem-unsafe characters with underscores
 	unsafe := []string{"<", ">", ":", "\"", "|", "?", "*"}
 	for _, char := range unsafe {
 		cleaned = strings.ReplaceAll(cleaned, char, "_")
 	}
-	
+
 	// Prevent empty filenames
 	if cleaned == "" || cleaned == "." || cleaned == ".." {
 		cleaned = "attachment"
 	}
-	
+
 	return cleaned
 }
 

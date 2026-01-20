@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/needmore/bc4/internal/api"
@@ -201,22 +200,4 @@ func formatDateTime(startsAt, endsAt string, allDay bool) (dateStr, timeStr stri
 	}
 
 	return dateStr, timeStr
-}
-
-// formatParticipants formats participant names for display
-func formatParticipants(participants []api.Person) string {
-	if len(participants) == 0 {
-		return "-"
-	}
-
-	names := make([]string, len(participants))
-	for i, p := range participants {
-		names[i] = p.Name
-	}
-
-	result := strings.Join(names, ", ")
-	if len(result) > 30 {
-		return fmt.Sprintf("%s... (+%d)", names[0], len(participants)-1)
-	}
-	return result
 }

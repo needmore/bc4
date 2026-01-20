@@ -83,7 +83,7 @@ func (c *Client) ListRecordings(ctx context.Context, projectID string, opts *Act
 
 	// Fetch recordings for each type
 	for _, recordingType := range typesToFetch {
-		typeRecordings, err := c.listRecordingsByType(ctx, projectID, recordingType, opts)
+		typeRecordings, err := c.listRecordingsByType(projectID, recordingType)
 		if err != nil {
 			return nil, fmt.Errorf("failed to list %s recordings: %w", recordingType, err)
 		}
@@ -102,7 +102,7 @@ func (c *Client) ListRecordings(ctx context.Context, projectID string, opts *Act
 }
 
 // listRecordingsByType fetches recordings of a specific type for a project
-func (c *Client) listRecordingsByType(ctx context.Context, projectID string, recordingType string, opts *ActivityListOptions) ([]Recording, error) {
+func (c *Client) listRecordingsByType(projectID string, recordingType string) ([]Recording, error) {
 	var recordings []Recording
 
 	// Build query params
@@ -136,7 +136,11 @@ func sortRecordings(recordings []Recording) {
 
 // filterRecordings applies filtering options to recordings
 func filterRecordings(recordings []Recording, opts *ActivityListOptions) []Recording {
-	var filtered []Recording
+	capacity := len(recordings)
+	if opts.Limit > 0 && opts.Limit < capacity {
+		capacity = opts.Limit
+	}
+	filtered := make([]Recording, 0, capacity)
 
 	for _, r := range recordings {
 		// Filter by since time

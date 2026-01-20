@@ -63,15 +63,15 @@ func (c *Client) Search(ctx context.Context, opts SearchOptions) ([]SearchResult
 
 	// If types are specified, search each type separately and combine results
 	if len(opts.Types) > 0 {
-		return c.searchByTypes(ctx, opts)
+		return c.searchByTypes(opts)
 	}
 
 	// Otherwise, search without type filter (returns all types)
-	return c.searchAll(ctx, opts)
+	return c.searchAll(opts)
 }
 
 // searchAll performs a search without type filtering
-func (c *Client) searchAll(ctx context.Context, opts SearchOptions) ([]SearchResult, error) {
+func (c *Client) searchAll(opts SearchOptions) ([]SearchResult, error) {
 	params := url.Values{}
 	params.Set("query", opts.Query)
 	params.Set("sort", opts.Sort)
@@ -98,7 +98,7 @@ func (c *Client) searchAll(ctx context.Context, opts SearchOptions) ([]SearchRes
 }
 
 // searchByTypes performs searches for each specified type and combines results
-func (c *Client) searchByTypes(ctx context.Context, opts SearchOptions) ([]SearchResult, error) {
+func (c *Client) searchByTypes(opts SearchOptions) ([]SearchResult, error) {
 	var allResults []SearchResult
 
 	for _, recordingType := range opts.Types {
