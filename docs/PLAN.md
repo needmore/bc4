@@ -1,6 +1,6 @@
 # BC4 Project Evaluation: API Coverage Analysis
 
-*Generated: 2026-01-19 | Version: 0.13.0*
+*Generated: 2026-01-19 | Version: 0.15.0*
 
 ## Executive Summary
 
@@ -32,7 +32,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **65% complete AP
 | **Steps** (card subtasks) | ✅ Complete | 100% | list, add, edit, delete, move, check, uncheck, assign |
 | **Documents** | ✅ Complete | 100% | list, get, create, edit |
 | **Vaults** | ✅ Complete | 100% | document containers |
-| **Attachments/Uploads** | ✅ Complete | 100% | upload, attach to comments and resources |
+| **Attachments/Uploads** | ✅ Complete | 100% | upload, download, attach to comments and resources |
 | **People** | ✅ Complete | 100% | list, view, invite, remove, update, ping |
 | **Projects** | ✅ Complete | 100% | list, get, create, edit, delete, archive, unarchive, copy, search, select |
 | **Schedules** | ✅ Complete | 100% | list, view schedules in project |
@@ -335,7 +335,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **65% complete AP
 | Not Implemented Resources | 14 |
 | TODO Comments Found | ~20 |
 | Recent Commits (last 30) | 30+ |
-| Current Version | v0.13.0 |
+| Current Version | v0.15.0 |
 
 ### Development Health
 - ✅ Semantic Versioning
@@ -356,6 +356,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **65% complete AP
 - Document management
 - Multi-account Basecamp users
 - Comment-driven collaboration
+- **Attachment downloads** (NEW in v0.15.0)
 - **Calendar/schedule coordination** (NEW in v0.13.0)
 - **Project creation/administration** (NEW in v0.13.0)
 - **People management** (NEW in v0.13.0)
@@ -374,7 +375,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **65% complete AP
 
 ### Summary Metrics
 
-**Current State (v0.13.0+):**
+**Current State (v0.15.0):**
 - ✅ 26/40 resources fully implemented (65%)
 - 🟨 0/40 resources partially implemented (0%)
 - ❌ 14/40 resources not implemented (35%)
@@ -387,6 +388,7 @@ bc4 is a mature, production-ready CLI tool for Basecamp 4 with **65% complete AP
 - ✅ Comprehensive people management
 - ✅ Global search functionality
 - ✅ Enhanced activity/events monitoring with real-time watch
+- ✅ OAuth-based attachment downloads for cards, todos, and messages
 
 **Path to 100% Coverage:**
 - **20 remaining feature areas** to implement
