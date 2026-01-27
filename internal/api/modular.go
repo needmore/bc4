@@ -52,6 +52,7 @@ type CardOperations interface {
 	GetProjectCardTable(ctx context.Context, projectID string) (*CardTable, error)
 	GetCardTable(ctx context.Context, projectID string, cardTableID int64) (*CardTable, error)
 	GetCardsInColumn(ctx context.Context, projectID string, columnID int64) ([]Card, error)
+	GetOnHoldCardsInColumn(ctx context.Context, onHoldCardsURL string) ([]Card, error)
 	GetCard(ctx context.Context, projectID string, cardID int64) (*Card, error)
 	CreateCard(ctx context.Context, projectID string, columnID int64, req CardCreateRequest) (*Card, error)
 	UpdateCard(ctx context.Context, projectID string, cardID int64, req CardUpdateRequest) (*Card, error)

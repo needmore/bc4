@@ -22,7 +22,8 @@ func newTableCmd(f *factory.Factory) *cobra.Command {
 		Use:   "table [ID|name]",
 		Short: "View cards in a specific card table",
 		Long: `View all cards in a specific card table, organized by columns.
-		
+On-hold cards are included automatically and shown with an [ON HOLD] indicator.
+
 If no table ID or name is provided, uses the default card table if set.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -118,6 +119,17 @@ If no table ID or name is provided, uses the default card table if set.`,
 					return fmt.Errorf("failed to fetch cards from column %s: %w", column.Title, err)
 				}
 
+				// Fetch on-hold cards if the column has them
+				if column.OnHold.CardsURL != "" {
+					onHoldCards, ohErr := cardOps.GetOnHoldCardsInColumn(f.Context(), column.OnHold.CardsURL)
+					if ohErr == nil {
+						for i := range onHoldCards {
+							onHoldCards[i].IsOnHold = true
+						}
+						cards = append(cards, onHoldCards...)
+					}
+				}
+
 				// Add each card to the table
 				for _, card := range cards {
 					totalCards++
@@ -126,7 +138,11 @@ If no table ID or name is provided, uses the default card table if set.`,
 					table.AddIDField(fmt.Sprintf("%d", card.ID), card.Status)
 
 					// Title
-					table.AddProjectField(card.Title, card.Status)
+					title := card.Title
+					if card.IsOnHold {
+						title = "[ON HOLD] " + title
+					}
+					table.AddProjectField(title, card.Status)
 
 					// Column with color
 					columnTitle := column.Title

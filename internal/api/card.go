@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -38,7 +39,9 @@ type Column struct {
 
 // OnHoldStatus represents the on_hold status of a column
 type OnHoldStatus struct {
-	Enabled bool `json:"enabled"`
+	Enabled    bool   `json:"enabled"`
+	CardsCount int    `json:"cards_count,omitempty"`
+	CardsURL   string `json:"cards_url,omitempty"`
 }
 
 // Card represents a card in a card table
@@ -57,6 +60,7 @@ type Card struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 	Parent        *Column   `json:"parent"`
 	URL           string    `json:"url"`
+	IsOnHold      bool      `json:"-"` // Set programmatically, not from API
 }
 
 // Step represents a step within a card
@@ -234,6 +238,26 @@ func (c *Client) GetCardsInColumn(ctx context.Context, projectID string, columnI
 		return nil, fmt.Errorf("failed to fetch cards: %w", err)
 	}
 
+	return cards, nil
+}
+
+// GetOnHoldCardsInColumn fetches all on-hold cards in a column using the on_hold.cards_url
+func (c *Client) GetOnHoldCardsInColumn(ctx context.Context, onHoldCardsURL string) ([]Card, error) {
+	if onHoldCardsURL == "" {
+		return nil, nil
+	}
+
+	// Extract path from full URL
+	parsed, err := url.Parse(onHoldCardsURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse on-hold cards URL: %w", err)
+	}
+
+	var cards []Card
+	pr := NewPaginatedRequest(c)
+	if err := pr.GetAll(parsed.Path, &cards); err != nil {
+		return nil, fmt.Errorf("failed to fetch on-hold cards: %w", err)
+	}
 	return cards, nil
 }
 

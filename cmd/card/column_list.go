@@ -20,7 +20,7 @@ func newColumnListCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list [CARD_TABLE_ID or URL]",
 		Short: "List all columns in a card table",
-		Long: `List all columns in the specified card table.
+		Long: `List all columns in the specified card table, including on-hold card counts.
 
 You can specify the card table using either:
 - A numeric ID (e.g., "12345")
@@ -93,7 +93,7 @@ Examples:
 				defer writer.Flush()
 
 				// Write header
-				if err := writer.Write([]string{"ID", "TITLE", "ON_HOLD", "CARDS_COUNT"}); err != nil {
+				if err := writer.Write([]string{"ID", "TITLE", "ON_HOLD", "CARDS_COUNT", "ON_HOLD_CARDS_COUNT"}); err != nil {
 					return fmt.Errorf("failed to write CSV header: %w", err)
 				}
 
@@ -108,6 +108,7 @@ Examples:
 						column.Title,
 						onHold,
 						strconv.Itoa(column.CardsCount),
+						strconv.Itoa(column.OnHold.CardsCount),
 					}
 					if err := writer.Write(record); err != nil {
 						return fmt.Errorf("failed to write CSV record: %w", err)
@@ -119,9 +120,9 @@ Examples:
 
 				// Add headers
 				if table.IsTTY() {
-					table.AddHeader("ID", "TITLE", "STATUS", "CARDS")
+					table.AddHeader("ID", "TITLE", "STATUS", "CARDS", "ON-HOLD")
 				} else {
-					table.AddHeader("ID", "TITLE", "ON_HOLD", "CARDS_COUNT")
+					table.AddHeader("ID", "TITLE", "ON_HOLD", "CARDS_COUNT", "ON_HOLD_CARDS_COUNT")
 				}
 
 				// Add rows
@@ -147,6 +148,11 @@ Examples:
 						}
 					}
 					table.AddField(fmt.Sprintf("%d", column.CardsCount))
+					if column.OnHold.Enabled {
+						table.AddField(fmt.Sprintf("%d", column.OnHold.CardsCount))
+					} else {
+						table.AddField("-")
+					}
 					table.EndRow()
 				}
 
