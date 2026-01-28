@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 
@@ -225,7 +226,9 @@ func (c *Client) GetToken(accountID string) (*AccountToken, error) {
 		}
 		token = *refreshed
 		c.authStore.Accounts[accountID] = token
-		_ = c.saveAuthStore()
+		if err := c.saveAuthStore(); err != nil {
+			return nil, fmt.Errorf("failed to save refreshed token: %w", err)
+		}
 	}
 
 	return &token, nil
@@ -458,8 +461,16 @@ func (c *Client) loadAuthStore() {
 	}
 	defer func() { _ = file.Close() }()
 
-	c.authStore = &AuthStore{}
-	_ = json.NewDecoder(file).Decode(c.authStore)
+	store := &AuthStore{}
+	if err := json.NewDecoder(file).Decode(store); err != nil {
+		// File is corrupted or empty; keep default empty store
+		return
+	}
+	// Initialize the Accounts map if nil to prevent panics
+	if store.Accounts == nil {
+		store.Accounts = make(map[string]AccountToken)
+	}
+	c.authStore = store
 }
 
 func (c *Client) saveAuthStore() error {
@@ -469,14 +480,30 @@ func (c *Client) saveAuthStore() error {
 		return err
 	}
 
-	// Write file with restricted permissions
-	file, err := os.OpenFile(c.storePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
+	// Atomic write: write to temp file, then rename
+	tmpFile, err := os.CreateTemp(dir, ".auth-*.json.tmp")
 	if err != nil {
 		return err
 	}
-	defer func() { _ = file.Close() }()
+	tmpPath := tmpFile.Name()
 
-	encoder := json.NewEncoder(file)
+	encoder := json.NewEncoder(tmpFile)
 	encoder.SetIndent("", "  ")
-	return encoder.Encode(c.authStore)
+	if err := encoder.Encode(c.authStore); err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpPath)
+		return err
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return err
+	}
+
+	if err := os.Chmod(tmpPath, 0600); err != nil {
+		_ = os.Remove(tmpPath)
+		return err
+	}
+
+	return utils.AtomicRename(tmpPath, c.storePath)
 }
