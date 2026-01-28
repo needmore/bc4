@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/viper"
 )
 
@@ -126,7 +127,7 @@ func Save(config *Config) error {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
-	if err := os.Rename(tmpPath, configPath); err != nil {
+	if err := utils.AtomicRename(tmpPath, configPath); err != nil {
 		_ = os.Remove(tmpPath)
 		return fmt.Errorf("failed to save config file: %w", err)
 	}

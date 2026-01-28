@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 
@@ -504,5 +505,5 @@ func (c *Client) saveAuthStore() error {
 		return err
 	}
 
-	return os.Rename(tmpPath, c.storePath)
+	return utils.AtomicRename(tmpPath, c.storePath)
 }
