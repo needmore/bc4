@@ -106,17 +106,29 @@ func Save(config *Config) error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	// Write config file
-	file, err := os.OpenFile(configPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	// Atomic write: write to temp file, then rename
+	tmpFile, err := os.CreateTemp(dir, ".config-*.json.tmp")
 	if err != nil {
-		return fmt.Errorf("failed to create config file: %w", err)
+		return fmt.Errorf("failed to create temp config file: %w", err)
 	}
-	defer func() { _ = file.Close() }()
+	tmpPath := tmpFile.Name()
 
-	encoder := json.NewEncoder(file)
+	encoder := json.NewEncoder(tmpFile)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(config); err != nil {
+		_ = tmpFile.Close()
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("failed to encode config: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	if err := os.Rename(tmpPath, configPath); err != nil {
+		_ = os.Remove(tmpPath)
+		return fmt.Errorf("failed to save config file: %w", err)
 	}
 
 	return nil
