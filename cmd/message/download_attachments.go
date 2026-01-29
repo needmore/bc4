@@ -143,16 +143,23 @@ You can specify the card using either:
 					fmt.Printf("Downloading attachment %d/%d: %s\n", displayIndex, originalCount, att.GetDisplayName())
 				}
 
-				// Extract upload ID from the URL
-				uploadID, err := attachments.ExtractUploadIDFromURL(att.URL)
+				// Try to extract upload ID from URL or Href
+				result, err := attachments.TryExtractUploadID(&att)
 				if err != nil {
-					fmt.Printf("  ✗ Failed: %v\n", err)
+					if result != nil && result.IsBlobURL {
+						// This is a blob URL - provide helpful guidance
+						fmt.Println("  ✗ Cannot download via API: This attachment uses a browser-only URL")
+						fmt.Printf("    URL: %s\n", result.BlobURL)
+						fmt.Println("    Tip: Open this URL in your browser while logged into Basecamp to download")
+					} else {
+						fmt.Printf("  ✗ Failed: %v\n", err)
+					}
 					failed++
 					continue
 				}
 
 				// Get full upload details including download URL
-				upload, err := uploadOps.GetUpload(ctx, bucketID, uploadID)
+				upload, err := uploadOps.GetUpload(ctx, bucketID, result.UploadID)
 				if err != nil {
 					fmt.Printf("  ✗ Failed to get upload details: %v\n", err)
 					failed++
