@@ -27,11 +27,11 @@ Integration tests require `BC4_TEST_ACCOUNT_ID` and `BC4_TEST_ACCESS_TOKEN` envi
 ## Architecture
 
 ### Directory Structure
-- `cmd/` - CLI commands (Cobra-based): account, auth, campfire, card, comment, document, message, people, profile, project, schedule, search, todo, activity
+- `cmd/` - CLI commands (Cobra-based): account, activity, auth, campfire, card, checkin, comment, document, message, people, profile, project, schedule, search, todo
 - `internal/` - Private packages:
   - `api/` - Modular Basecamp API client with retry logic and rate limiting
   - `auth/` - OAuth2 authentication
-  - `config/` - JSON config at `~/.config/bc4/`
+  - `config/` - JSON config at `~/.config/bc4/` (falls back to `~/Library/Application Support/bc4/` on macOS for existing users)
   - `errors/` - Custom error types with user-friendly messages
   - `factory/` - Dependency injection (used by all commands)
   - `markdown/` - Markdown to Basecamp HTML conversion (goldmark)
