@@ -13,12 +13,18 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/needmore/bc4/internal/config"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/pkg/browser"
 	"golang.org/x/oauth2"
 
 	"github.com/needmore/bc4/internal/version"
 )
+
+// GetAuthPath returns the path to the auth file (delegates to config package)
+func GetAuthPath() string {
+	return config.GetAuthPath()
+}
 
 const (
 	authURL      = "https://launchpad.37signals.com/authorization/new"
@@ -75,7 +81,7 @@ type Client struct {
 
 // NewClient creates a new auth client
 func NewClient(clientID, clientSecret string) *Client {
-	config := &oauth2.Config{
+	oauthConfig := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
 		Endpoint: oauth2.Endpoint{
@@ -86,13 +92,12 @@ func NewClient(clientID, clientSecret string) *Client {
 		Scopes:      []string{},
 	}
 
-	configDir, _ := os.UserConfigDir()
-	storePath := filepath.Join(configDir, "bc4", "auth.json")
+	storePath := config.GetAuthPath()
 
 	client := &Client{
 		clientID:     clientID,
 		clientSecret: clientSecret,
-		config:       config,
+		config:       oauthConfig,
 		storePath:    storePath,
 	}
 

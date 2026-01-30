@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/viper"
@@ -41,13 +42,62 @@ type PreferencesConfig struct {
 	Color  string `json:"color,omitempty"`
 }
 
+var configDir string
 var configPath string
 var authPath string
 
+// getXDGConfigDir returns the XDG config directory (~/.config/bc4)
+func getXDGConfigDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".config", "bc4")
+}
+
+// getLegacyConfigDir returns the legacy macOS config directory (~/Library/Application Support/bc4)
+func getLegacyConfigDir() string {
+	if runtime.GOOS != "darwin" {
+		return ""
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, "Library", "Application Support", "bc4")
+}
+
+// resolveConfigDir determines which config directory to use.
+// Priority: XDG (~/.config/bc4) first, fall back to legacy macOS location if XDG doesn't exist.
+func resolveConfigDir() string {
+	xdgDir := getXDGConfigDir()
+	legacyDir := getLegacyConfigDir()
+
+	// Check if XDG directory exists
+	if _, err := os.Stat(xdgDir); err == nil {
+		return xdgDir
+	}
+
+	// Check if legacy directory exists (macOS only)
+	if legacyDir != "" {
+		if _, err := os.Stat(legacyDir); err == nil {
+			return legacyDir
+		}
+	}
+
+	// Neither exists, use XDG for new installations
+	return xdgDir
+}
+
 func init() {
-	configDir, _ := os.UserConfigDir()
-	configPath = filepath.Join(configDir, "bc4", "config.json")
-	authPath = filepath.Join(configDir, "bc4", "auth.json")
+	configDir = resolveConfigDir()
+	configPath = filepath.Join(configDir, "config.json")
+	authPath = filepath.Join(configDir, "auth.json")
+}
+
+// GetConfigDir returns the resolved config directory
+func GetConfigDir() string {
+	return configDir
 }
 
 // Load loads the configuration from file
@@ -138,6 +188,11 @@ func Save(config *Config) error {
 // GetConfigPath returns the path to the config file
 func GetConfigPath() string {
 	return configPath
+}
+
+// GetAuthPath returns the path to the auth file
+func GetAuthPath() string {
+	return authPath
 }
 
 // IsFirstRun checks if this is the first run (no auth or config)
