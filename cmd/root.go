@@ -13,6 +13,7 @@ import (
 	"github.com/needmore/bc4/cmd/auth"
 	"github.com/needmore/bc4/cmd/campfire"
 	"github.com/needmore/bc4/cmd/card"
+	"github.com/needmore/bc4/cmd/checkin"
 	"github.com/needmore/bc4/cmd/comment"
 	"github.com/needmore/bc4/cmd/document"
 	"github.com/needmore/bc4/cmd/message"
@@ -163,6 +164,7 @@ func init() {
 	rootCmd.AddCommand(document.NewDocumentCmd(f))
 	rootCmd.AddCommand(campfire.NewCampfireCmd(f))
 	rootCmd.AddCommand(card.NewCardCmd(f))
+	rootCmd.AddCommand(checkin.NewCheckinCmd(f))
 	rootCmd.AddCommand(comment.NewCommentCmd(f))
 	rootCmd.AddCommand(people.NewPeopleCmd(f))
 	rootCmd.AddCommand(profile.NewProfileCmd(f))

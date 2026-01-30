@@ -206,6 +206,30 @@ func (c *ModularClient) Search() SearchOperations {
 	return c.Client
 }
 
+// QuestionOperations defines check-in question operations
+type QuestionOperations interface {
+	GetProjectQuestionnaire(ctx context.Context, projectID string) (*Questionnaire, error)
+	ListQuestions(ctx context.Context, projectID string, questionnaireID int64) ([]Question, error)
+	GetQuestion(ctx context.Context, projectID string, questionID int64) (*Question, error)
+	CreateQuestion(ctx context.Context, projectID string, questionnaireID int64, req QuestionCreateRequest) (*Question, error)
+	UpdateQuestion(ctx context.Context, projectID string, questionID int64, req QuestionUpdateRequest) (*Question, error)
+	PauseQuestion(ctx context.Context, projectID string, questionID int64) error
+	ResumeQuestion(ctx context.Context, projectID string, questionID int64) error
+	UpdateNotificationSettings(ctx context.Context, projectID string, questionID int64, req NotificationSettingsUpdateRequest) (*QuestionNotificationSettings, error)
+	ListAnswers(ctx context.Context, projectID string, questionID int64, opts *AnswerListOptions) ([]QuestionAnswer, error)
+	ListAnswerers(ctx context.Context, projectID string, questionID int64) ([]Person, error)
+	GetAnswersByPerson(ctx context.Context, projectID string, questionID int64, personID int64) ([]QuestionAnswer, error)
+	GetAnswer(ctx context.Context, projectID string, answerID int64) (*QuestionAnswer, error)
+	CreateAnswer(ctx context.Context, projectID string, questionID int64, req AnswerCreateRequest) (*QuestionAnswer, error)
+	UpdateAnswer(ctx context.Context, projectID string, answerID int64, req AnswerUpdateRequest) (*QuestionAnswer, error)
+	ListMyReminders(ctx context.Context) ([]QuestionReminder, error)
+}
+
+// Questions returns the question operations interface
+func (c *ModularClient) Questions() QuestionOperations {
+	return c.Client
+}
+
 // Example of how to extend with new operations without modifying existing code:
 //
 // type MessageOperations interface {

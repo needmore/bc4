@@ -31,6 +31,14 @@ Most projects have a single schedule, but this command shows all available ones.
   bc4 schedule list --json`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Apply overrides from persistent flags
+			if accountID := viper.GetString("account"); accountID != "" {
+				f = f.WithAccount(accountID)
+			}
+			if projectID := viper.GetString("project"); projectID != "" {
+				f = f.WithProject(projectID)
+			}
+
 			opts.jsonOutput = viper.GetBool("json")
 			return runList(f, opts)
 		},

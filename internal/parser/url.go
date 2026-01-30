@@ -12,23 +12,25 @@ import (
 type ResourceType string
 
 const (
-	ResourceTypeProject       ResourceType = "project"
-	ResourceTypeTodo          ResourceType = "todo"
-	ResourceTypeTodoSet       ResourceType = "todoset"
-	ResourceTypeTodoList      ResourceType = "todolist"
-	ResourceTypeTodoGroup     ResourceType = "todogroup"
-	ResourceTypeCard          ResourceType = "card"
-	ResourceTypeCardTable     ResourceType = "card_table"
-	ResourceTypeColumn        ResourceType = "column"
-	ResourceTypeStep          ResourceType = "step"
-	ResourceTypeCampfire      ResourceType = "campfire"
-	ResourceTypeMessage       ResourceType = "message"
-	ResourceTypeDocument      ResourceType = "document"
-	ResourceTypeComment       ResourceType = "comment"
-	ResourceTypeVault         ResourceType = "vault"
-	ResourceTypeSchedule      ResourceType = "schedule"
-	ResourceTypeQuestionnaire ResourceType = "questionnaire"
-	ResourceTypeUnknown       ResourceType = "unknown"
+	ResourceTypeProject        ResourceType = "project"
+	ResourceTypeTodo           ResourceType = "todo"
+	ResourceTypeTodoSet        ResourceType = "todoset"
+	ResourceTypeTodoList       ResourceType = "todolist"
+	ResourceTypeTodoGroup      ResourceType = "todogroup"
+	ResourceTypeCard           ResourceType = "card"
+	ResourceTypeCardTable      ResourceType = "card_table"
+	ResourceTypeColumn         ResourceType = "column"
+	ResourceTypeStep           ResourceType = "step"
+	ResourceTypeCampfire       ResourceType = "campfire"
+	ResourceTypeMessage        ResourceType = "message"
+	ResourceTypeDocument       ResourceType = "document"
+	ResourceTypeComment        ResourceType = "comment"
+	ResourceTypeVault          ResourceType = "vault"
+	ResourceTypeSchedule       ResourceType = "schedule"
+	ResourceTypeQuestionnaire  ResourceType = "questionnaire"
+	ResourceTypeQuestion       ResourceType = "question"
+	ResourceTypeQuestionAnswer ResourceType = "question_answer"
+	ResourceTypeUnknown        ResourceType = "unknown"
 )
 
 // ParsedURL represents the extracted information from a Basecamp URL
@@ -277,6 +279,38 @@ var urlPatterns = []urlPattern{
 				ProjectID:    projectID,
 				ResourceType: ResourceTypeVault,
 				ResourceID:   vaultID,
+			}, nil
+		},
+	},
+	// Question pattern: /1234567/buckets/89012345/questions/34567890
+	{
+		regex:        regexp.MustCompile(`^/(\d+)/buckets/(\d+)/questions/(\d+)`),
+		resourceType: ResourceTypeQuestion,
+		extractor: func(matches []string) (*ParsedURL, error) {
+			accountID, _ := strconv.ParseInt(matches[1], 10, 64)
+			projectID, _ := strconv.ParseInt(matches[2], 10, 64)
+			questionID, _ := strconv.ParseInt(matches[3], 10, 64)
+			return &ParsedURL{
+				AccountID:    accountID,
+				ProjectID:    projectID,
+				ResourceType: ResourceTypeQuestion,
+				ResourceID:   questionID,
+			}, nil
+		},
+	},
+	// Question answer pattern: /1234567/buckets/89012345/question_answers/34567890
+	{
+		regex:        regexp.MustCompile(`^/(\d+)/buckets/(\d+)/question_answers/(\d+)`),
+		resourceType: ResourceTypeQuestionAnswer,
+		extractor: func(matches []string) (*ParsedURL, error) {
+			accountID, _ := strconv.ParseInt(matches[1], 10, 64)
+			projectID, _ := strconv.ParseInt(matches[2], 10, 64)
+			answerID, _ := strconv.ParseInt(matches[3], 10, 64)
+			return &ParsedURL{
+				AccountID:    accountID,
+				ProjectID:    projectID,
+				ResourceType: ResourceTypeQuestionAnswer,
+				ResourceID:   answerID,
 			}, nil
 		},
 	},

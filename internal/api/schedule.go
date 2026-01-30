@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 )
@@ -89,14 +88,14 @@ type ScheduleEntryUpdateRequest struct {
 
 // GetProjectSchedule fetches the schedule (calendar) for a project from its dock
 func (c *Client) GetProjectSchedule(ctx context.Context, projectID string) (*Schedule, error) {
-	// Get the project to access its dock
-	path := fmt.Sprintf("/projects/%s.json", projectID)
-
-	resp, err := c.doRequest("GET", path, nil)
+	// First get the project to find its schedule
+	project, err := c.GetProject(ctx, projectID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch project: %w", err)
+		return nil, err
 	}
-	defer func() { _ = resp.Body.Close() }()
+
+	// Get project tools/features
+	path := fmt.Sprintf("/projects/%d.json", project.ID)
 
 	var projectData struct {
 		Dock []struct {
@@ -108,8 +107,8 @@ func (c *Client) GetProjectSchedule(ctx context.Context, projectID string) (*Sch
 		} `json:"dock"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&projectData); err != nil {
-		return nil, fmt.Errorf("failed to decode project data: %w", err)
+	if err := c.Get(path, &projectData); err != nil {
+		return nil, fmt.Errorf("failed to fetch project tools: %w", err)
 	}
 
 	// Find the schedule in the dock
