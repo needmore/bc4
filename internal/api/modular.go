@@ -225,8 +225,20 @@ type QuestionOperations interface {
 	ListMyReminders(ctx context.Context) ([]QuestionReminder, error)
 }
 
+// TimesheetOperations defines timesheet-specific operations
+type TimesheetOperations interface {
+	GetTimesheetReport(ctx context.Context, opts *TimesheetReportOptions) ([]TimesheetEntry, error)
+	GetProjectTimesheet(ctx context.Context, projectID string) ([]TimesheetEntry, error)
+	GetRecordingTimesheet(ctx context.Context, projectID string, recordingID int64) ([]TimesheetEntry, error)
+}
+
 // Questions returns the question operations interface
 func (c *ModularClient) Questions() QuestionOperations {
+	return c.Client
+}
+
+// Timesheets returns the timesheet operations interface
+func (c *ModularClient) Timesheets() TimesheetOperations {
 	return c.Client
 }
 
