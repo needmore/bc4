@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sort"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Event represents a Basecamp activity event
@@ -70,7 +73,10 @@ func (c *Client) ListEvents(ctx context.Context, projectID string, recordingID i
 	return events, nil
 }
 
-// ListRecordings returns all recordings (activity items) for a project
+// ListRecordings returns all recordings (activity items) for a project.
+// Types are fetched in parallel using errgroup — if one type fails or the
+// context is cancelled, all in-flight fetches are aborted. When opts.Since
+// is set, pagination stops early once records older than the cutoff are encountered.
 func (c *Client) ListRecordings(ctx context.Context, projectID string, opts *ActivityListOptions) ([]Recording, error) {
 	// Default types to fetch if none specified
 	typesToFetch := []string{"Todo", "Message", "Document", "Comment"}
@@ -79,18 +85,38 @@ func (c *Client) ListRecordings(ctx context.Context, projectID string, opts *Act
 		typesToFetch = opts.RecordingTypes
 	}
 
-	var allRecordings []Recording
-
-	// Fetch recordings for each type
-	for _, recordingType := range typesToFetch {
-		typeRecordings, err := c.listRecordingsByType(projectID, recordingType)
-		if err != nil {
-			return nil, fmt.Errorf("failed to list %s recordings: %w", recordingType, err)
-		}
-		allRecordings = append(allRecordings, typeRecordings...)
+	// Extract options for per-type fetching
+	var since *time.Time
+	if opts != nil {
+		since = opts.Since
 	}
 
-	// Sort by updated_at descending
+	// Fetch all types in parallel; cancel siblings on first error
+	g, gctx := errgroup.WithContext(ctx)
+	results := make([][]Recording, len(typesToFetch))
+
+	for i, recordingType := range typesToFetch {
+		g.Go(func() error {
+			recs, err := c.listRecordingsByType(gctx, projectID, recordingType, since)
+			if err != nil {
+				return fmt.Errorf("failed to list %s recordings: %w", recordingType, err)
+			}
+			results[i] = recs
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
+	}
+
+	// Collect results
+	var allRecordings []Recording
+	for _, recs := range results {
+		allRecordings = append(allRecordings, recs...)
+	}
+
+	// Sort by updated_at descending (stable to preserve order for equal timestamps)
 	sortRecordings(allRecordings)
 
 	// Apply filtering if options provided
@@ -101,8 +127,11 @@ func (c *Client) ListRecordings(ctx context.Context, projectID string, opts *Act
 	return allRecordings, nil
 }
 
-// listRecordingsByType fetches recordings of a specific type for a project
-func (c *Client) listRecordingsByType(projectID string, recordingType string) ([]Recording, error) {
+// listRecordingsByType fetches recordings of a specific type for a project.
+// When since is non-nil, pagination stops early once all items on a page
+// are older than the cutoff (data arrives sorted by updated_at desc).
+// The context is propagated to all HTTP requests for cancellation support.
+func (c *Client) listRecordingsByType(ctx context.Context, projectID string, recordingType string, since *time.Time) ([]Recording, error) {
 	var recordings []Recording
 
 	// Build query params
@@ -114,7 +143,23 @@ func (c *Client) listRecordingsByType(projectID string, recordingType string) ([
 
 	path := fmt.Sprintf("/projects/recordings.json?%s", params.Encode())
 
-	pr := NewPaginatedRequest(c)
+	pr := NewPaginatedRequest(c).WithContext(ctx)
+
+	// Early termination: stop paginating once the last item on a page
+	// is older than our since cutoff. Since results are sorted by
+	// updated_at desc, all subsequent pages will only have older records.
+	if since != nil {
+		cutoff := *since
+		pr.WithPageCheck(func(page any) bool {
+			recs, ok := page.([]Recording)
+			if !ok || len(recs) == 0 {
+				return false
+			}
+			last := recs[len(recs)-1]
+			return !last.UpdatedAt.Before(cutoff)
+		})
+	}
+
 	if err := pr.GetAll(path, &recordings); err != nil {
 		return nil, err
 	}
@@ -122,16 +167,12 @@ func (c *Client) listRecordingsByType(projectID string, recordingType string) ([
 	return recordings, nil
 }
 
-// sortRecordings sorts recordings by updated_at in descending order
+// sortRecordings sorts recordings by updated_at in descending order.
+// Uses stable sort to preserve relative order of items with equal timestamps.
 func sortRecordings(recordings []Recording) {
-	// Sort by updated_at descending (most recent first)
-	for i := 0; i < len(recordings); i++ {
-		for j := i + 1; j < len(recordings); j++ {
-			if recordings[j].UpdatedAt.After(recordings[i].UpdatedAt) {
-				recordings[i], recordings[j] = recordings[j], recordings[i]
-			}
-		}
-	}
+	sort.SliceStable(recordings, func(i, j int) bool {
+		return recordings[i].UpdatedAt.After(recordings[j].UpdatedAt)
+	})
 }
 
 // filterRecordings applies filtering options to recordings

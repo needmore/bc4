@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -13,6 +14,9 @@ import (
 type PaginatedRequest struct {
 	client      *Client
 	rateLimiter *RateLimiter
+	ctx         context.Context      // nil = context.Background()
+	maxPages    int                  // 0 = no limit
+	pageCheck   func(page any) bool // called after each page; return false to stop pagination
 }
 
 // NewPaginatedRequest creates a new paginated request handler
@@ -21,6 +25,27 @@ func NewPaginatedRequest(client *Client) *PaginatedRequest {
 		client:      client,
 		rateLimiter: GetRateLimiter(),
 	}
+}
+
+// WithMaxPages sets the maximum number of pages to fetch (0 = unlimited)
+func (pr *PaginatedRequest) WithMaxPages(n int) *PaginatedRequest {
+	pr.maxPages = n
+	return pr
+}
+
+// WithContext sets the context for all HTTP requests made during pagination.
+// When the context is cancelled, in-flight requests are aborted.
+func (pr *PaginatedRequest) WithContext(ctx context.Context) *PaginatedRequest {
+	pr.ctx = ctx
+	return pr
+}
+
+// WithPageCheck sets a callback invoked after each page is decoded.
+// The callback receives the decoded page slice (e.g. []Recording) as any.
+// Return false to stop pagination after the current page.
+func (pr *PaginatedRequest) WithPageCheck(fn func(page any) bool) *PaginatedRequest {
+	pr.pageCheck = fn
+	return pr
 }
 
 // GetAll fetches all pages of results from a paginated endpoint
@@ -36,15 +61,26 @@ func (pr *PaginatedRequest) GetAll(path string, result any) error {
 	sliceValue := reflect.ValueOf(result).Elem()
 	sliceType := sliceValue.Type()
 
+	ctx := pr.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
 	currentPath := path
 	totalFetched := 0
+	pageCount := 0
 
 	for currentPath != "" {
+		// Check for context cancellation before making a request
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
 		// Wait for rate limit
 		pr.rateLimiter.Wait()
 
-		// Make the request
-		resp, err := pr.client.doRequest("GET", currentPath, nil)
+		// Make the request with context
+		resp, err := pr.client.doRequestContext(ctx, "GET", currentPath, nil)
 		if err != nil {
 			return fmt.Errorf("failed to fetch paginated results: %w", err)
 		}
@@ -64,6 +100,22 @@ func (pr *PaginatedRequest) GetAll(path string, result any) error {
 		}
 
 		totalFetched += pageSlice.Len()
+		pageCount++
+
+		// If no results on this page, we're done (safety check)
+		if pageSlice.Len() == 0 {
+			break
+		}
+
+		// Check max pages limit
+		if pr.maxPages > 0 && pageCount >= pr.maxPages {
+			break
+		}
+
+		// Check page callback — return false to stop
+		if pr.pageCheck != nil && !pr.pageCheck(pageSlice.Interface()) {
+			break
+		}
 
 		// Parse Link header to get next page URL according to RFC5988
 		// Basecamp uses proper Link headers with rel="next"
@@ -75,11 +127,6 @@ func (pr *PaginatedRequest) GetAll(path string, result any) error {
 				// Convert absolute URL to relative path for our client
 				currentPath = extractPathFromURL(nextURL)
 			}
-		}
-
-		// If no results on this page, we're done (safety check)
-		if pageSlice.Len() == 0 {
-			break
 		}
 
 		// Small delay between requests to be respectful

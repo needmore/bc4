@@ -38,30 +38,30 @@ func NewRateLimiter(maxTokens int, refillDuration time.Duration) *RateLimiter {
 	}
 }
 
-// Wait blocks until a token is available
+// Wait blocks until a token is available.
+// Safe for concurrent use — re-checks token availability after waking.
 func (rl *RateLimiter) Wait() {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
-	// Refill tokens based on time elapsed
-	rl.refill()
+	for {
+		rl.refill()
 
-	// If we have tokens, consume one and return
-	if rl.tokens > 0 {
-		rl.tokens--
-		return
-	}
+		if rl.tokens > 0 {
+			rl.tokens--
+			return
+		}
 
-	// Calculate wait time until next token
-	timeSinceLastRefill := time.Since(rl.lastRefill)
-	waitTime := rl.refillRate - timeSinceLastRefill
+		// Calculate wait time until next token
+		waitTime := rl.refillRate - time.Since(rl.lastRefill)
+		if waitTime <= 0 {
+			waitTime = rl.refillRate
+		}
 
-	if waitTime > 0 {
+		// Release lock while sleeping, then re-acquire and re-check
 		rl.mu.Unlock()
 		time.Sleep(waitTime)
 		rl.mu.Lock()
-		rl.refill()
-		rl.tokens--
 	}
 }
 

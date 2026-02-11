@@ -49,15 +49,23 @@ func (c *Client) getBaseURL() string {
 }
 
 func (c *Client) doRequest(method, path string, body io.Reader) (*http.Response, error) {
-	return c.doRequestWithHeaders(method, path, body, map[string]string{
+	return c.doRequestContext(context.Background(), method, path, body)
+}
+
+func (c *Client) doRequestContext(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
+	return c.doRequestWithHeadersContext(ctx, method, path, body, map[string]string{
 		"Content-Type": "application/json; charset=utf-8",
 	})
 }
 
 func (c *Client) doRequestWithHeaders(method, path string, body io.Reader, headers map[string]string) (*http.Response, error) {
+	return c.doRequestWithHeadersContext(context.Background(), method, path, body, headers)
+}
+
+func (c *Client) doRequestWithHeadersContext(ctx context.Context, method, path string, body io.Reader, headers map[string]string) (*http.Response, error) {
 	url := fmt.Sprintf("%s%s", c.getBaseURL(), path)
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
