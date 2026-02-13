@@ -15,6 +15,7 @@ func newMoveCmd(f *factory.Factory) *cobra.Command {
 	var columnName string
 	var accountID string
 	var projectID string
+	var onHold bool
 
 	cmd := &cobra.Command{
 		Use:   "move [ID or URL]",
@@ -25,9 +26,14 @@ You can specify the card using either:
 - A numeric ID (e.g., "12345")
 - A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345")
 
+Use --on-hold to move a card to the on-hold section of its current column
+(or target column if --column is also specified).
+
 Examples:
   bc4 card move 123 --column "In Progress"
   bc4 card move 123 --column 456
+  bc4 card move 123 --on-hold
+  bc4 card move 123 --column "Developing" --on-hold
   bc4 card move https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345 --column "Done"`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -37,8 +43,8 @@ Examples:
 				return fmt.Errorf("invalid card ID or URL: %s", args[0])
 			}
 
-			if columnName == "" {
-				return fmt.Errorf("--column flag is required")
+			if columnName == "" && !onHold {
+				return fmt.Errorf("--column flag is required (or use --on-hold)")
 			}
 
 			// Apply overrides if specified
@@ -112,6 +118,22 @@ Examples:
 				}
 			}
 
+			// Handle --on-hold: move to the on-hold section
+			if onHold {
+				targetColumn, err := findColumn(currentCardTable, columnName, card)
+				if err != nil {
+					return err
+				}
+				if targetColumn.OnHold.ID == 0 {
+					return fmt.Errorf("column '%s' does not have an on-hold section", targetColumn.Title)
+				}
+				if err := cardOps.MoveCard(f.Context(), resolvedProjectID, cardID, targetColumn.OnHold.ID); err != nil {
+					return fmt.Errorf("failed to move card to on-hold: %w", err)
+				}
+				fmt.Printf("✓ Moved card #%d to on-hold in column '%s'\n", cardID, targetColumn.Title)
+				return nil
+			}
+
 			// Find the target column by name or ID within the same card table
 			var targetColumnID int64
 
@@ -164,10 +186,44 @@ Examples:
 		},
 	}
 
-	cmd.Flags().StringVar(&columnName, "column", "", "Target column name or ID (required)")
+	cmd.Flags().StringVar(&columnName, "column", "", "Target column name or ID")
 	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
 	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
-	_ = cmd.MarkFlagRequired("column")
+	cmd.Flags().BoolVar(&onHold, "on-hold", false, "Move card to the on-hold section of its current (or target) column")
 
 	return cmd
+}
+
+// findColumn resolves the target column from --column flag or falls back to the card's current column.
+func findColumn(cardTable *api.CardTable, columnName string, card *api.Card) (*api.Column, error) {
+	if columnName != "" {
+		// Try as ID first
+		if id, err := strconv.ParseInt(columnName, 10, 64); err == nil {
+			for i := range cardTable.Lists {
+				if cardTable.Lists[i].ID == id {
+					return &cardTable.Lists[i], nil
+				}
+			}
+			return nil, fmt.Errorf("column ID %d not found in card table '%s'", id, cardTable.Title)
+		}
+		// Search by name
+		columnNameLower := strings.ToLower(columnName)
+		for i := range cardTable.Lists {
+			if strings.ToLower(cardTable.Lists[i].Title) == columnNameLower {
+				return &cardTable.Lists[i], nil
+			}
+		}
+		return nil, fmt.Errorf("column '%s' not found in card table '%s'", columnName, cardTable.Title)
+	}
+
+	// No --column specified, use card's current column
+	if card.Parent == nil {
+		return nil, fmt.Errorf("card has no parent column")
+	}
+	for i := range cardTable.Lists {
+		if cardTable.Lists[i].ID == card.Parent.ID {
+			return &cardTable.Lists[i], nil
+		}
+	}
+	return nil, fmt.Errorf("could not find card's current column in card table")
 }

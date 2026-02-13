@@ -38,6 +38,7 @@ type Column struct {
 
 // OnHoldStatus represents the on_hold status of a column
 type OnHoldStatus struct {
+	ID         int64  `json:"id,omitempty"`
 	Enabled    bool   `json:"enabled"`
 	CardsCount int    `json:"cards_count,omitempty"`
 	CardsURL   string `json:"cards_url,omitempty"`
