@@ -125,7 +125,7 @@ func TestMarkdownToRichText(t *testing.T) {
 		{
 			name:     "multiline blockquote",
 			input:    "> Line 1\n> Line 2",
-			expected: "<blockquote><div>Line 1\nLine 2</div></blockquote>",
+			expected: "<blockquote><div>Line 1<br>Line 2</div></blockquote>",
 		},
 		{
 			name:     "blockquote with formatting",

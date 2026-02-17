@@ -292,8 +292,8 @@ func (m *MockClient) GetCampfireLines(ctx context.Context, projectID string, cam
 }
 
 // PostCampfireLine mock implementation
-func (m *MockClient) PostCampfireLine(ctx context.Context, projectID string, campfireID int64, content string) (*api.CampfireLine, error) {
-	m.Calls = append(m.Calls, fmt.Sprintf("PostCampfireLine(%s, %d, %s)", projectID, campfireID, content))
+func (m *MockClient) PostCampfireLine(ctx context.Context, projectID string, campfireID int64, content string, contentType string) (*api.CampfireLine, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("PostCampfireLine(%s, %d, %s, %s)", projectID, campfireID, content, contentType))
 	if m.PostCampfireLineError != nil {
 		return nil, m.PostCampfireLineError
 	}

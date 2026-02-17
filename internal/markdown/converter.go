@@ -39,6 +39,7 @@ func NewConverter() Converter {
 		),
 		goldmark.WithRendererOptions(
 			html.WithXHTML(),
+			html.WithHardWraps(),
 		),
 	)
 

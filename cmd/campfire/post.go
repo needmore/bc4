@@ -8,6 +8,7 @@ import (
 
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
+	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/spf13/cobra"
 )
@@ -105,17 +106,14 @@ func newPostCmd(f *factory.Factory) *cobra.Command {
 				return fmt.Errorf("message cannot be empty")
 			}
 
-			// For now, just post the plain content
-			// The API seems to be escaping HTML in campfire messages
-			// TODO: Investigate the correct way to send rich text to campfire
-			// converter := markdown.NewConverter()
-			// richContent, err := converter.MarkdownToRichText(content)
-			// if err != nil {
-			// 	return fmt.Errorf("failed to convert message: %w", err)
-			// }
+			converter := markdown.NewConverter()
+			richContent, err := converter.MarkdownToRichText(content)
+			if err != nil {
+				return fmt.Errorf("failed to convert message: %w", err)
+			}
 
 			// Post the message
-			line, err := campfireOps.PostCampfireLine(f.Context(), projectID, campfireID, content)
+			line, err := campfireOps.PostCampfireLine(f.Context(), projectID, campfireID, richContent, "text/html")
 			if err != nil {
 				return fmt.Errorf("failed to post message: %w", err)
 			}
