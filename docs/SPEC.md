@@ -404,6 +404,7 @@ According to the Basecamp API, the following resources support rich text content
 **Currently Implemented:**
 - ✅ **Todo** - `content` (title) and `description` fields support Markdown input
 - ✅ **Comment** - `content` field supports Markdown input and bc-attachment tags
+- ✅ **Campfire line** - uses `content_type: "text/html"` to send rich text
 
 **Future Implementation:**
 - 🔄 **Card** - `title` and `content` fields will support Markdown
@@ -412,9 +413,6 @@ According to the Basecamp API, the following resources support rich text content
 - 🔄 **Schedule entry** - `description` field will support Markdown
 - 🔄 **Upload** - `description` field will support Markdown
 - 🔄 **To-do list** - `description` field will support Markdown
-
-**Not Supported (API Limitation):**
-- ❌ **Campfire line** - `content` field is plain text only per API specification
 
 ### Markdown to Rich Text Conversion
 

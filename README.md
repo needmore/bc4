@@ -795,7 +795,7 @@ bc4 supports Markdown input for creating content that gets automatically convert
 - ✅ **Messages** - List, post, view, and edit messages on project message boards
 - ✅ **Comments** - Create and edit comments with Markdown formatting
 - ✅ **Documents** - Create and edit documents with Markdown formatting
-- ❌ **Campfire** - Plain text only (API limitation)
+- ✅ **Campfire** - Post messages with Markdown formatting
 
 ### Supported Markdown Elements
 - **Bold** (`**text**`), *italic* (`*text*`), ~~strikethrough~~ (`~~text~~`)
