@@ -3,6 +3,7 @@ package timesheet
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -75,7 +76,7 @@ Note: Without date filters, the API returns entries from the last month by defau
 			// Parse person filter
 			if personStr != "" {
 				// We need to convert name to ID - fetch all people first
-				people, err := client.GetAllPeople(cmd.Context())
+				people, err := client.People().GetAllPeople(cmd.Context())
 				if err != nil {
 					return fmt.Errorf("failed to fetch people: %w", err)
 				}
@@ -99,7 +100,7 @@ Note: Without date filters, the API returns entries from the last month by defau
 			}
 
 			// Fetch report
-			entries, err := client.GetTimesheetReport(cmd.Context(), opts)
+			entries, err := client.Timesheets().GetTimesheetReport(cmd.Context(), opts)
 			if err != nil {
 				return err
 			}
@@ -116,7 +117,7 @@ Note: Without date filters, the API returns entries from the last month by defau
 			case "project":
 				return displayGroupedByProject(entries)
 			default:
-				return displayReportTable(entries)
+				return renderEntryTable(entries, true)
 			}
 		},
 	}
@@ -132,55 +133,11 @@ Note: Without date filters, the API returns entries from the last month by defau
 	return cmd
 }
 
-// displayReportTable displays the report as a flat table
-func displayReportTable(entries []api.TimesheetEntry) error {
-	if len(entries) == 0 {
-		fmt.Println("No timesheet entries found")
-		return nil
-	}
-
-	// Create table
-	tp := tableprinter.New(os.Stdout)
-
-	// Add headers
-	tp.AddField("DATE")
-	tp.AddField("HOURS")
-	tp.AddField("PERSON")
-	tp.AddField("PROJECT")
-	tp.AddField("PARENT")
-	tp.AddField("DESCRIPTION")
-	tp.EndRow()
-
-	// Calculate total hours
-	var totalHours float64
-
-	// Add rows
-	for _, entry := range entries {
-		tp.AddField(entry.Date)
-		tp.AddField(fmt.Sprintf("%.2f", entry.Hours))
-		tp.AddField(entry.Creator.Name)
-		tp.AddField(entry.Bucket.Name)
-		tp.AddField(entry.Parent.Title)
-
-		// Truncate description if too long
-		desc := entry.Description
-		if len(desc) > 50 {
-			desc = desc[:47] + "..."
-		}
-		tp.AddField(desc)
-		tp.EndRow()
-
-		totalHours += entry.Hours
-	}
-
-	if err := tp.Render(); err != nil {
-		return err
-	}
-
-	// Print summary
-	fmt.Printf("\nTotal: %d entries, %.2f hours\n", len(entries), totalHours)
-
-	return nil
+type groupEntry struct {
+	key   string
+	name  string
+	hours float64
+	count int
 }
 
 // displayGroupedByPerson groups entries by person and shows totals
@@ -191,20 +148,26 @@ func displayGroupedByPerson(entries []api.TimesheetEntry) error {
 	}
 
 	// Group by person
-	grouped := make(map[string]struct {
-		name  string
-		hours float64
-		count int
-	})
-
+	grouped := make(map[string]*groupEntry)
 	for _, entry := range entries {
 		key := strconv.FormatInt(entry.Creator.ID, 10)
-		g := grouped[key]
-		g.name = entry.Creator.Name
+		g, ok := grouped[key]
+		if !ok {
+			g = &groupEntry{key: key, name: entry.Creator.Name}
+			grouped[key] = g
+		}
 		g.hours += entry.Hours
 		g.count++
-		grouped[key] = g
 	}
+
+	// Sort by total hours descending
+	sorted := make([]*groupEntry, 0, len(grouped))
+	for _, g := range grouped {
+		sorted = append(sorted, g)
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].hours > sorted[j].hours
+	})
 
 	// Create table
 	tp := tableprinter.New(os.Stdout)
@@ -217,7 +180,7 @@ func displayGroupedByPerson(entries []api.TimesheetEntry) error {
 	var totalHours float64
 	var totalCount int
 
-	for _, g := range grouped {
+	for _, g := range sorted {
 		tp.AddField(g.name)
 		tp.AddField(fmt.Sprintf("%d", g.count))
 		tp.AddField(fmt.Sprintf("%.2f", g.hours))
@@ -232,7 +195,7 @@ func displayGroupedByPerson(entries []api.TimesheetEntry) error {
 		return err
 	}
 
-	fmt.Printf("\nTotal: %d entries, %.2f hours across %d people\n", totalCount, totalHours, len(grouped))
+	fmt.Printf("\nTotal: %d entries, %.2f hours across %d people\n", totalCount, totalHours, len(sorted))
 
 	return nil
 }
@@ -245,20 +208,26 @@ func displayGroupedByProject(entries []api.TimesheetEntry) error {
 	}
 
 	// Group by project
-	grouped := make(map[string]struct {
-		name  string
-		hours float64
-		count int
-	})
-
+	grouped := make(map[string]*groupEntry)
 	for _, entry := range entries {
 		key := strconv.FormatInt(entry.Bucket.ID, 10)
-		g := grouped[key]
-		g.name = entry.Bucket.Name
+		g, ok := grouped[key]
+		if !ok {
+			g = &groupEntry{key: key, name: entry.Bucket.Name}
+			grouped[key] = g
+		}
 		g.hours += entry.Hours
 		g.count++
-		grouped[key] = g
 	}
+
+	// Sort by total hours descending
+	sorted := make([]*groupEntry, 0, len(grouped))
+	for _, g := range grouped {
+		sorted = append(sorted, g)
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].hours > sorted[j].hours
+	})
 
 	// Create table
 	tp := tableprinter.New(os.Stdout)
@@ -271,7 +240,7 @@ func displayGroupedByProject(entries []api.TimesheetEntry) error {
 	var totalHours float64
 	var totalCount int
 
-	for _, g := range grouped {
+	for _, g := range sorted {
 		tp.AddField(g.name)
 		tp.AddField(fmt.Sprintf("%d", g.count))
 		tp.AddField(fmt.Sprintf("%.2f", g.hours))
@@ -286,7 +255,7 @@ func displayGroupedByProject(entries []api.TimesheetEntry) error {
 		return err
 	}
 
-	fmt.Printf("\nTotal: %d entries, %.2f hours across %d projects\n", totalCount, totalHours, len(grouped))
+	fmt.Printf("\nTotal: %d entries, %.2f hours across %d projects\n", totalCount, totalHours, len(sorted))
 
 	return nil
 }

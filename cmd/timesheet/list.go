@@ -63,6 +63,16 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 				f = f.WithProject(projectID)
 			}
 
+			// Parse --since before fetching so invalid input fails early
+			var sinceDate time.Time
+			if sinceStr != "" {
+				var err error
+				sinceDate, err = parseSince(sinceStr)
+				if err != nil {
+					return fmt.Errorf("invalid --since value: %w", err)
+				}
+			}
+
 			// Get API client from factory
 			client, err := f.ApiClient()
 			if err != nil {
@@ -79,17 +89,17 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 			var entries []api.TimesheetEntry
 			if recordingID > 0 {
 				// Get entries for a specific recording
-				entries, err = client.GetRecordingTimesheet(cmd.Context(), resolvedProjectID, recordingID)
+				entries, err = client.Timesheets().GetRecordingTimesheet(cmd.Context(), resolvedProjectID, recordingID)
 			} else {
 				// Get entries for the project
-				entries, err = client.GetProjectTimesheet(cmd.Context(), resolvedProjectID)
+				entries, err = client.Timesheets().GetProjectTimesheet(cmd.Context(), resolvedProjectID)
 			}
 			if err != nil {
 				return err
 			}
 
 			// Apply filters
-			entries = filterEntries(entries, personStr, sinceStr)
+			entries = filterEntries(entries, personStr, sinceDate)
 
 			// Output format
 			if formatStr == "json" {
@@ -97,7 +107,7 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 			}
 
 			// Display as table
-			return displayTable(entries)
+			return renderEntryTable(entries, false)
 		},
 	}
 
@@ -112,17 +122,8 @@ func newListCmd(f *factory.Factory) *cobra.Command {
 }
 
 // filterEntries applies person and date filters
-func filterEntries(entries []api.TimesheetEntry, personStr, sinceStr string) []api.TimesheetEntry {
+func filterEntries(entries []api.TimesheetEntry, personStr string, sinceDate time.Time) []api.TimesheetEntry {
 	var filtered []api.TimesheetEntry
-
-	// Parse since filter
-	var sinceDate time.Time
-	if sinceStr != "" {
-		since, err := parseSince(sinceStr)
-		if err == nil {
-			sinceDate = since
-		}
-	}
 
 	for _, entry := range entries {
 		// Filter by person
@@ -146,7 +147,7 @@ func filterEntries(entries []api.TimesheetEntry, personStr, sinceStr string) []a
 	return filtered
 }
 
-// parseSince parses a "since" string (e.g., "7d", "2024-01-01")
+// parseSince parses a "since" string (e.g., "7d", "24h", "2024-01-01")
 func parseSince(since string) (time.Time, error) {
 	// Try parsing as duration (e.g., "7d", "24h")
 	if strings.HasSuffix(since, "d") {
@@ -167,7 +168,7 @@ func parseSince(since string) (time.Time, error) {
 	// Try parsing as ISO date
 	t, err := time.Parse("2006-01-02", since)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid date format: %s", since)
+		return time.Time{}, fmt.Errorf("invalid date format: %s (expected Nd, Nh, or YYYY-MM-DD)", since)
 	}
 	return t, nil
 }
@@ -179,17 +180,15 @@ func outputJSON(entries []api.TimesheetEntry) error {
 	return enc.Encode(entries)
 }
 
-// displayTable displays entries in a table format
-func displayTable(entries []api.TimesheetEntry) error {
+// renderEntryTable displays entries in a table format, optionally with a total summary line
+func renderEntryTable(entries []api.TimesheetEntry, showTotal bool) error {
 	if len(entries) == 0 {
 		fmt.Println("No timesheet entries found")
 		return nil
 	}
 
-	// Create table
 	tp := tableprinter.New(os.Stdout)
 
-	// Add headers
 	tp.AddField("DATE")
 	tp.AddField("HOURS")
 	tp.AddField("PERSON")
@@ -198,7 +197,7 @@ func displayTable(entries []api.TimesheetEntry) error {
 	tp.AddField("DESCRIPTION")
 	tp.EndRow()
 
-	// Add rows
+	var totalHours float64
 	for _, entry := range entries {
 		tp.AddField(entry.Date)
 		tp.AddField(fmt.Sprintf("%.2f", entry.Hours))
@@ -206,14 +205,23 @@ func displayTable(entries []api.TimesheetEntry) error {
 		tp.AddField(entry.Bucket.Name)
 		tp.AddField(entry.Parent.Title)
 
-		// Truncate description if too long
 		desc := entry.Description
 		if len(desc) > 50 {
 			desc = desc[:47] + "..."
 		}
 		tp.AddField(desc)
 		tp.EndRow()
+
+		totalHours += entry.Hours
 	}
 
-	return tp.Render()
+	if err := tp.Render(); err != nil {
+		return err
+	}
+
+	if showTotal {
+		fmt.Printf("\nTotal: %d entries, %.2f hours\n", len(entries), totalHours)
+	}
+
+	return nil
 }

@@ -26,11 +26,7 @@ type TimesheetEntry struct {
 		URL    string `json:"url"`
 		AppURL string `json:"app_url"`
 	} `json:"parent"`
-	Bucket struct {
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
-		Type string `json:"type"`
-	} `json:"bucket"`
+	Bucket      Bucket `json:"bucket"`
 	URL         string `json:"url"`
 	AppURL      string `json:"app_url"`
 	BookmarkURL string `json:"bookmark_url"`
