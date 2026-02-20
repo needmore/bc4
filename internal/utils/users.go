@@ -77,6 +77,42 @@ func (ur *UserResolver) GetPeople(ctx context.Context) ([]api.Person, error) {
 	return ur.people, nil
 }
 
+// ResolvePeople resolves a list of user identifiers to full Person objects
+func (ur *UserResolver) ResolvePeople(ctx context.Context, identifiers []string) ([]api.Person, error) {
+	if err := ur.ensurePeopleCached(ctx); err != nil {
+		return nil, err
+	}
+
+	var people []api.Person
+	var notFound []string
+
+	for _, identifier := range identifiers {
+		identifier = strings.TrimSpace(identifier)
+		if identifier == "" {
+			continue
+		}
+
+		personID, found := ur.resolveIdentifier(identifier)
+		if !found {
+			notFound = append(notFound, identifier)
+			continue
+		}
+
+		for _, p := range ur.people {
+			if p.ID == personID {
+				people = append(people, p)
+				break
+			}
+		}
+	}
+
+	if len(notFound) > 0 {
+		return nil, fmt.Errorf("could not find users: %s", strings.Join(notFound, ", "))
+	}
+
+	return people, nil
+}
+
 // ensurePeopleCached loads the project people if not already cached
 func (ur *UserResolver) ensurePeopleCached(ctx context.Context) error {
 	if ur.cached {

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -15,8 +16,11 @@ import (
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
+
+var mentionRe = regexp.MustCompile(`@[\w]+(?:\.[\w]+)*`)
 
 func newCreateCmd(f *factory.Factory) *cobra.Command {
 	var content string
@@ -119,6 +123,26 @@ You can provide comment content in several ways:
 					return fmt.Errorf("failed to convert markdown: %w", err)
 				}
 				richContent = rc
+			}
+
+			// Replace inline @Name mentions with bc-attachment tags
+			// Supports @FirstName and @First.Last for disambiguation
+			inlineMatches := mentionRe.FindAllString(richContent, -1)
+			if len(inlineMatches) > 0 {
+				resolver := utils.NewUserResolver(client.Client, projectID)
+				// Convert @First.Last to "First Last" for resolution
+				identifiers := make([]string, len(inlineMatches))
+				for i, m := range inlineMatches {
+					identifiers[i] = strings.ReplaceAll(strings.TrimPrefix(m, "@"), ".", " ")
+				}
+				people, err := resolver.ResolvePeople(f.Context(), identifiers)
+				if err != nil {
+					return fmt.Errorf("failed to resolve mentions: %w", err)
+				}
+				for i, match := range inlineMatches {
+					tag := attachments.BuildTag(people[i].AttachableSGID)
+					richContent = strings.Replace(richContent, match, tag, 1)
+				}
 			}
 
 			// Attach file if provided
