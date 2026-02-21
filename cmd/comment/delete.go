@@ -20,7 +20,7 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "delete <comment-id|url>",
 		Short: "Delete a comment",
-		Long:  `Delete a comment. This operation cannot be undone.`,
+		Long:  `Trash a comment on a recording. Trashed comments can be recovered from the Basecamp trash.`,
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Apply overrides if specified
@@ -73,9 +73,9 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 			if !skipConfirm {
 				var confirm bool
 				if err := huh.NewConfirm().
-					Title(fmt.Sprintf("Delete comment #%d?", commentID)).
+					Title(fmt.Sprintf("Trash comment #%d?", commentID)).
 					Description(fmt.Sprintf("By %s on %s", comment.Creator.Name, comment.CreatedAt.Format("Jan 2, 2006"))).
-					Affirmative("Delete").
+					Affirmative("Trash").
 					Negative("Cancel").
 					Value(&confirm).
 					Run(); err != nil {
@@ -88,15 +88,14 @@ func newDeleteCmd(f *factory.Factory) *cobra.Command {
 				}
 			}
 
-			// Delete the comment
-			path := fmt.Sprintf("/buckets/%s/comments/%d.json", projectID, commentID)
-			if err := client.Delete(path); err != nil {
-				return fmt.Errorf("failed to delete comment: %w", err)
+			// Trash the comment via Basecamp recordings API
+			if err := client.TrashComment(f.Context(), projectID, commentID); err != nil {
+				return err
 			}
 
 			// Output
 			if ui.IsTerminal(os.Stdout) {
-				fmt.Printf("✓ Deleted comment #%d\n", commentID)
+				fmt.Printf("✓ Trashed comment #%d\n", commentID)
 			}
 
 			return nil

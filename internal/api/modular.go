@@ -106,6 +106,7 @@ type CommentOperations interface {
 	GetComment(ctx context.Context, projectID string, commentID int64) (*Comment, error)
 	CreateComment(ctx context.Context, projectID string, recordingID int64, req CommentCreateRequest) (*Comment, error)
 	UpdateComment(ctx context.Context, projectID string, commentID int64, req CommentUpdateRequest) (*Comment, error)
+	TrashComment(ctx context.Context, projectID string, commentID int64) error
 }
 
 // ActivityOperations defines activity-specific operations
