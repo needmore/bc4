@@ -42,7 +42,7 @@ type CampfireOperations interface {
 	GetCampfire(ctx context.Context, projectID string, campfireID int64) (*Campfire, error)
 	GetCampfireByName(ctx context.Context, projectID string, name string) (*Campfire, error)
 	GetCampfireLines(ctx context.Context, projectID string, campfireID int64, limit int) ([]CampfireLine, error)
-	PostCampfireLine(ctx context.Context, projectID string, campfireID int64, content string) (*CampfireLine, error)
+	PostCampfireLine(ctx context.Context, projectID string, campfireID int64, content string, contentType string) (*CampfireLine, error)
 	DeleteCampfireLine(ctx context.Context, projectID string, campfireID int64, lineID int64) error
 }
 

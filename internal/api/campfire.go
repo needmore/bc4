@@ -43,7 +43,8 @@ type CampfireLine struct {
 
 // CampfireLineCreate represents the request body for creating a campfire line
 type CampfireLineCreate struct {
-	Content string `json:"content"`
+	Content     string `json:"content"`
+	ContentType string `json:"content_type,omitempty"`
 }
 
 // ListCampfires returns all campfires for a project
@@ -96,12 +97,13 @@ func (c *Client) GetCampfireLines(ctx context.Context, projectID string, campfir
 }
 
 // PostCampfireLine posts a new message to a campfire
-func (c *Client) PostCampfireLine(ctx context.Context, projectID string, campfireID int64, content string) (*CampfireLine, error) {
+func (c *Client) PostCampfireLine(ctx context.Context, projectID string, campfireID int64, content string, contentType string) (*CampfireLine, error) {
 	var line CampfireLine
 	path := fmt.Sprintf("/buckets/%s/chats/%d/lines.json", projectID, campfireID)
 
 	payload := CampfireLineCreate{
-		Content: content,
+		Content:     content,
+		ContentType: contentType,
 	}
 
 	if err := c.Post(path, payload, &line); err != nil {
