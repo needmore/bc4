@@ -821,6 +821,7 @@ bc4 todo add --file detailed-task.md
 Thanks to everyone who has contributed to bc4!
 
 - [@brigleb](https://github.com/brigleb) - Creator and maintainer
+- [@nnemirovsky](https://github.com/nnemirovsky) - First-run wizard crash fix
 - [@wlb-anthonyleung](https://github.com/wlb-anthonyleung) - Timesheet support
 - [@gido](https://github.com/gido)
 
