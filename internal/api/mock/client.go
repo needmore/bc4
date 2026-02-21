@@ -90,6 +90,10 @@ type MockClient struct {
 	Recording       *api.Recording
 	RecordingError  error
 
+	// Timesheets
+	TimesheetEntries []api.TimesheetEntry
+	TimesheetError   error
+
 	// Search
 	SearchResults []api.SearchResult
 	SearchError   error
@@ -562,6 +566,33 @@ func (m *MockClient) UpdateScheduleEntry(ctx context.Context, projectID string, 
 func (m *MockClient) DeleteScheduleEntry(ctx context.Context, projectID string, entryID int64) error {
 	m.Calls = append(m.Calls, fmt.Sprintf("DeleteScheduleEntry(%s, %d)", projectID, entryID))
 	return nil
+}
+
+// GetTimesheetReport mock implementation
+func (m *MockClient) GetTimesheetReport(ctx context.Context, opts *api.TimesheetReportOptions) ([]api.TimesheetEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetTimesheetReport(%+v)", opts))
+	if m.TimesheetError != nil {
+		return nil, m.TimesheetError
+	}
+	return m.TimesheetEntries, nil
+}
+
+// GetProjectTimesheet mock implementation
+func (m *MockClient) GetProjectTimesheet(ctx context.Context, projectID string) ([]api.TimesheetEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetProjectTimesheet(%s)", projectID))
+	if m.TimesheetError != nil {
+		return nil, m.TimesheetError
+	}
+	return m.TimesheetEntries, nil
+}
+
+// GetRecordingTimesheet mock implementation
+func (m *MockClient) GetRecordingTimesheet(ctx context.Context, projectID string, recordingID int64) ([]api.TimesheetEntry, error) {
+	m.Calls = append(m.Calls, fmt.Sprintf("GetRecordingTimesheet(%s, %d)", projectID, recordingID))
+	if m.TimesheetError != nil {
+		return nil, m.TimesheetError
+	}
+	return m.TimesheetEntries, nil
 }
 
 // Search mock implementation

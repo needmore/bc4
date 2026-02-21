@@ -22,6 +22,7 @@ import (
 	"github.com/needmore/bc4/cmd/project"
 	"github.com/needmore/bc4/cmd/schedule"
 	"github.com/needmore/bc4/cmd/search"
+	"github.com/needmore/bc4/cmd/timesheet"
 	"github.com/needmore/bc4/cmd/todo"
 	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/config"
@@ -170,6 +171,7 @@ func init() {
 	rootCmd.AddCommand(profile.NewProfileCmd(f))
 	rootCmd.AddCommand(schedule.NewScheduleCmd(f))
 	rootCmd.AddCommand(search.NewSearchCmd(f))
+	rootCmd.AddCommand(timesheet.NewTimesheetCmd(f))
 
 	// Add version command (doesn't need factory)
 	rootCmd.AddCommand(versionCmd)

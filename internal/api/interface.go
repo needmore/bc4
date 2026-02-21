@@ -77,6 +77,11 @@ type APIClient interface {
 	UpdateScheduleEntry(ctx context.Context, projectID string, entryID int64, req ScheduleEntryUpdateRequest) (*ScheduleEntry, error)
 	DeleteScheduleEntry(ctx context.Context, projectID string, entryID int64) error
 
+	// Timesheet methods
+	GetTimesheetReport(ctx context.Context, opts *TimesheetReportOptions) ([]TimesheetEntry, error)
+	GetProjectTimesheet(ctx context.Context, projectID string) ([]TimesheetEntry, error)
+	GetRecordingTimesheet(ctx context.Context, projectID string, recordingID int64) ([]TimesheetEntry, error)
+
 	// Search methods
 	Search(ctx context.Context, opts SearchOptions) ([]SearchResult, error)
 }
