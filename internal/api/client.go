@@ -355,15 +355,16 @@ type Company struct {
 
 // Person represents a Basecamp user
 type Person struct {
-	ID           int64    `json:"id"`
-	Name         string   `json:"name"`
-	EmailAddress string   `json:"email_address"`
-	Title        string   `json:"title"`
-	AvatarURL    string   `json:"avatar_url"`
-	Company      *Company `json:"company,omitempty"`
-	CreatedAt    string   `json:"created_at,omitempty"`
-	Admin        bool     `json:"admin,omitempty"`
-	Owner        bool     `json:"owner,omitempty"`
+	ID             int64    `json:"id"`
+	AttachableSGID string   `json:"attachable_sgid"`
+	Name           string   `json:"name"`
+	EmailAddress   string   `json:"email_address"`
+	Title          string   `json:"title"`
+	AvatarURL      string   `json:"avatar_url"`
+	Company        *Company `json:"company,omitempty"`
+	CreatedAt      string   `json:"created_at,omitempty"`
+	Admin          bool     `json:"admin,omitempty"`
+	Owner          bool     `json:"owner,omitempty"`
 }
 
 // Todo represents a Basecamp todo item
