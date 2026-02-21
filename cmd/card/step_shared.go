@@ -170,8 +170,8 @@ Examples:
 	}
 
 	// Add flags
-	cmd.Flags().StringVarP(&accountID, "account-id", "a", "", "Override account ID")
-	cmd.Flags().StringVarP(&projectID, "project-id", "p", "", "Override project ID")
+	cmd.Flags().StringVarP(&accountID, "account", "a", "", "Specify account ID")
+	cmd.Flags().StringVarP(&projectID, "project", "p", "", "Specify project ID")
 	cmd.Flags().StringVar(&noteOrReason, flagName, "", flagUsage)
 
 	return cmd
