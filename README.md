@@ -816,6 +816,14 @@ bc4 todo add "Refactor code" --description "## Goals\n\n- Improve **performance*
 bc4 todo add --file detailed-task.md
 ```
 
+## Contributors
+
+Thanks to everyone who has contributed to bc4!
+
+- [@brigleb](https://github.com/brigleb) - Creator and maintainer
+- [@wlb-anthonyleung](https://github.com/wlb-anthonyleung) - Timesheet support
+- [@gido](https://github.com/gido)
+
 ## Acknowledgments
 
 - Inspired by GitHub's `gh` CLI design
