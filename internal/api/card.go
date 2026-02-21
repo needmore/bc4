@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"time"
 )
 
@@ -247,15 +246,14 @@ func (c *Client) GetOnHoldCardsInColumn(ctx context.Context, onHoldCardsURL stri
 		return nil, nil
 	}
 
-	// Extract path from full URL
-	parsed, err := url.Parse(onHoldCardsURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse on-hold cards URL: %w", err)
+	path := extractPathFromURL(onHoldCardsURL)
+	if path == "" {
+		return nil, fmt.Errorf("failed to extract path from on-hold cards URL: %s", onHoldCardsURL)
 	}
 
 	var cards []Card
 	pr := NewPaginatedRequest(c)
-	if err := pr.GetAll(parsed.Path, &cards); err != nil {
+	if err := pr.GetAll(path, &cards); err != nil {
 		return nil, fmt.Errorf("failed to fetch on-hold cards: %w", err)
 	}
 	return cards, nil
