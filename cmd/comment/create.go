@@ -20,7 +20,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var mentionRe = regexp.MustCompile(`@[\w]+(?:\.[\w]+)*`)
+var mentionRe = regexp.MustCompile(`(?:^|[>\s])(@[\w]+(?:\.[\w]+)*)`)
 
 func newCreateCmd(f *factory.Factory) *cobra.Command {
 	var content string
@@ -127,19 +127,21 @@ You can provide comment content in several ways:
 
 			// Replace inline @Name mentions with bc-attachment tags
 			// Supports @FirstName and @First.Last for disambiguation
-			inlineMatches := mentionRe.FindAllString(richContent, -1)
-			if len(inlineMatches) > 0 {
+			submatches := mentionRe.FindAllStringSubmatch(richContent, -1)
+			if len(submatches) > 0 {
 				resolver := utils.NewUserResolver(client.Client, projectID)
-				// Convert @First.Last to "First Last" for resolution
-				identifiers := make([]string, len(inlineMatches))
-				for i, m := range inlineMatches {
-					identifiers[i] = strings.ReplaceAll(strings.TrimPrefix(m, "@"), ".", " ")
+				// Extract capture group (the @mention) and convert @First.Last to "First Last"
+				mentions := make([]string, len(submatches))
+				identifiers := make([]string, len(submatches))
+				for i, sm := range submatches {
+					mentions[i] = sm[1]
+					identifiers[i] = strings.ReplaceAll(strings.TrimPrefix(sm[1], "@"), ".", " ")
 				}
 				people, err := resolver.ResolvePeople(f.Context(), identifiers)
 				if err != nil {
 					return fmt.Errorf("failed to resolve mentions: %w", err)
 				}
-				for i, match := range inlineMatches {
+				for i, match := range mentions {
 					tag := attachments.BuildTag(people[i].AttachableSGID)
 					richContent = strings.Replace(richContent, match, tag, 1)
 				}

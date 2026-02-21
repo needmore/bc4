@@ -199,6 +199,90 @@ func TestUserResolver_ResolveUsers(t *testing.T) {
 	}
 }
 
+func TestUserResolver_ResolvePeople(t *testing.T) {
+	people := []api.Person{
+		{ID: 1, Name: "John Doe", EmailAddress: "john@example.com", AttachableSGID: "sgid-john"},
+		{ID: 2, Name: "Jane Smith", EmailAddress: "jane@example.com", AttachableSGID: "sgid-jane"},
+		{ID: 3, Name: "Bob Johnson", EmailAddress: "bob@company.com", AttachableSGID: "sgid-bob"},
+	}
+
+	tests := []struct {
+		name         string
+		identifiers  []string
+		mockPeople   []api.Person
+		mockError    error
+		expectPeople []api.Person
+		expectError  bool
+	}{
+		{
+			name:         "Resolve single person by name",
+			identifiers:  []string{"John"},
+			mockPeople:   people,
+			expectPeople: []api.Person{people[0]},
+			expectError:  false,
+		},
+		{
+			name:         "Resolve multiple people",
+			identifiers:  []string{"John", "Jane"},
+			mockPeople:   people,
+			expectPeople: []api.Person{people[0], people[1]},
+			expectError:  false,
+		},
+		{
+			name:        "Not found error",
+			identifiers: []string{"Unknown"},
+			mockPeople:  people,
+			expectError: true,
+		},
+		{
+			name:        "API error",
+			identifiers: []string{"John"},
+			mockError:   errors.New("API error"),
+			expectError: true,
+		},
+		{
+			name:        "Empty identifier treated as not found",
+			identifiers: []string{""},
+			mockPeople:  people,
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := mock.NewMockClient()
+			mockClient.People = tt.mockPeople
+			mockClient.PeopleError = tt.mockError
+
+			resolver := NewUserResolver(mockClient, "12345")
+			ctx := context.Background()
+
+			result, err := resolver.ResolvePeople(ctx, tt.identifiers)
+
+			if tt.expectError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			if !tt.expectError {
+				if len(result) != len(tt.expectPeople) {
+					t.Fatalf("Expected %d people, got %d", len(tt.expectPeople), len(result))
+				}
+				for i, p := range result {
+					if p.ID != tt.expectPeople[i].ID {
+						t.Errorf("Expected person[%d].ID = %d, got %d", i, tt.expectPeople[i].ID, p.ID)
+					}
+					if p.AttachableSGID != tt.expectPeople[i].AttachableSGID {
+						t.Errorf("Expected person[%d].AttachableSGID = %q, got %q", i, tt.expectPeople[i].AttachableSGID, p.AttachableSGID)
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestUserResolver_resolveIdentifier(t *testing.T) {
 	// Create test people
 	ur := &UserResolver{

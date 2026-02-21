@@ -88,13 +88,14 @@ func (ur *UserResolver) ResolvePeople(ctx context.Context, identifiers []string)
 
 	for _, identifier := range identifiers {
 		identifier = strings.TrimSpace(identifier)
-		if identifier == "" {
-			continue
-		}
 
 		personID, found := ur.resolveIdentifier(identifier)
 		if !found {
-			notFound = append(notFound, identifier)
+			if identifier == "" {
+				notFound = append(notFound, "(empty)")
+			} else {
+				notFound = append(notFound, identifier)
+			}
 			continue
 		}
 
