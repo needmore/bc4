@@ -82,3 +82,14 @@ func (c *Client) UpdateComment(ctx context.Context, projectID string, commentID 
 
 	return &comment, nil
 }
+
+// TrashComment trashes a comment via the recordings status endpoint
+func (c *Client) TrashComment(ctx context.Context, projectID string, commentID int64) error {
+	path := fmt.Sprintf("/buckets/%s/recordings/%d/status/trashed.json", projectID, commentID)
+
+	if err := c.Put(path, nil, nil); err != nil {
+		return fmt.Errorf("failed to trash comment: %w", err)
+	}
+
+	return nil
+}
