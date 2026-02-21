@@ -313,14 +313,18 @@ func (m FirstRunModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case stepSelectAccount:
-		var cmd tea.Cmd
-		m.accountList, cmd = m.accountList.Update(msg)
-		return m, cmd
+		if len(m.accountList.Items()) > 0 {
+			var cmd tea.Cmd
+			m.accountList, cmd = m.accountList.Update(msg)
+			return m, cmd
+		}
 
 	case stepSelectProject:
-		var cmd tea.Cmd
-		m.projectList, cmd = m.projectList.Update(msg)
-		return m, cmd
+		if len(m.projectList.Items()) > 0 {
+			var cmd tea.Cmd
+			m.projectList, cmd = m.projectList.Update(msg)
+			return m, cmd
+		}
 	}
 
 	return m, nil
