@@ -33,6 +33,7 @@ on your team's work.`,
 	cmd.AddCommand(newEditCmd(f))
 	cmd.AddCommand(newAttachCmd(f))
 	cmd.AddCommand(newDeleteCmd(f))
+	cmd.AddCommand(newDownloadAttachmentsCmd(f))
 
 	return cmd
 }

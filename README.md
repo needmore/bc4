@@ -357,6 +357,10 @@ bc4 document create "Spec Document" --content "# Overview\n\nThis is the spec...
 # Edit an existing document
 bc4 document edit 12345
 bc4 document edit 12345 --title "Updated Title"
+
+# Download attachments from a document
+bc4 document download-attachments 12345
+bc4 document download-attachments 12345 --include-comments
 ```
 
 ### Card Management
@@ -503,12 +507,16 @@ bc4 comment attach 12345 --attach ./log.txt
 
 # Append an attachment to a specific comment by ID
 bc4 comment attach 12345 --comment-id 67890 --attach ./screenshot.png
+
+# Download attachments from a comment
+bc4 comment download-attachments 67890
+bc4 comment download-attachments 67890 --output-dir ~/Downloads
 ```
 
 
 ### Downloading Attachments
 
-bc4 can download images and files attached to cards, todos, and messages using OAuth authentication:
+bc4 can download images and files attached to cards, todos, messages, documents, and comments using OAuth authentication:
 
 ```bash
 # Download all attachments from a card
@@ -519,6 +527,13 @@ bc4 todo download-attachments 789012 --output-dir ~/Downloads
 
 # Download from a message (only first attachment)
 bc4 message download-attachments 345678 --attachment 1
+
+# Download from a comment or document
+bc4 comment download-attachments 456789
+bc4 document download-attachments 567890
+
+# Include attachments from comments on a resource
+bc4 card download-attachments 123456 --include-comments
 
 # Overwrite existing files
 bc4 card download-attachments 123456 --overwrite
@@ -531,8 +546,9 @@ bc4 card download-attachments https://3.basecamp.com/123/buckets/456/card_tables
 - `--output-dir, -o` - Directory to save attachments (default: current directory)
 - `--attachment N` - Download only the Nth attachment (1-based index)
 - `--overwrite` - Replace existing files without prompting
+- `--include-comments` - Also download attachments from comments (available on card, todo, message, document)
 
-**Note:** Comment attachments use blob storage that requires browser authentication and cannot be downloaded via OAuth. To download comment attachments, access them through your web browser while logged into Basecamp.
+**Note:** Some Basecamp attachments use blob storage URLs that require browser session authentication and cannot be downloaded via the API. When encountered, bc4 will display the URL so you can open it in your browser while logged into Basecamp.
 
 ### Activity & Events
 
@@ -832,4 +848,4 @@ Thanks to everyone who has contributed to bc4!
 
 #### Known Limitations
 
-**Comment Attachments:** Comment attachments use blob storage URLs that require browser session cookies and do not support OAuth Bearer token authentication. The `download-attachments` command works for card body attachments, todo attachments, and message attachments, but not for attachments added in comments. To download comment attachments, use a web browser while authenticated to Basecamp.
+**Blob Storage URLs:** Some Basecamp attachments use blob storage URLs (containing `/blobs/` or `preview.3.basecamp.com`) that require browser session cookies and cannot be downloaded via OAuth. When bc4 encounters these URLs, it displays a helpful message with the URL so you can open it in your browser while logged into Basecamp.

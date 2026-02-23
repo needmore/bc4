@@ -31,6 +31,7 @@ formatting and allow for collaborative editing and commenting.`,
 	cmd.AddCommand(newCreateCmd(f))
 	cmd.AddCommand(newViewCmd(f))
 	cmd.AddCommand(newEditCmd(f))
+	cmd.AddCommand(newDownloadAttachmentsCmd(f))
 
 	return cmd
 }

@@ -14,8 +14,8 @@ import (
 type PaginatedRequest struct {
 	client      *Client
 	rateLimiter *RateLimiter
-	ctx         context.Context      // nil = context.Background()
-	maxPages    int                  // 0 = no limit
+	ctx         context.Context     // nil = context.Background()
+	maxPages    int                 // 0 = no limit
 	pageCheck   func(page any) bool // called after each page; return false to stop pagination
 }
 

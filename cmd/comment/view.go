@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	attachmentsCmd "github.com/needmore/bc4/cmd/attachments"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
@@ -109,6 +110,14 @@ func newViewCmd(f *factory.Factory) *cobra.Command {
 			}
 
 			fmt.Fprint(&buf, rendered)
+
+			// Show attachments if present
+			if comment.Content != "" {
+				attachmentInfo := attachmentsCmd.DisplayAttachmentsWithStyle(comment.Content)
+				if attachmentInfo != "" {
+					fmt.Fprint(&buf, attachmentInfo)
+				}
+			}
 
 			// Show in pager
 			pagerOpts := &utils.PagerOptions{
