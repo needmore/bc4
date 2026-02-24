@@ -347,11 +347,14 @@ func TestDownloadFromSources_BlobURLHandled(t *testing.T) {
 	}
 
 	result, err := DownloadFromSources(context.Background(), mock, "bucket1", sources, Options{})
-	if err == nil {
-		t.Fatal("expected error when all downloads fail (blob URL)")
+	if err != nil {
+		t.Fatalf("blob URLs should be skipped, not cause errors: %v", err)
 	}
-	if result.Failed != 1 {
-		t.Errorf("expected Failed=1, got %d", result.Failed)
+	if result.Skipped != 1 {
+		t.Errorf("expected Skipped=1, got %d", result.Skipped)
+	}
+	if result.Failed != 0 {
+		t.Errorf("expected Failed=0, got %d", result.Failed)
 	}
 	// GetUpload should not have been called for blob URLs
 	if len(mock.getUploadCalls) != 0 {

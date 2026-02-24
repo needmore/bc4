@@ -101,13 +101,14 @@ func DownloadFromSources(
 		extractResult, err := attachments.TryExtractUploadID(&ta.att)
 		if err != nil {
 			if extractResult != nil && extractResult.IsBlobURL {
-				fmt.Println("  ✗ Cannot download via API: This attachment uses a browser-only URL")
+				fmt.Println("  ⚠ Skipped (browser-only URL, cannot download via API)")
 				fmt.Printf("    URL: %s\n", extractResult.BlobURL)
 				fmt.Println("    Tip: Open this URL in your browser while logged into Basecamp to download")
+				result.Skipped++
 			} else {
 				fmt.Printf("  ✗ Failed: %v\n", err)
+				result.Failed++
 			}
-			result.Failed++
 			continue
 		}
 
@@ -156,6 +157,9 @@ func DownloadFromSources(
 	fmt.Println()
 	if result.Successful > 0 {
 		fmt.Printf("Successfully downloaded: %d/%d attachments\n", result.Successful, result.Total)
+	}
+	if result.Skipped > 0 {
+		fmt.Printf("Skipped: %d attachments\n", result.Skipped)
 	}
 	if result.Failed > 0 {
 		fmt.Printf("Failed: %d attachments\n", result.Failed)
