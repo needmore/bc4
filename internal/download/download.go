@@ -77,6 +77,7 @@ func DownloadFromSources(
 
 	multiSource := len(sources) > 1
 	result := &Result{Total: len(allAtts)}
+	usedNames := make(map[string]int) // track filenames to avoid collisions
 
 	for i, ta := range allAtts {
 		displayIndex := i + 1
@@ -118,8 +119,14 @@ func DownloadFromSources(
 			continue
 		}
 
-		// Sanitize filename for filesystem safety
+		// Sanitize filename for filesystem safety and deduplicate
 		filename := SanitizeFilename(upload.Filename)
+		usedNames[filename]++
+		if usedNames[filename] > 1 {
+			ext := filepath.Ext(filename)
+			base := strings.TrimSuffix(filename, ext)
+			filename = fmt.Sprintf("%s_%d%s", base, usedNames[filename]-1, ext)
+		}
 		destPath := filepath.Join(outputDir, filename)
 
 		// Check if file exists
@@ -181,7 +188,36 @@ func SanitizeFilename(filename string) string {
 		cleaned = "attachment"
 	}
 
+	// Avoid Windows-reserved device names (CON, PRN, AUX, NUL, COM1-9, LPT1-9).
+	base := cleaned
+	if dot := strings.IndexRune(base, '.'); dot != -1 {
+		base = base[:dot]
+	}
+	if isWindowsReservedName(base) {
+		cleaned = "_" + cleaned
+	}
+
 	return cleaned
+}
+
+// isWindowsReservedName reports whether name (without extension) is a
+// Windows-reserved device filename.
+func isWindowsReservedName(name string) bool {
+	upper := strings.ToUpper(strings.TrimSpace(name))
+	if upper == "" {
+		return false
+	}
+	switch upper {
+	case "CON", "PRN", "AUX", "NUL":
+		return true
+	}
+	if len(upper) == 4 && (strings.HasPrefix(upper, "COM") || strings.HasPrefix(upper, "LPT")) {
+		d := upper[3]
+		if d >= '1' && d <= '9' {
+			return true
+		}
+	}
+	return false
 }
 
 // FormatByteSize formats a byte size in a human-readable format.

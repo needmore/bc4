@@ -404,11 +404,18 @@ func TestDownloadFromSources_DefaultOutputDir(t *testing.T) {
 
 	// Use a temp dir as working directory to avoid polluting the repo
 	tmpDir := t.TempDir()
-	origDir, _ := os.Getwd()
+	origDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get working directory: %v", err)
+	}
 	if err := os.Chdir(tmpDir); err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = os.Chdir(origDir) }()
+	t.Cleanup(func() {
+		if err := os.Chdir(origDir); err != nil {
+			t.Fatalf("failed to restore working directory: %v", err)
+		}
+	})
 
 	result, err := DownloadFromSources(context.Background(), mock, "bucket1", sources, Options{
 		OutputDir: "", // should default to "."
@@ -458,6 +465,38 @@ func TestDownloadFromSources_AttachmentIndexAcrossMultipleSources(t *testing.T) 
 	}
 }
 
+func TestDownloadFromSources_DuplicateFilenames(t *testing.T) {
+	tmpDir := t.TempDir()
+	mock := &mockUploadOps{
+		uploads: map[int64]*api.Upload{
+			100: {ID: 100, Filename: "image.png", ByteSize: 1024, DownloadURL: "https://example.com/dl/100"},
+			200: {ID: 200, Filename: "image.png", ByteSize: 2048, DownloadURL: "https://example.com/dl/200"},
+		},
+	}
+	sources := []AttachmentSource{
+		{Label: "card", Content: htmlWithUploadAttachment(100, "image.png")},
+		{Label: "comment #1 by Bob", Content: htmlWithUploadAttachment(200, "image.png")},
+	}
+
+	result, err := DownloadFromSources(context.Background(), mock, "bucket1", sources, Options{
+		OutputDir: tmpDir,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Successful != 2 {
+		t.Errorf("expected Successful=2, got %d", result.Successful)
+	}
+
+	// Both files should exist with different names
+	if _, err := os.Stat(filepath.Join(tmpDir, "image.png")); os.IsNotExist(err) {
+		t.Error("expected image.png to exist")
+	}
+	if _, err := os.Stat(filepath.Join(tmpDir, "image_1.png")); os.IsNotExist(err) {
+		t.Error("expected image_1.png to exist (deduplicated)")
+	}
+}
+
 func TestSanitizeFilename(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -474,6 +513,15 @@ func TestSanitizeFilename(t *testing.T) {
 		{"double dot", "..", "attachment"},
 		{"spaces preserved", "my file.txt", "my file.txt"},
 		{"unicode preserved", "日本語.pdf", "日本語.pdf"},
+		{"windows reserved CON", "CON", "_CON"},
+		{"windows reserved CON.txt", "CON.txt", "_CON.txt"},
+		{"windows reserved PRN", "PRN", "_PRN"},
+		{"windows reserved NUL", "NUL", "_NUL"},
+		{"windows reserved COM1", "COM1", "_COM1"},
+		{"windows reserved LPT1.log", "LPT1.log", "_LPT1.log"},
+		{"windows reserved lowercase", "con.txt", "_con.txt"},
+		{"not reserved COM0", "COM0", "COM0"},
+		{"not reserved CONNECT", "CONNECT.pdf", "CONNECT.pdf"},
 	}
 
 	for _, tt := range tests {
