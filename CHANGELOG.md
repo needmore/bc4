@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-02-24
+
 ### Added
 - `comment download-attachments` command for downloading attachments from comments
 - `document download-attachments` command for downloading attachments from documents
@@ -15,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Refactored download logic into shared `internal/download` package, reducing code duplication
+
+Thanks to [@brianevanmiller](https://github.com/brianevanmiller) for contributing this release.
 
 ## [0.13.0] - 2026-01-19
 
