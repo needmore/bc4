@@ -1,4 +1,4 @@
-package message
+package document
 
 import (
 	"fmt"
@@ -20,34 +20,34 @@ func newDownloadAttachmentsCmd(f *factory.Factory) *cobra.Command {
 	var includeComments bool
 
 	cmd := &cobra.Command{
-		Use:   "download-attachments [message-id or URL]",
-		Short: "Download attachments from a message",
-		Long: `Download all attachments (images and files) from a message to local files.
+		Use:   "download-attachments [document-id or URL]",
+		Short: "Download attachments from a document",
+		Long: `Download all attachments (images and files) from a document to local files.
 
 This command fetches attachment metadata from the Basecamp API and downloads
 the actual files using OAuth authentication. You can download all attachments
 or select specific ones.
 
-You can specify the message using either:
+You can specify the document using either:
 - A numeric ID (e.g., "12345")
-- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/messages/12345")`,
-		Example: `  # Download all attachments from a message
-  bc4 message download-attachments 123456
+- A Basecamp URL (e.g., "https://3.basecamp.com/1234567/buckets/89012345/documents/12345")`,
+		Example: `  # Download all attachments from a document
+  bc4 document download-attachments 123456
 
   # Download to specific directory
-  bc4 message download-attachments 123456 --output-dir ~/Downloads
+  bc4 document download-attachments 123456 --output-dir ~/Downloads
 
   # Download only the first attachment
-  bc4 message download-attachments 123456 --attachment 1
+  bc4 document download-attachments 123456 --attachment 1
 
   # Overwrite existing files
-  bc4 message download-attachments 123456 --overwrite
+  bc4 document download-attachments 123456 --overwrite
 
   # Include attachments from comments
-  bc4 message download-attachments 123456 --include-comments
+  bc4 document download-attachments 123456 --include-comments
 
   # Using Basecamp URL
-  bc4 message download-attachments https://3.basecamp.com/123/buckets/456/messages/789`,
+  bc4 document download-attachments https://3.basecamp.com/123/buckets/456/documents/789`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if accountID != "" {
@@ -57,15 +57,15 @@ You can specify the message using either:
 				f = f.WithProject(projectID)
 			}
 
-			messageID, parsedURL, err := parser.ParseArgument(args[0])
+			documentID, parsedURL, err := parser.ParseArgument(args[0])
 			if err != nil {
-				return fmt.Errorf("invalid message ID or URL: %s", args[0])
+				return fmt.Errorf("invalid document ID or URL: %s", args[0])
 			}
 
 			var bucketID string
 			if parsedURL != nil {
-				if parsedURL.ResourceType != parser.ResourceTypeMessage {
-					return fmt.Errorf("URL is not for a message: %s", args[0])
+				if parsedURL.ResourceType != parser.ResourceTypeDocument {
+					return fmt.Errorf("URL is not for a document: %s", args[0])
 				}
 				if parsedURL.AccountID > 0 {
 					f = f.WithAccount(strconv.FormatInt(parsedURL.AccountID, 10))
@@ -90,17 +90,17 @@ You can specify the message using either:
 				bucketID = resolvedProjectID
 			}
 
-			message, err := client.GetMessage(f.Context(), resolvedProjectID, messageID)
+			document, err := client.GetDocument(f.Context(), resolvedProjectID, documentID)
 			if err != nil {
-				return fmt.Errorf("failed to get message: %w", err)
+				return fmt.Errorf("failed to get document: %w", err)
 			}
 
 			sources := []download.AttachmentSource{
-				{Label: "message", Content: message.Content},
+				{Label: "document", Content: document.Content},
 			}
 
 			if includeComments {
-				comments, err := client.ListComments(f.Context(), resolvedProjectID, message.ID)
+				comments, err := client.ListComments(f.Context(), resolvedProjectID, document.ID)
 				if err != nil {
 					return fmt.Errorf("failed to fetch comments: %w", err)
 				}
@@ -126,7 +126,7 @@ You can specify the message using either:
 	cmd.Flags().StringVarP(&outputDir, "output-dir", "o", "", "Directory to save attachments (default: current directory)")
 	cmd.Flags().BoolVar(&overwrite, "overwrite", false, "Overwrite existing files without prompting")
 	cmd.Flags().IntVar(&attachmentIndex, "attachment", 0, "Download only specified attachment (1-based index)")
-	cmd.Flags().BoolVar(&includeComments, "include-comments", false, "Also download attachments from comments on this message")
+	cmd.Flags().BoolVar(&includeComments, "include-comments", false, "Also download attachments from comments on this document")
 
 	return cmd
 }
