@@ -13,6 +13,7 @@ import (
 	"github.com/needmore/bc4/internal/cmdutil"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
+	"github.com/needmore/bc4/internal/mentions"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
@@ -187,6 +188,10 @@ func runEdit(f *factory.Factory, opts *editOptions, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to convert title: %w", err)
 		}
+		richTitle, err = mentions.Resolve(f.Context(), richTitle, client.Client, resolvedProjectID)
+		if err != nil {
+			return fmt.Errorf("failed to resolve mentions: %w", err)
+		}
 		req.Content = richTitle
 	}
 
@@ -195,6 +200,10 @@ func runEdit(f *factory.Factory, opts *editOptions, args []string) error {
 		richDescription, err := converter.MarkdownToRichText(opts.description)
 		if err != nil {
 			return fmt.Errorf("failed to convert description: %w", err)
+		}
+		richDescription, err = mentions.Resolve(f.Context(), richDescription, client.Client, resolvedProjectID)
+		if err != nil {
+			return fmt.Errorf("failed to resolve mentions: %w", err)
 		}
 		req.Description = richDescription
 	}
