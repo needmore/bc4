@@ -22,19 +22,19 @@ var mentionRe = regexp.MustCompile(`(?:^|[>\s])(@[\w]+(?:\.[\w]+)*)`)
 // Supports @FirstName and @First.Last syntax. Returns the content
 // unchanged if no mentions are found.
 func Resolve(ctx context.Context, richContent string, client api.APIClient, projectID string) (string, error) {
-	submatches := mentionRe.FindAllStringSubmatch(richContent, -1)
-	if len(submatches) == 0 {
+	indexMatches := mentionRe.FindAllStringSubmatchIndex(richContent, -1)
+	if len(indexMatches) == 0 {
 		return richContent, nil
 	}
 
 	resolver := utils.NewUserResolver(client, projectID)
 
 	// Extract capture group (the @mention) and convert @First.Last to "First Last"
-	mentions := make([]string, len(submatches))
-	identifiers := make([]string, len(submatches))
-	for i, sm := range submatches {
-		mentions[i] = sm[1]
-		identifiers[i] = strings.ReplaceAll(strings.TrimPrefix(sm[1], "@"), ".", " ")
+	identifiers := make([]string, len(indexMatches))
+	for i, loc := range indexMatches {
+		// loc[2]:loc[3] is the capture group (the @mention)
+		mention := richContent[loc[2]:loc[3]]
+		identifiers[i] = strings.ReplaceAll(strings.TrimPrefix(mention, "@"), ".", " ")
 	}
 
 	people, err := resolver.ResolvePeople(ctx, identifiers)
@@ -42,9 +42,10 @@ func Resolve(ctx context.Context, richContent string, client api.APIClient, proj
 		return "", err
 	}
 
-	for i, match := range mentions {
+	// Replace from end to start so earlier indices remain valid
+	for i := len(indexMatches) - 1; i >= 0; i-- {
 		tag := attachments.BuildTag(people[i].AttachableSGID)
-		richContent = strings.Replace(richContent, match, tag, 1)
+		richContent = richContent[:indexMatches[i][2]] + tag + richContent[indexMatches[i][3]:]
 	}
 
 	return richContent, nil

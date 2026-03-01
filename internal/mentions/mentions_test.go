@@ -84,6 +84,12 @@ func TestResolve(t *testing.T) {
 			mockPeople: people,
 			expected:   `<p>Email me at john@example.com</p>`,
 		},
+		{
+			name:       "replaces correct occurrence by position",
+			content:    `<p>path/@John then @John</p>`,
+			mockPeople: people,
+			expected:   `<p>path/@John then <bc-attachment sgid="sgid-john"></bc-attachment></p>`,
+		},
 	}
 
 	for _, tt := range tests {

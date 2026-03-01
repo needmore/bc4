@@ -11,6 +11,7 @@ import (
 	"github.com/needmore/bc4/internal/api"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
+	"github.com/needmore/bc4/internal/mentions"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
 	"github.com/spf13/cobra"
@@ -132,6 +133,13 @@ You can provide updated content in several ways:
 				if err != nil {
 					return fmt.Errorf("failed to convert markdown: %w", err)
 				}
+
+				// Replace inline @Name mentions with bc-attachment tags
+				richContent, err = mentions.Resolve(f.Context(), richContent, client.Client, projectID)
+				if err != nil {
+					return fmt.Errorf("failed to resolve mentions: %w", err)
+				}
+
 				req.Content = richContent
 				hasUpdate = true
 			}
