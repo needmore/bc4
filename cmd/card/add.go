@@ -11,6 +11,7 @@ import (
 	"github.com/needmore/bc4/internal/attachments"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
+	"github.com/needmore/bc4/internal/mentions"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
@@ -172,6 +173,14 @@ can be attached by using the flag multiple times.`,
 					return fmt.Errorf("failed to convert description: %w", err)
 				}
 				richContent = rc
+			}
+
+			// Replace inline @Name mentions with bc-attachment tags
+			if richContent != "" {
+				richContent, err = mentions.Resolve(f.Context(), richContent, client.Client, resolvedProjectID)
+				if err != nil {
+					return fmt.Errorf("failed to resolve mentions: %w", err)
+				}
 			}
 
 			// Handle attachments

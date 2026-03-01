@@ -5,7 +5,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -14,13 +13,11 @@ import (
 	"github.com/needmore/bc4/internal/attachments"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
+	"github.com/needmore/bc4/internal/mentions"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/ui"
-	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
-
-var mentionRe = regexp.MustCompile(`(?:^|[>\s])(@[\w]+(?:\.[\w]+)*)`)
 
 func newCreateCmd(f *factory.Factory) *cobra.Command {
 	var content string
@@ -126,25 +123,9 @@ You can provide comment content in several ways:
 			}
 
 			// Replace inline @Name mentions with bc-attachment tags
-			// Supports @FirstName and @First.Last for disambiguation
-			submatches := mentionRe.FindAllStringSubmatch(richContent, -1)
-			if len(submatches) > 0 {
-				resolver := utils.NewUserResolver(client.Client, projectID)
-				// Extract capture group (the @mention) and convert @First.Last to "First Last"
-				mentions := make([]string, len(submatches))
-				identifiers := make([]string, len(submatches))
-				for i, sm := range submatches {
-					mentions[i] = sm[1]
-					identifiers[i] = strings.ReplaceAll(strings.TrimPrefix(sm[1], "@"), ".", " ")
-				}
-				people, err := resolver.ResolvePeople(f.Context(), identifiers)
-				if err != nil {
-					return fmt.Errorf("failed to resolve mentions: %w", err)
-				}
-				for i, match := range mentions {
-					tag := attachments.BuildTag(people[i].AttachableSGID)
-					richContent = strings.Replace(richContent, match, tag, 1)
-				}
+			richContent, err = mentions.Resolve(f.Context(), richContent, client.Client, projectID)
+			if err != nil {
+				return fmt.Errorf("failed to resolve mentions: %w", err)
 			}
 
 			// Attach file if provided

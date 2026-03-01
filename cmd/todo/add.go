@@ -11,6 +11,7 @@ import (
 	"github.com/needmore/bc4/internal/attachments"
 	"github.com/needmore/bc4/internal/factory"
 	"github.com/needmore/bc4/internal/markdown"
+	"github.com/needmore/bc4/internal/mentions"
 	"github.com/needmore/bc4/internal/parser"
 	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
@@ -229,6 +230,18 @@ func runAdd(f *factory.Factory, opts *addOptions, args []string) error {
 		richDescription, err = converter.MarkdownToRichText(description)
 		if err != nil {
 			return fmt.Errorf("failed to convert description: %w", err)
+		}
+	}
+
+	// Replace inline @Name mentions with bc-attachment tags
+	richTitle, err = mentions.Resolve(f.Context(), richTitle, client.Client, resolvedProjectID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve mentions: %w", err)
+	}
+	if richDescription != "" {
+		richDescription, err = mentions.Resolve(f.Context(), richDescription, client.Client, resolvedProjectID)
+		if err != nil {
+			return fmt.Errorf("failed to resolve mentions: %w", err)
 		}
 	}
 
