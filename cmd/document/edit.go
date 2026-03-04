@@ -21,6 +21,7 @@ func newEditCmd(f *factory.Factory) *cobra.Command {
 	var (
 		title   string
 		content string
+		rawHTML bool
 	)
 
 	cmd := &cobra.Command{
@@ -31,7 +32,12 @@ func newEditCmd(f *factory.Factory) *cobra.Command {
 You can provide updated content in several ways:
   - Interactively (default)
   - Via --content flag
-  - Via stdin: cat updated.md | bc4 document edit [document-id]`,
+  - Via stdin: cat updated.md | bc4 document edit [document-id]
+
+By default, content is treated as Markdown and converted to Basecamp's rich
+text format. Use --raw-html to send pre-formatted HTML directly to the API
+(useful when content already contains Basecamp-compatible HTML, e.g. output
+from other tools or a previous bc4 document view --json).`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Get API client from factory
@@ -127,11 +133,23 @@ You can provide updated content in several ways:
 			}
 
 			if content != "" {
-				// Convert markdown to rich text
 				converter := markdown.NewConverter()
-				richContent, err := converter.MarkdownToRichText(content)
-				if err != nil {
-					return fmt.Errorf("failed to convert markdown: %w", err)
+				var richContent string
+
+				if rawHTML {
+					// Normalise (strip unsupported attributes) then validate
+					var err error
+					richContent, err = converter.NormalizeRichText(content)
+					if err != nil {
+						return fmt.Errorf("invalid HTML: %w", err)
+					}
+				} else {
+					// Convert markdown to rich text
+					var err error
+					richContent, err = converter.MarkdownToRichText(content)
+					if err != nil {
+						return fmt.Errorf("failed to convert markdown: %w", err)
+					}
 				}
 
 				// Replace inline @Name mentions with bc-attachment tags
@@ -168,6 +186,7 @@ You can provide updated content in several ways:
 
 	cmd.Flags().StringVarP(&title, "title", "t", "", "New document title")
 	cmd.Flags().StringVarP(&content, "content", "c", "", "New document content (markdown supported)")
+	cmd.Flags().BoolVar(&rawHTML, "raw-html", false, "Treat content as HTML instead of Markdown (must contain only Basecamp-supported tags)")
 
 	return cmd
 }
