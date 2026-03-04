@@ -95,6 +95,15 @@ func TestBasecampHTMLValidation(t *testing.T) {
 			shouldError: false,
 		},
 		{
+			// target and rel are stripped by NormalizeRichText, so ValidateBasecampHTML
+			// still rejects them — callers that need round-trip support should use
+			// NormalizeRichText instead of ValidateBasecampHTML directly.
+			name:        "link with target and rel fails validation",
+			html:        `<div>Visit <a href="https://example.com" target="_blank" rel="noreferrer">here</a></div>`,
+			shouldError: true,
+			errorMsg:    "unsupported attribute",
+		},
+		{
 			name:        "valid with lists",
 			html:        "<ul><li>Item 1</li><li>Item 2</li></ul>",
 			shouldError: false,
@@ -180,6 +189,44 @@ func TestComplexNesting(t *testing.T) {
 			result, err := converter.RichTextToMarkdown(richText)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, result)
+		})
+	}
+}
+
+// TestNormalizeRichText verifies that NormalizeRichText strips API-added
+// attributes (target, rel) before validation, allowing round-trip of content
+// returned by the Basecamp API.
+func TestNormalizeRichText(t *testing.T) {
+	converter := NewConverter()
+
+	tests := []struct {
+		name     string
+		input    string
+		wantErr  bool
+		wantHTML string
+	}{
+		{
+			name:     "strips target and rel from links",
+			input:    `<div>Visit <a href="https://example.com" target="_blank" rel="noreferrer">here</a></div>`,
+			wantErr:  false,
+			wantHTML: `<div>Visit <a href="https://example.com">here</a></div>`,
+		},
+		{
+			name:    "rejects truly unsupported tags after normalisation",
+			input:   `<div>Text with <video src="test.mp4"></video></div>`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := converter.NormalizeRichText(tt.input)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.wantHTML, result)
+			}
 		})
 	}
 }
