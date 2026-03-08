@@ -397,11 +397,18 @@ bc4 card edit https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/
 bc4 card move 12345 --column "In Progress"
 bc4 card move https://3.basecamp.com/1234567/buckets/89012345/card_tables/cards/12345 --column "Done"
 
-# Assign users to a card (by ID or URL)
-bc4 card assign 12345
+# Assign users to a card (by @mention, email, or name)
+bc4 card assign 12345 @jane
+bc4 card assign 12345 @jane @john
+bc4 card assign 12345 --assign user@example.com
 
 # Remove assignees from a card
-bc4 card unassign 12345
+bc4 card unassign 12345 @jane
+bc4 card unassign 12345 --unassign user@example.com
+
+# Edit a card's assignees (non-interactive)
+bc4 card edit 12345 --assign @jane
+bc4 card edit 12345 --unassign old@example.com
 
 # Archive a card
 bc4 card archive 12345
@@ -659,7 +666,7 @@ bc4 card move 45678 --column "Review"
 bc4 card move 45678 --column "Done"
 
 # Assign team members to cards
-bc4 card assign 45678    # Interactive assignee selector
+bc4 card assign 45678 @jane @john
 ```
 
 #### Working with URLs

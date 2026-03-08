@@ -200,12 +200,14 @@ func parseSince(s string) (time.Time, error) {
 		y, m, d := now.AddDate(0, 0, -1).Date()
 		return time.Date(y, m, d, 0, 0, 0, 0, now.Location()), nil
 	case "this week":
-		// Go to start of this week (Sunday)
+		// Go to start of this week (Sunday) at midnight
 		daysToSunday := int(now.Weekday())
-		return now.AddDate(0, 0, -daysToSunday), nil
+		y, m, d := now.AddDate(0, 0, -daysToSunday).Date()
+		return time.Date(y, m, d, 0, 0, 0, 0, now.Location()), nil
 	case "last week":
 		daysToSunday := int(now.Weekday())
-		return now.AddDate(0, 0, -daysToSunday-7), nil
+		y, m, d := now.AddDate(0, 0, -daysToSunday-7).Date()
+		return time.Date(y, m, d, 0, 0, 0, 0, now.Location()), nil
 	}
 
 	return time.Time{}, fmt.Errorf("unable to parse time: %s", s)

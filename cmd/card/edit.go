@@ -19,6 +19,7 @@ import (
 	"github.com/needmore/bc4/internal/markdown"
 	"github.com/needmore/bc4/internal/mentions"
 	"github.com/needmore/bc4/internal/parser"
+	"github.com/needmore/bc4/internal/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -365,7 +366,7 @@ func (m editModel) View() string {
 	return content
 }
 
-func updateCardNonInteractive(f *factory.Factory, client *api.Client, projectID string, cardID int64, title, content string, attach []string) error {
+func updateCardNonInteractive(f *factory.Factory, client *api.Client, projectID string, cardID int64, title, content string, attach, assign, unassign []string) error {
 	// Get current card
 	card, err := client.GetCard(f.Context(), projectID, cardID)
 	if err != nil {
@@ -417,11 +418,59 @@ func updateCardNonInteractive(f *factory.Factory, client *api.Client, projectID 
 		}
 	}
 
-	// Preserve assignees
+	// Start with existing assignees
 	assigneeIDs := make([]int64, 0, len(card.Assignees))
 	for _, a := range card.Assignees {
 		assigneeIDs = append(assigneeIDs, a.ID)
 	}
+
+	// Handle assignee changes
+	if len(assign) > 0 || len(unassign) > 0 {
+		userResolver := utils.NewUserResolver(client, projectID)
+
+		// Add new assignees
+		if len(assign) > 0 {
+			newIDs, err := userResolver.ResolveUsers(f.Context(), assign)
+			if err != nil {
+				return fmt.Errorf("failed to resolve assignees to add: %w", err)
+			}
+			for _, newID := range newIDs {
+				found := false
+				for _, existingID := range assigneeIDs {
+					if existingID == newID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					assigneeIDs = append(assigneeIDs, newID)
+				}
+			}
+		}
+
+		// Remove assignees
+		if len(unassign) > 0 {
+			removeIDs, err := userResolver.ResolveUsers(f.Context(), unassign)
+			if err != nil {
+				return fmt.Errorf("failed to resolve assignees to remove: %w", err)
+			}
+			filteredIDs := make([]int64, 0)
+			for _, existingID := range assigneeIDs {
+				shouldRemove := false
+				for _, removeID := range removeIDs {
+					if existingID == removeID {
+						shouldRemove = true
+						break
+					}
+				}
+				if !shouldRemove {
+					filteredIDs = append(filteredIDs, existingID)
+				}
+			}
+			assigneeIDs = filteredIDs
+		}
+	}
+
 	req.AssigneeIDs = assigneeIDs
 
 	// Update the card
@@ -438,6 +487,8 @@ func newEditCmd(f *factory.Factory) *cobra.Command {
 	var accountID string
 	var projectID string
 	var attach []string
+	var assign []string
+	var unassign []string
 
 	cmd := &cobra.Command{
 		Use:   "edit [ID or URL]",
@@ -461,7 +512,13 @@ the flag multiple times.`,
   bc4 card edit 12345 --attach ./screenshot.png
 
   # Add multiple attachments
-  bc4 card edit 12345 --attach ./photo1.jpg --attach ./photo2.jpg`,
+  bc4 card edit 12345 --attach ./photo1.jpg --attach ./photo2.jpg
+
+  # Assign someone to a card
+  bc4 card edit 12345 --assign @jane
+
+  # Remove someone from a card
+  bc4 card edit 12345 --unassign old@email.com`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Parse card ID (could be numeric ID or URL)
@@ -509,8 +566,8 @@ the flag multiple times.`,
 			interactive, _ := cmd.Flags().GetBool("interactive")
 
 			// If non-interactive mode with flags
-			if !interactive && (title != "" || content != "" || len(attach) > 0) {
-				return updateCardNonInteractive(f, client.Client, resolvedProjectID, cardID, title, content, attach)
+			if !interactive && (title != "" || content != "" || len(attach) > 0 || len(assign) > 0 || len(unassign) > 0) {
+				return updateCardNonInteractive(f, client.Client, resolvedProjectID, cardID, title, content, attach, assign, unassign)
 			}
 
 			// Interactive mode
@@ -564,6 +621,8 @@ the flag multiple times.`,
 	cmd.Flags().String("content", "", "New content for the card (Markdown supported)")
 	cmd.Flags().Bool("interactive", false, "Use interactive mode (default when no flags)")
 	cmd.Flags().StringSliceVar(&attach, "attach", nil, "Attach file(s) to the card (can be used multiple times)")
+	cmd.Flags().StringSliceVar(&assign, "assign", nil, "Add assignees (by email or @mention)")
+	cmd.Flags().StringSliceVar(&unassign, "unassign", nil, "Remove assignees (by email or @mention)")
 
 	return cmd
 }
