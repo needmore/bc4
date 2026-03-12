@@ -1,4 +1,6 @@
-# bc4 - Basecamp Command Line Interface
+# Archived!
+
+**Since there is now an official CLI at https://github.com/basecamp/basecamp-cli this project will no longer be maintained!**
 
 A powerful command-line interface for [Basecamp](https://basecamp.com/), strongly inspired by [GitHub CLI](https://github.com/cli/cli). Manage your projects, todos, cards, messages, chats, and more, directly from your terminal. Made by your friends at [Needmore Designs](https://needmoredesigns.com).
 
