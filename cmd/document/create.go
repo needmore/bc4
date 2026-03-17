@@ -20,6 +20,7 @@ func newCreateCmd(f *factory.Factory) *cobra.Command {
 		title   string
 		content string
 		draft   bool
+		rawHTML bool
 	)
 
 	cmd := &cobra.Command{
@@ -31,7 +32,10 @@ You can provide document content in several ways:
   - Interactively (default)
   - Via --content flag
   - Via stdin: echo "content" | bc4 document create [project] --title "Title"
-  - From file: cat document.md | bc4 document create [project] --title "Title"`,
+  - From file: cat document.md | bc4 document create [project] --title "Title"
+
+By default, content is treated as Markdown and converted to Basecamp's rich
+text format. Use --raw-html to send pre-formatted HTML directly to the API.`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Apply project override if specified
@@ -101,11 +105,24 @@ You can provide document content in several ways:
 				return fmt.Errorf("document content is required")
 			}
 
-			// Convert markdown to rich text
+			// Convert or validate content
 			converter := markdown.NewConverter()
-			richContent, err := converter.MarkdownToRichText(content)
-			if err != nil {
-				return fmt.Errorf("failed to convert markdown: %w", err)
+			var richContent string
+
+			if rawHTML {
+				// Normalise (strip unsupported attributes) then validate
+				var normErr error
+				richContent, normErr = converter.NormalizeRichText(content)
+				if normErr != nil {
+					return fmt.Errorf("invalid HTML: %w", normErr)
+				}
+			} else {
+				// Convert markdown to rich text
+				var err error
+				richContent, err = converter.MarkdownToRichText(content)
+				if err != nil {
+					return fmt.Errorf("failed to convert markdown: %w", err)
+				}
 			}
 
 			// Replace inline @Name mentions with bc-attachment tags
@@ -144,6 +161,7 @@ You can provide document content in several ways:
 	cmd.Flags().StringVarP(&title, "title", "t", "", "Document title")
 	cmd.Flags().StringVarP(&content, "content", "c", "", "Document content (markdown supported)")
 	cmd.Flags().BoolVarP(&draft, "draft", "d", false, "Create as draft")
+	cmd.Flags().BoolVar(&rawHTML, "raw-html", false, "Treat content as HTML instead of Markdown (must contain only Basecamp-supported tags)")
 
 	return cmd
 }

@@ -20,6 +20,10 @@ type Converter interface {
 	MarkdownToRichText(markdown string) (string, error)
 	RichTextToMarkdown(richtext string) (string, error)
 	ValidateBasecampHTML(html string) error
+	// NormalizeRichText strips attributes not accepted by the Basecamp API
+	// (e.g. target, rel on <a> tags that the API itself adds to returned content)
+	// and then validates the result. Use this when passing pre-formed HTML directly.
+	NormalizeRichText(html string) (string, error)
 }
 
 // converter implements the Converter interface
@@ -230,7 +234,7 @@ func (c *converter) cleanListFormatting(html string) string {
 	return html
 }
 
-// stripUnsupportedTags removes HTML tags not supported by Basecamp
+// stripUnsupportedTags removes HTML tags and attributes not supported by Basecamp
 func (c *converter) stripUnsupportedTags(html string) string {
 	// For now, just remove specific known unsupported tags
 	// Remove span tags
@@ -243,6 +247,12 @@ func (c *converter) stripUnsupportedTags(html string) string {
 
 	// Remove id attributes from headings (goldmark adds them)
 	html = regexp.MustCompile(` id="[^"]*"`).ReplaceAllString(html, "")
+
+	// Strip target and rel attributes from <a> tags: the Basecamp API returns links
+	// with target="_blank" rel="noreferrer", but the rich text spec only supports href.
+	// We normalise here so round-tripped content stays compliant.
+	html = regexp.MustCompile(` target="[^"]*"`).ReplaceAllString(html, "")
+	html = regexp.MustCompile(` rel="[^"]*"`).ReplaceAllString(html, "")
 
 	// Clean up "raw HTML omitted" messages
 	html = strings.ReplaceAll(html, "<!-- raw HTML omitted -->", "")
@@ -413,7 +423,7 @@ func (c *converter) ValidateBasecampHTML(html string) error {
 		}
 	}
 
-	// Check for unsupported attributes (only href is allowed on <a> tags)
+	// Check for unsupported attributes (only href is allowed on <a> tags per Basecamp docs)
 	// This is a simplified check - in a full implementation, you'd parse the HTML properly
 	attrRegex := regexp.MustCompile(`<a\s+[^>]*\s+(\w+)=`)
 	attrMatches := attrRegex.FindAllStringSubmatch(html, -1)
@@ -428,4 +438,16 @@ func (c *converter) ValidateBasecampHTML(html string) error {
 	}
 
 	return nil
+}
+
+// NormalizeRichText strips attributes not accepted by the Basecamp API from
+// pre-formed HTML, then validates the result. This is useful when round-tripping
+// content returned by the API (which adds target="_blank" rel="noreferrer" to
+// links) back into a create or edit request.
+func (c *converter) NormalizeRichText(html string) (string, error) {
+	normalized := c.stripUnsupportedTags(html)
+	if err := c.ValidateBasecampHTML(normalized); err != nil {
+		return "", err
+	}
+	return normalized, nil
 }
